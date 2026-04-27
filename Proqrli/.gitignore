@@ -1,0 +1,23 @@
+# Visual Studio
+.vs/
+*.user
+*.suo
+
+# Build outputs
+bin/
+obj/
+
+# Logs
+*.log
+
+# NuGet
+*.nupkg
+packages/
+
+# Node (if frontend exists)
+node_modules/
+dist/
+
+# OS files
+.DS_Store
+Thumbs.db

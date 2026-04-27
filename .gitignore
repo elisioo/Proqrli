@@ -1,23 +1,21 @@
 # Visual Studio
 .vs/
+Proqrli/.vs/
+bin/
+obj/
 *.user
 *.suo
 
-# Build outputs
-bin/
-obj/
+# ASP.NET publish/build
+publish/
 
-# Logs
-*.log
+# Zips (IMPORTANT)
+*.zip
 
-# NuGet
-*.nupkg
-packages/
+# Frontend
+Proqrli/frontend/node_modules/
+Proqrli/frontend/dist/
 
-# Node (if frontend exists)
-node_modules/
-dist/
-
-# OS files
+# OS
 .DS_Store
 Thumbs.db

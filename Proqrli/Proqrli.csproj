@@ -1,0 +1,143 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>aspnet-Proqrli-b52b53eb-2504-41b6-a7e4-fb22165c03cb</UserSecretsId>
+    <NuGetAuditLevel>moderate</NuGetAuditLevel>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Content Include="frontend\.gitignore" />
+    <Content Include="frontend\.prettierignore" />
+    <Content Include="frontend\.prettierrc" />
+    <Content Include="frontend\bun.lockb" />
+    <Content Include="frontend\bunfig.toml" />
+    <Content Include="frontend\eslint.config.js" />
+    <Content Include="frontend\src\assets\logos\logo.png" />
+    <Content Include="frontend\src\components\BuyerPermissionGate.tsx" />
+    <Content Include="frontend\src\components\buyer\BuyerSidebar.tsx" />
+    <Content Include="frontend\src\components\buyer\BuyerTopbar.tsx" />
+    <Content Include="frontend\src\components\PageHeader.tsx" />
+    <Content Include="frontend\src\components\PermissionGate.tsx" />
+    <Content Include="frontend\src\components\StatCard.tsx" />
+    <Content Include="frontend\src\components\StatusPill.tsx" />
+    <Content Include="frontend\src\components\ui\accordion.tsx" />
+    <Content Include="frontend\src\components\ui\alert-dialog.tsx" />
+    <Content Include="frontend\src\components\ui\alert.tsx" />
+    <Content Include="frontend\src\components\ui\aspect-ratio.tsx" />
+    <Content Include="frontend\src\components\ui\avatar.tsx" />
+    <Content Include="frontend\src\components\ui\badge.tsx" />
+    <Content Include="frontend\src\components\ui\breadcrumb.tsx" />
+    <Content Include="frontend\src\components\ui\button.tsx" />
+    <Content Include="frontend\src\components\ui\calendar.tsx" />
+    <Content Include="frontend\src\components\ui\card.tsx" />
+    <Content Include="frontend\src\components\ui\carousel.tsx" />
+    <Content Include="frontend\src\components\ui\chart.tsx" />
+    <Content Include="frontend\src\components\ui\checkbox.tsx" />
+    <Content Include="frontend\src\components\ui\collapsible.tsx" />
+    <Content Include="frontend\src\components\ui\command.tsx" />
+    <Content Include="frontend\src\components\ui\context-menu.tsx" />
+    <Content Include="frontend\src\components\ui\dialog.tsx" />
+    <Content Include="frontend\src\components\ui\drawer.tsx" />
+    <Content Include="frontend\src\components\ui\dropdown-menu.tsx" />
+    <Content Include="frontend\src\components\ui\form.tsx" />
+    <Content Include="frontend\src\components\ui\hover-card.tsx" />
+    <Content Include="frontend\src\components\ui\input-otp.tsx" />
+    <Content Include="frontend\src\components\ui\input.tsx" />
+    <Content Include="frontend\src\components\ui\label.tsx" />
+    <Content Include="frontend\src\components\ui\menubar.tsx" />
+    <Content Include="frontend\src\components\ui\navigation-menu.tsx" />
+    <Content Include="frontend\src\components\ui\pagination.tsx" />
+    <Content Include="frontend\src\components\ui\popover.tsx" />
+    <Content Include="frontend\src\components\ui\progress.tsx" />
+    <Content Include="frontend\src\components\ui\radio-group.tsx" />
+    <Content Include="frontend\src\components\ui\resizable.tsx" />
+    <Content Include="frontend\src\components\ui\scroll-area.tsx" />
+    <Content Include="frontend\src\components\ui\select.tsx" />
+    <Content Include="frontend\src\components\ui\separator.tsx" />
+    <Content Include="frontend\src\components\ui\sheet.tsx" />
+    <Content Include="frontend\src\components\ui\sidebar.tsx" />
+    <Content Include="frontend\src\components\ui\skeleton.tsx" />
+    <Content Include="frontend\src\components\ui\slider.tsx" />
+    <Content Include="frontend\src\components\ui\sonner.tsx" />
+    <Content Include="frontend\src\components\ui\switch.tsx" />
+    <Content Include="frontend\src\components\ui\table.tsx" />
+    <Content Include="frontend\src\components\ui\tabs.tsx" />
+    <Content Include="frontend\src\components\ui\textarea.tsx" />
+    <Content Include="frontend\src\components\ui\toggle-group.tsx" />
+    <Content Include="frontend\src\components\ui\toggle.tsx" />
+    <Content Include="frontend\src\components\ui\tooltip.tsx" />
+    <Content Include="frontend\src\components\vendor\VendorSidebar.tsx" />
+    <Content Include="frontend\src\components\vendor\VendorTopbar.tsx" />
+    <Content Include="frontend\src\hooks\use-mobile.tsx" />
+    <Content Include="frontend\src\lib\buyer-context.tsx" />
+    <Content Include="frontend\src\lib\buyer-mock-data.ts" />
+    <Content Include="frontend\src\lib\color-utils.ts" />
+    <Content Include="frontend\src\lib\mock-data.ts" />
+    <Content Include="frontend\src\lib\themes.ts" />
+    <Content Include="frontend\src\lib\utils.ts" />
+    <Content Include="frontend\src\lib\vendor-context.tsx" />
+    <Content Include="frontend\src\router.tsx" />
+    <Content Include="frontend\src\routes\buyer.bills.tsx" />
+    <Content Include="frontend\src\routes\buyer.index.tsx" />
+    <Content Include="frontend\src\routes\buyer.inventory.tsx" />
+    <Content Include="frontend\src\routes\buyer.marketplace.tsx" />
+    <Content Include="frontend\src\routes\buyer.messages.tsx" />
+    <Content Include="frontend\src\routes\buyer.payments.tsx" />
+    <Content Include="frontend\src\routes\buyer.purchase-orders.tsx" />
+    <Content Include="frontend\src\routes\buyer.quotations.tsx" />
+    <Content Include="frontend\src\routes\buyer.receipts.tsx" />
+    <Content Include="frontend\src\routes\buyer.requisitions.tsx" />
+    <Content Include="frontend\src\routes\buyer.rfqs.%24rfqId.tsx" />
+    <Content Include="frontend\src\routes\buyer.rfqs.tsx" />
+    <Content Include="frontend\src\routes\buyer.risk.tsx" />
+    <Content Include="frontend\src\routes\buyer.settings.tsx" />
+    <Content Include="frontend\src\routes\buyer.tsx" />
+    <Content Include="frontend\src\routes\buyer.vendors.tsx" />
+    <Content Include="frontend\src\routes\index.tsx" />
+    <Content Include="frontend\src\routes\login.tsx" />
+    <Content Include="frontend\src\routes\onboarding.tsx" />
+    <Content Include="frontend\src\routes\register.tsx" />
+    <Content Include="frontend\src\routes\vendor.buyers.tsx" />
+    <Content Include="frontend\src\routes\vendor.compliance.tsx" />
+    <Content Include="frontend\src\routes\vendor.deliveries.tsx" />
+    <Content Include="frontend\src\routes\vendor.index.tsx" />
+    <Content Include="frontend\src\routes\vendor.invoices.tsx" />
+    <Content Include="frontend\src\routes\vendor.messages.tsx" />
+    <Content Include="frontend\src\routes\vendor.orders.tsx" />
+    <Content Include="frontend\src\routes\vendor.payouts.tsx" />
+    <Content Include="frontend\src\routes\vendor.products.tsx" />
+    <Content Include="frontend\src\routes\vendor.purchase-orders.tsx" />
+    <Content Include="frontend\src\routes\vendor.reviews.tsx" />
+    <Content Include="frontend\src\routes\vendor.rfqs.%24rfqId.tsx" />
+    <Content Include="frontend\src\routes\vendor.rfqs.tsx" />
+    <Content Include="frontend\src\routes\vendor.settings.tsx" />
+    <Content Include="frontend\src\routes\vendor.storefront.tsx" />
+    <Content Include="frontend\src\routes\vendor.tsx" />
+    <Content Include="frontend\src\routes\__root.tsx" />
+    <Content Include="frontend\src\routeTree.gen.ts" />
+    <Content Include="frontend\src\styles.css" />
+    <Content Include="frontend\vite.config.ts" />
+    <Content Include="frontend\wrangler.jsonc" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore" Version="10.0.7" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.7" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity.UI" Version="10.0.7" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.7">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.2" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.5" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="10.0.7">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="10.0.2" />
+  </ItemGroup>
+
+</Project>

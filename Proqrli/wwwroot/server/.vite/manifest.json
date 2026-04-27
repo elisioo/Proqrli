@@ -1,0 +1,1147 @@
+{
+  "%23tanstack-start-plugin-adapters": {
+    "file": "assets/__23tanstack-start-plugin-adapters.js",
+    "name": "__23tanstack-start-plugin-adapters",
+    "src": "%23tanstack-start-plugin-adapters",
+    "isDynamicEntry": true
+  },
+  "C:/Users/eblan/source/repos/Proqrli/Proqrli/frontend/src/styles.css": {
+    "file": "assets/styles.css",
+    "src": "C:/Users/eblan/source/repos/Proqrli/Proqrli/frontend/src/styles.css"
+  },
+  "_AreaChart.js": {
+    "file": "assets/AreaChart.js",
+    "name": "AreaChart",
+    "imports": [
+      "_createLucideIcon.js",
+      "_utils.js",
+      "_worker-entry.js"
+    ]
+  },
+  "_BuyerPermissionGate.js": {
+    "file": "assets/BuyerPermissionGate.js",
+    "name": "BuyerPermissionGate",
+    "imports": [
+      "_worker-entry.js",
+      "_buyer-context.js",
+      "_lock.js"
+    ]
+  },
+  "_PageHeader.js": {
+    "file": "assets/PageHeader.js",
+    "name": "PageHeader",
+    "imports": [
+      "_worker-entry.js",
+      "_utils.js"
+    ]
+  },
+  "_PermissionGate.js": {
+    "file": "assets/PermissionGate.js",
+    "name": "PermissionGate",
+    "imports": [
+      "_worker-entry.js",
+      "_vendor-context.js",
+      "_lock.js"
+    ]
+  },
+  "_StatCard.js": {
+    "file": "assets/StatCard.js",
+    "name": "StatCard",
+    "imports": [
+      "_worker-entry.js",
+      "_utils.js"
+    ]
+  },
+  "_StatusPill.js": {
+    "file": "assets/StatusPill.js",
+    "name": "StatusPill",
+    "imports": [
+      "_worker-entry.js",
+      "_utils.js"
+    ]
+  },
+  "_arrow-left.js": {
+    "file": "assets/arrow-left.js",
+    "name": "arrow-left",
+    "imports": [
+      "_createLucideIcon.js"
+    ]
+  },
+  "_arrow-right.js": {
+    "file": "assets/arrow-right.js",
+    "name": "arrow-right",
+    "imports": [
+      "_createLucideIcon.js"
+    ]
+  },
+  "_award.js": {
+    "file": "assets/award.js",
+    "name": "award",
+    "imports": [
+      "_createLucideIcon.js"
+    ]
+  },
+  "_boxes.js": {
+    "file": "assets/boxes.js",
+    "name": "boxes",
+    "imports": [
+      "_createLucideIcon.js"
+    ]
+  },
+  "_buyer-context.js": {
+    "file": "assets/buyer-context.js",
+    "name": "buyer-context",
+    "imports": [
+      "_worker-entry.js",
+      "_router.js",
+      "_color-utils.js"
+    ]
+  },
+  "_calendar.js": {
+    "file": "assets/calendar.js",
+    "name": "calendar",
+    "imports": [
+      "_createLucideIcon.js"
+    ]
+  },
+  "_check.js": {
+    "file": "assets/check.js",
+    "name": "check",
+    "imports": [
+      "_createLucideIcon.js"
+    ]
+  },
+  "_chevron-right.js": {
+    "file": "assets/chevron-right.js",
+    "name": "chevron-right",
+    "imports": [
+      "_createLucideIcon.js"
+    ]
+  },
+  "_circle-alert.js": {
+    "file": "assets/circle-alert.js",
+    "name": "circle-alert",
+    "imports": [
+      "_createLucideIcon.js"
+    ]
+  },
+  "_circle-check.js": {
+    "file": "assets/circle-check.js",
+    "name": "circle-check",
+    "imports": [
+      "_createLucideIcon.js"
+    ]
+  },
+  "_clipboard-list.js": {
+    "file": "assets/clipboard-list.js",
+    "name": "clipboard-list",
+    "imports": [
+      "_createLucideIcon.js"
+    ]
+  },
+  "_clock.js": {
+    "file": "assets/clock.js",
+    "name": "clock",
+    "imports": [
+      "_createLucideIcon.js"
+    ]
+  },
+  "_color-utils.js": {
+    "file": "assets/color-utils.js",
+    "name": "color-utils"
+  },
+  "_createLucideIcon.js": {
+    "file": "assets/createLucideIcon.js",
+    "name": "createLucideIcon",
+    "imports": [
+      "_worker-entry.js"
+    ]
+  },
+  "_file-text.js": {
+    "file": "assets/file-text.js",
+    "name": "file-text",
+    "imports": [
+      "_createLucideIcon.js"
+    ]
+  },
+  "_index3.js": {
+    "file": "assets/index3.js",
+    "name": "index",
+    "imports": [
+      "_worker-entry.js",
+      "_router.js"
+    ]
+  },
+  "_lock.js": {
+    "file": "assets/lock.js",
+    "name": "lock",
+    "imports": [
+      "_createLucideIcon.js"
+    ]
+  },
+  "_logo.js": {
+    "file": "assets/logo.js",
+    "name": "logo",
+    "assets": [
+      "assets/logo.png"
+    ]
+  },
+  "_package.js": {
+    "file": "assets/package.js",
+    "name": "package",
+    "imports": [
+      "_createLucideIcon.js"
+    ]
+  },
+  "_pin.js": {
+    "file": "assets/pin.js",
+    "name": "pin",
+    "imports": [
+      "_createLucideIcon.js"
+    ]
+  },
+  "_receipt.js": {
+    "file": "assets/receipt.js",
+    "name": "receipt",
+    "imports": [
+      "_createLucideIcon.js"
+    ]
+  },
+  "_router.js": {
+    "file": "assets/router.js",
+    "name": "router",
+    "isDynamicEntry": true,
+    "imports": [
+      "_worker-entry.js"
+    ],
+    "dynamicImports": [
+      "src/routes/vendor.tsx?tsr-split=component",
+      "src/routes/register.tsx?tsr-split=component",
+      "src/routes/onboarding.tsx?tsr-split=component",
+      "src/routes/login.tsx?tsr-split=component",
+      "src/routes/buyer.tsx?tsr-split=component",
+      "src/routes/index.tsx?tsr-split=component",
+      "src/routes/vendor.index.tsx?tsr-split=component",
+      "src/routes/buyer.index.tsx?tsr-split=component",
+      "src/routes/vendor.storefront.tsx?tsr-split=component",
+      "src/routes/vendor.settings.tsx?tsr-split=component",
+      "src/routes/vendor.rfqs.tsx?tsr-split=component",
+      "src/routes/vendor.reviews.tsx?tsr-split=component",
+      "src/routes/vendor.purchase-orders.tsx?tsr-split=component",
+      "src/routes/vendor.products.tsx?tsr-split=component",
+      "src/routes/vendor.payouts.tsx?tsr-split=component",
+      "src/routes/vendor.orders.tsx?tsr-split=component",
+      "src/routes/vendor.messages.tsx?tsr-split=component",
+      "src/routes/vendor.invoices.tsx?tsr-split=component",
+      "src/routes/vendor.deliveries.tsx?tsr-split=component",
+      "src/routes/vendor.compliance.tsx?tsr-split=component",
+      "src/routes/vendor.buyers.tsx?tsr-split=component",
+      "src/routes/buyer.vendors.tsx?tsr-split=component",
+      "src/routes/buyer.settings.tsx?tsr-split=component",
+      "src/routes/buyer.risk.tsx?tsr-split=component",
+      "src/routes/buyer.rfqs.tsx?tsr-split=component",
+      "src/routes/buyer.requisitions.tsx?tsr-split=component",
+      "src/routes/buyer.receipts.tsx?tsr-split=component",
+      "src/routes/buyer.quotations.tsx?tsr-split=component",
+      "src/routes/buyer.purchase-orders.tsx?tsr-split=component",
+      "src/routes/buyer.payments.tsx?tsr-split=component",
+      "src/routes/buyer.messages.tsx?tsr-split=component",
+      "src/routes/buyer.marketplace.tsx?tsr-split=component",
+      "src/routes/buyer.inventory.tsx?tsr-split=component",
+      "src/routes/buyer.bills.tsx?tsr-split=component",
+      "src/routes/vendor.rfqs.$rfqId.tsx?tsr-split=notFoundComponent",
+      "src/routes/vendor.rfqs.$rfqId.tsx?tsr-split=component",
+      "src/routes/buyer.rfqs.$rfqId.tsx?tsr-split=notFoundComponent",
+      "src/routes/buyer.rfqs.$rfqId.tsx?tsr-split=component"
+    ],
+    "assets": [
+      "assets/styles.css"
+    ]
+  },
+  "_search.js": {
+    "file": "assets/search.js",
+    "name": "search",
+    "imports": [
+      "_createLucideIcon.js"
+    ]
+  },
+  "_send.js": {
+    "file": "assets/send.js",
+    "name": "send",
+    "imports": [
+      "_createLucideIcon.js"
+    ]
+  },
+  "_sheet.js": {
+    "file": "assets/sheet.js",
+    "name": "sheet",
+    "imports": [
+      "_worker-entry.js",
+      "_createLucideIcon.js",
+      "_index3.js",
+      "_router.js",
+      "_utils.js",
+      "_chevron-right.js",
+      "_check.js",
+      "_x.js"
+    ]
+  },
+  "_shield-alert.js": {
+    "file": "assets/shield-alert.js",
+    "name": "shield-alert",
+    "imports": [
+      "_createLucideIcon.js"
+    ]
+  },
+  "_shield-check.js": {
+    "file": "assets/shield-check.js",
+    "name": "shield-check",
+    "imports": [
+      "_createLucideIcon.js"
+    ]
+  },
+  "_shopping-cart.js": {
+    "file": "assets/shopping-cart.js",
+    "name": "shopping-cart",
+    "imports": [
+      "_createLucideIcon.js"
+    ]
+  },
+  "_star.js": {
+    "file": "assets/star.js",
+    "name": "star",
+    "imports": [
+      "_createLucideIcon.js"
+    ]
+  },
+  "_store.js": {
+    "file": "assets/store.js",
+    "name": "store",
+    "imports": [
+      "_createLucideIcon.js"
+    ]
+  },
+  "_trophy.js": {
+    "file": "assets/trophy.js",
+    "name": "trophy",
+    "imports": [
+      "_createLucideIcon.js"
+    ]
+  },
+  "_truck.js": {
+    "file": "assets/truck.js",
+    "name": "truck",
+    "imports": [
+      "_createLucideIcon.js"
+    ]
+  },
+  "_upload.js": {
+    "file": "assets/upload.js",
+    "name": "upload",
+    "imports": [
+      "_createLucideIcon.js"
+    ]
+  },
+  "_users.js": {
+    "file": "assets/users.js",
+    "name": "users",
+    "imports": [
+      "_createLucideIcon.js"
+    ]
+  },
+  "_utils.js": {
+    "file": "assets/utils.js",
+    "name": "utils"
+  },
+  "_vendor-context.js": {
+    "file": "assets/vendor-context.js",
+    "name": "vendor-context",
+    "imports": [
+      "_worker-entry.js",
+      "_router.js",
+      "_color-utils.js"
+    ]
+  },
+  "_wallet.js": {
+    "file": "assets/wallet.js",
+    "name": "wallet",
+    "imports": [
+      "_createLucideIcon.js"
+    ]
+  },
+  "_worker-entry.js": {
+    "file": "assets/worker-entry.js",
+    "name": "worker-entry",
+    "dynamicImports": [
+      "tanstack-start-manifest:v",
+      "_router.js",
+      "node_modules/@tanstack/react-start/dist/plugin/default-entry/start.ts",
+      "%23tanstack-start-plugin-adapters"
+    ]
+  },
+  "_x.js": {
+    "file": "assets/x.js",
+    "name": "x",
+    "imports": [
+      "_createLucideIcon.js"
+    ]
+  },
+  "node_modules/@tanstack/react-start/dist/plugin/default-entry/start.ts": {
+    "file": "assets/start.js",
+    "name": "start",
+    "src": "node_modules/@tanstack/react-start/dist/plugin/default-entry/start.ts",
+    "isDynamicEntry": true
+  },
+  "src/assets/logos/logo.png": {
+    "file": "assets/logo.png",
+    "src": "src/assets/logos/logo.png"
+  },
+  "src/routes/buyer.bills.tsx?tsr-split=component": {
+    "file": "assets/buyer.bills.js",
+    "name": "buyer.bills",
+    "src": "src/routes/buyer.bills.tsx?tsr-split=component",
+    "isDynamicEntry": true,
+    "imports": [
+      "_worker-entry.js",
+      "_PageHeader.js",
+      "_BuyerPermissionGate.js",
+      "_StatusPill.js",
+      "_StatCard.js",
+      "_router.js",
+      "_buyer-context.js",
+      "_clock.js",
+      "_circle-check.js",
+      "_circle-alert.js",
+      "_utils.js",
+      "_lock.js",
+      "_createLucideIcon.js",
+      "_color-utils.js"
+    ]
+  },
+  "src/routes/buyer.index.tsx?tsr-split=component": {
+    "file": "assets/buyer.index.js",
+    "name": "buyer.index",
+    "src": "src/routes/buyer.index.tsx?tsr-split=component",
+    "isDynamicEntry": true,
+    "imports": [
+      "_worker-entry.js",
+      "_router.js",
+      "_PageHeader.js",
+      "_StatCard.js",
+      "_StatusPill.js",
+      "_BuyerPermissionGate.js",
+      "_buyer-context.js",
+      "_AreaChart.js",
+      "_clipboard-list.js",
+      "_file-text.js",
+      "_wallet.js",
+      "_shield-alert.js",
+      "_createLucideIcon.js",
+      "_utils.js",
+      "_lock.js",
+      "_color-utils.js"
+    ]
+  },
+  "src/routes/buyer.inventory.tsx?tsr-split=component": {
+    "file": "assets/buyer.inventory.js",
+    "name": "buyer.inventory",
+    "src": "src/routes/buyer.inventory.tsx?tsr-split=component",
+    "isDynamicEntry": true,
+    "imports": [
+      "_worker-entry.js",
+      "_router.js",
+      "_PageHeader.js",
+      "_StatCard.js",
+      "_BuyerPermissionGate.js",
+      "_StatusPill.js",
+      "_buyer-context.js",
+      "_utils.js",
+      "_createLucideIcon.js",
+      "_boxes.js",
+      "_shopping-cart.js",
+      "_lock.js",
+      "_color-utils.js"
+    ]
+  },
+  "src/routes/buyer.marketplace.tsx?tsr-split=component": {
+    "file": "assets/buyer.marketplace.js",
+    "name": "buyer.marketplace",
+    "src": "src/routes/buyer.marketplace.tsx?tsr-split=component",
+    "isDynamicEntry": true,
+    "imports": [
+      "_worker-entry.js",
+      "_PageHeader.js",
+      "_BuyerPermissionGate.js",
+      "_StatusPill.js",
+      "_router.js",
+      "_utils.js",
+      "_shopping-cart.js",
+      "_search.js",
+      "_star.js",
+      "_truck.js",
+      "_buyer-context.js",
+      "_color-utils.js",
+      "_lock.js",
+      "_createLucideIcon.js"
+    ]
+  },
+  "src/routes/buyer.messages.tsx?tsr-split=component": {
+    "file": "assets/buyer.messages.js",
+    "name": "buyer.messages",
+    "src": "src/routes/buyer.messages.tsx?tsr-split=component",
+    "isDynamicEntry": true,
+    "imports": [
+      "_worker-entry.js",
+      "_BuyerPermissionGate.js",
+      "_router.js",
+      "_utils.js",
+      "_pin.js",
+      "_send.js",
+      "_buyer-context.js",
+      "_color-utils.js",
+      "_lock.js",
+      "_createLucideIcon.js"
+    ]
+  },
+  "src/routes/buyer.payments.tsx?tsr-split=component": {
+    "file": "assets/buyer.payments.js",
+    "name": "buyer.payments",
+    "src": "src/routes/buyer.payments.tsx?tsr-split=component",
+    "isDynamicEntry": true,
+    "imports": [
+      "_worker-entry.js",
+      "_PageHeader.js",
+      "_BuyerPermissionGate.js",
+      "_StatusPill.js",
+      "_router.js",
+      "_buyer-context.js",
+      "_utils.js",
+      "_lock.js",
+      "_createLucideIcon.js",
+      "_color-utils.js"
+    ]
+  },
+  "src/routes/buyer.purchase-orders.tsx?tsr-split=component": {
+    "file": "assets/buyer.purchase-orders.js",
+    "name": "buyer.purchase-orders",
+    "src": "src/routes/buyer.purchase-orders.tsx?tsr-split=component",
+    "isDynamicEntry": true,
+    "imports": [
+      "_worker-entry.js",
+      "_PageHeader.js",
+      "_BuyerPermissionGate.js",
+      "_StatusPill.js",
+      "_router.js",
+      "_buyer-context.js",
+      "_utils.js",
+      "_lock.js",
+      "_createLucideIcon.js",
+      "_color-utils.js"
+    ]
+  },
+  "src/routes/buyer.quotations.tsx?tsr-split=component": {
+    "file": "assets/buyer.quotations.js",
+    "name": "buyer.quotations",
+    "src": "src/routes/buyer.quotations.tsx?tsr-split=component",
+    "isDynamicEntry": true,
+    "imports": [
+      "_worker-entry.js",
+      "_PageHeader.js",
+      "_BuyerPermissionGate.js",
+      "_StatusPill.js",
+      "_router.js",
+      "_buyer-context.js",
+      "_utils.js",
+      "_award.js",
+      "_lock.js",
+      "_createLucideIcon.js",
+      "_color-utils.js"
+    ]
+  },
+  "src/routes/buyer.receipts.tsx?tsr-split=component": {
+    "file": "assets/buyer.receipts.js",
+    "name": "buyer.receipts",
+    "src": "src/routes/buyer.receipts.tsx?tsr-split=component",
+    "isDynamicEntry": true,
+    "imports": [
+      "_worker-entry.js",
+      "_PageHeader.js",
+      "_BuyerPermissionGate.js",
+      "_StatusPill.js",
+      "_router.js",
+      "_buyer-context.js",
+      "_utils.js",
+      "_lock.js",
+      "_createLucideIcon.js",
+      "_color-utils.js"
+    ]
+  },
+  "src/routes/buyer.requisitions.tsx?tsr-split=component": {
+    "file": "assets/buyer.requisitions.js",
+    "name": "buyer.requisitions",
+    "src": "src/routes/buyer.requisitions.tsx?tsr-split=component",
+    "isDynamicEntry": true,
+    "imports": [
+      "_worker-entry.js",
+      "_PageHeader.js",
+      "_BuyerPermissionGate.js",
+      "_StatusPill.js",
+      "_router.js",
+      "_buyer-context.js",
+      "_utils.js",
+      "_lock.js",
+      "_createLucideIcon.js",
+      "_color-utils.js"
+    ]
+  },
+  "src/routes/buyer.rfqs.$rfqId.tsx?tsr-split=component": {
+    "file": "assets/buyer.rfqs._rfqId2.js",
+    "name": "buyer.rfqs._rfqId",
+    "src": "src/routes/buyer.rfqs.$rfqId.tsx?tsr-split=component",
+    "isDynamicEntry": true,
+    "imports": [
+      "_worker-entry.js",
+      "_router.js",
+      "_PageHeader.js",
+      "_BuyerPermissionGate.js",
+      "_StatusPill.js",
+      "_buyer-context.js",
+      "_utils.js",
+      "_arrow-left.js",
+      "_calendar.js",
+      "_clock.js",
+      "_users.js",
+      "_file-text.js",
+      "_award.js",
+      "_send.js",
+      "_lock.js",
+      "_createLucideIcon.js",
+      "_color-utils.js"
+    ]
+  },
+  "src/routes/buyer.rfqs.$rfqId.tsx?tsr-split=notFoundComponent": {
+    "file": "assets/buyer.rfqs._rfqId.js",
+    "name": "buyer.rfqs._rfqId",
+    "src": "src/routes/buyer.rfqs.$rfqId.tsx?tsr-split=notFoundComponent",
+    "isDynamicEntry": true,
+    "imports": [
+      "_worker-entry.js",
+      "_router.js"
+    ]
+  },
+  "src/routes/buyer.rfqs.tsx?tsr-split=component": {
+    "file": "assets/buyer.rfqs.js",
+    "name": "buyer.rfqs",
+    "src": "src/routes/buyer.rfqs.tsx?tsr-split=component",
+    "isDynamicEntry": true,
+    "imports": [
+      "_worker-entry.js",
+      "_router.js",
+      "_PageHeader.js",
+      "_BuyerPermissionGate.js",
+      "_StatusPill.js",
+      "_buyer-context.js",
+      "_chevron-right.js",
+      "_utils.js",
+      "_lock.js",
+      "_createLucideIcon.js",
+      "_color-utils.js"
+    ]
+  },
+  "src/routes/buyer.risk.tsx?tsr-split=component": {
+    "file": "assets/buyer.risk.js",
+    "name": "buyer.risk",
+    "src": "src/routes/buyer.risk.tsx?tsr-split=component",
+    "isDynamicEntry": true,
+    "imports": [
+      "_worker-entry.js",
+      "_PageHeader.js",
+      "_BuyerPermissionGate.js",
+      "_StatusPill.js",
+      "_router.js",
+      "_shield-alert.js",
+      "_shield-check.js",
+      "_utils.js",
+      "_buyer-context.js",
+      "_color-utils.js",
+      "_lock.js",
+      "_createLucideIcon.js"
+    ]
+  },
+  "src/routes/buyer.settings.tsx?tsr-split=component": {
+    "file": "assets/buyer.settings.js",
+    "name": "buyer.settings",
+    "src": "src/routes/buyer.settings.tsx?tsr-split=component",
+    "isDynamicEntry": true,
+    "imports": [
+      "_worker-entry.js",
+      "_PageHeader.js",
+      "_BuyerPermissionGate.js",
+      "_buyer-context.js",
+      "_router.js",
+      "_color-utils.js",
+      "_utils.js",
+      "_index3.js",
+      "_lock.js",
+      "_createLucideIcon.js"
+    ]
+  },
+  "src/routes/buyer.tsx?tsr-split=component": {
+    "file": "assets/buyer.js",
+    "name": "buyer",
+    "src": "src/routes/buyer.tsx?tsr-split=component",
+    "isDynamicEntry": true,
+    "imports": [
+      "_worker-entry.js",
+      "_buyer-context.js",
+      "_router.js",
+      "_sheet.js",
+      "_utils.js",
+      "_store.js",
+      "_users.js",
+      "_boxes.js",
+      "_clipboard-list.js",
+      "_createLucideIcon.js",
+      "_file-text.js",
+      "_receipt.js",
+      "_wallet.js",
+      "_shield-alert.js",
+      "_color-utils.js",
+      "_search.js",
+      "_index3.js",
+      "_chevron-right.js",
+      "_check.js",
+      "_x.js"
+    ]
+  },
+  "src/routes/buyer.vendors.tsx?tsr-split=component": {
+    "file": "assets/buyer.vendors.js",
+    "name": "buyer.vendors",
+    "src": "src/routes/buyer.vendors.tsx?tsr-split=component",
+    "isDynamicEntry": true,
+    "imports": [
+      "_worker-entry.js",
+      "_PageHeader.js",
+      "_BuyerPermissionGate.js",
+      "_StatusPill.js",
+      "_router.js",
+      "_star.js",
+      "_utils.js",
+      "_buyer-context.js",
+      "_color-utils.js",
+      "_lock.js",
+      "_createLucideIcon.js"
+    ]
+  },
+  "src/routes/index.tsx?tsr-split=component": {
+    "file": "assets/index2.js",
+    "name": "index",
+    "src": "src/routes/index.tsx?tsr-split=component",
+    "isDynamicEntry": true,
+    "imports": [
+      "_worker-entry.js",
+      "_router.js",
+      "_logo.js",
+      "_createLucideIcon.js",
+      "_clipboard-list.js",
+      "_truck.js",
+      "_arrow-right.js",
+      "_shield-check.js",
+      "_circle-check.js",
+      "_store.js",
+      "_package.js",
+      "_receipt.js"
+    ]
+  },
+  "src/routes/login.tsx?tsr-split=component": {
+    "file": "assets/login.js",
+    "name": "login",
+    "src": "src/routes/login.tsx?tsr-split=component",
+    "isDynamicEntry": true,
+    "imports": [
+      "_worker-entry.js",
+      "_router.js",
+      "_utils.js",
+      "_logo.js",
+      "_store.js",
+      "_shopping-cart.js",
+      "_createLucideIcon.js",
+      "_arrow-right.js"
+    ]
+  },
+  "src/routes/onboarding.tsx?tsr-split=component": {
+    "file": "assets/onboarding.js",
+    "name": "onboarding",
+    "src": "src/routes/onboarding.tsx?tsr-split=component",
+    "isDynamicEntry": true,
+    "imports": [
+      "_worker-entry.js",
+      "_router.js",
+      "_utils.js",
+      "_arrow-left.js",
+      "_upload.js",
+      "_check.js",
+      "_arrow-right.js",
+      "_createLucideIcon.js"
+    ]
+  },
+  "src/routes/register.tsx?tsr-split=component": {
+    "file": "assets/register.js",
+    "name": "register",
+    "src": "src/routes/register.tsx?tsr-split=component",
+    "isDynamicEntry": true,
+    "imports": [
+      "_worker-entry.js",
+      "_router.js",
+      "_utils.js"
+    ]
+  },
+  "src/routes/vendor.buyers.tsx?tsr-split=component": {
+    "file": "assets/vendor.buyers.js",
+    "name": "vendor.buyers",
+    "src": "src/routes/vendor.buyers.tsx?tsr-split=component",
+    "isDynamicEntry": true,
+    "imports": [
+      "_worker-entry.js",
+      "_PageHeader.js",
+      "_StatusPill.js",
+      "_PermissionGate.js",
+      "_router.js",
+      "_utils.js",
+      "_vendor-context.js",
+      "_color-utils.js",
+      "_lock.js",
+      "_createLucideIcon.js"
+    ]
+  },
+  "src/routes/vendor.compliance.tsx?tsr-split=component": {
+    "file": "assets/vendor.compliance.js",
+    "name": "vendor.compliance",
+    "src": "src/routes/vendor.compliance.tsx?tsr-split=component",
+    "isDynamicEntry": true,
+    "imports": [
+      "_worker-entry.js",
+      "_PageHeader.js",
+      "_StatusPill.js",
+      "_PermissionGate.js",
+      "_vendor-context.js",
+      "_router.js",
+      "_upload.js",
+      "_file-text.js",
+      "_utils.js",
+      "_lock.js",
+      "_createLucideIcon.js",
+      "_color-utils.js"
+    ]
+  },
+  "src/routes/vendor.deliveries.tsx?tsr-split=component": {
+    "file": "assets/vendor.deliveries.js",
+    "name": "vendor.deliveries",
+    "src": "src/routes/vendor.deliveries.tsx?tsr-split=component",
+    "isDynamicEntry": true,
+    "imports": [
+      "_worker-entry.js",
+      "_PageHeader.js",
+      "_StatusPill.js",
+      "_PermissionGate.js",
+      "_router.js",
+      "_utils.js",
+      "_vendor-context.js",
+      "_color-utils.js",
+      "_lock.js",
+      "_createLucideIcon.js"
+    ]
+  },
+  "src/routes/vendor.index.tsx?tsr-split=component": {
+    "file": "assets/vendor.index.js",
+    "name": "vendor.index",
+    "src": "src/routes/vendor.index.tsx?tsr-split=component",
+    "isDynamicEntry": true,
+    "imports": [
+      "_worker-entry.js",
+      "_router.js",
+      "_PageHeader.js",
+      "_StatCard.js",
+      "_StatusPill.js",
+      "_vendor-context.js",
+      "_package.js",
+      "_AreaChart.js",
+      "_shopping-cart.js",
+      "_wallet.js",
+      "_circle-alert.js",
+      "_star.js",
+      "_truck.js",
+      "_utils.js",
+      "_color-utils.js",
+      "_createLucideIcon.js"
+    ]
+  },
+  "src/routes/vendor.invoices.tsx?tsr-split=component": {
+    "file": "assets/vendor.invoices.js",
+    "name": "vendor.invoices",
+    "src": "src/routes/vendor.invoices.tsx?tsr-split=component",
+    "isDynamicEntry": true,
+    "imports": [
+      "_worker-entry.js",
+      "_PageHeader.js",
+      "_StatusPill.js",
+      "_PermissionGate.js",
+      "_router.js",
+      "_createLucideIcon.js",
+      "_utils.js",
+      "_vendor-context.js",
+      "_color-utils.js",
+      "_lock.js"
+    ]
+  },
+  "src/routes/vendor.messages.tsx?tsr-split=component": {
+    "file": "assets/vendor.messages.js",
+    "name": "vendor.messages",
+    "src": "src/routes/vendor.messages.tsx?tsr-split=component",
+    "isDynamicEntry": true,
+    "imports": [
+      "_worker-entry.js",
+      "_PageHeader.js",
+      "_PermissionGate.js",
+      "_router.js",
+      "_utils.js",
+      "_pin.js",
+      "_send.js",
+      "_vendor-context.js",
+      "_color-utils.js",
+      "_lock.js",
+      "_createLucideIcon.js"
+    ]
+  },
+  "src/routes/vendor.orders.tsx?tsr-split=component": {
+    "file": "assets/vendor.orders.js",
+    "name": "vendor.orders",
+    "src": "src/routes/vendor.orders.tsx?tsr-split=component",
+    "isDynamicEntry": true,
+    "imports": [
+      "_worker-entry.js",
+      "_router.js",
+      "_PageHeader.js",
+      "_StatusPill.js",
+      "_PermissionGate.js",
+      "_search.js",
+      "_createLucideIcon.js",
+      "_utils.js",
+      "_vendor-context.js",
+      "_color-utils.js",
+      "_lock.js"
+    ]
+  },
+  "src/routes/vendor.payouts.tsx?tsr-split=component": {
+    "file": "assets/vendor.payouts.js",
+    "name": "vendor.payouts",
+    "src": "src/routes/vendor.payouts.tsx?tsr-split=component",
+    "isDynamicEntry": true,
+    "imports": [
+      "_worker-entry.js",
+      "_PageHeader.js",
+      "_StatCard.js",
+      "_StatusPill.js",
+      "_PermissionGate.js",
+      "_router.js",
+      "_calendar.js",
+      "_circle-check.js",
+      "_wallet.js",
+      "_utils.js",
+      "_vendor-context.js",
+      "_color-utils.js",
+      "_lock.js",
+      "_createLucideIcon.js"
+    ]
+  },
+  "src/routes/vendor.products.tsx?tsr-split=component": {
+    "file": "assets/vendor.products.js",
+    "name": "vendor.products",
+    "src": "src/routes/vendor.products.tsx?tsr-split=component",
+    "isDynamicEntry": true,
+    "imports": [
+      "_worker-entry.js",
+      "_PageHeader.js",
+      "_StatusPill.js",
+      "_PermissionGate.js",
+      "_vendor-context.js",
+      "_router.js",
+      "_createLucideIcon.js",
+      "_search.js",
+      "_utils.js",
+      "_lock.js",
+      "_color-utils.js"
+    ]
+  },
+  "src/routes/vendor.purchase-orders.tsx?tsr-split=component": {
+    "file": "assets/vendor.purchase-orders.js",
+    "name": "vendor.purchase-orders",
+    "src": "src/routes/vendor.purchase-orders.tsx?tsr-split=component",
+    "isDynamicEntry": true,
+    "imports": [
+      "_worker-entry.js",
+      "_PageHeader.js",
+      "_StatusPill.js",
+      "_PermissionGate.js",
+      "_router.js",
+      "_utils.js",
+      "_vendor-context.js",
+      "_color-utils.js",
+      "_lock.js",
+      "_createLucideIcon.js"
+    ]
+  },
+  "src/routes/vendor.reviews.tsx?tsr-split=component": {
+    "file": "assets/vendor.reviews.js",
+    "name": "vendor.reviews",
+    "src": "src/routes/vendor.reviews.tsx?tsr-split=component",
+    "isDynamicEntry": true,
+    "imports": [
+      "_worker-entry.js",
+      "_PageHeader.js",
+      "_PermissionGate.js",
+      "_router.js",
+      "_star.js",
+      "_utils.js",
+      "_vendor-context.js",
+      "_color-utils.js",
+      "_lock.js",
+      "_createLucideIcon.js"
+    ]
+  },
+  "src/routes/vendor.rfqs.$rfqId.tsx?tsr-split=component": {
+    "file": "assets/vendor.rfqs._rfqId2.js",
+    "name": "vendor.rfqs._rfqId",
+    "src": "src/routes/vendor.rfqs.$rfqId.tsx?tsr-split=component",
+    "isDynamicEntry": true,
+    "imports": [
+      "_worker-entry.js",
+      "_router.js",
+      "_PageHeader.js",
+      "_PermissionGate.js",
+      "_StatusPill.js",
+      "_vendor-context.js",
+      "_utils.js",
+      "_arrow-left.js",
+      "_calendar.js",
+      "_clock.js",
+      "_file-text.js",
+      "_shield-check.js",
+      "_trophy.js",
+      "_send.js",
+      "_lock.js",
+      "_createLucideIcon.js",
+      "_color-utils.js"
+    ]
+  },
+  "src/routes/vendor.rfqs.$rfqId.tsx?tsr-split=notFoundComponent": {
+    "file": "assets/vendor.rfqs._rfqId.js",
+    "name": "vendor.rfqs._rfqId",
+    "src": "src/routes/vendor.rfqs.$rfqId.tsx?tsr-split=notFoundComponent",
+    "isDynamicEntry": true,
+    "imports": [
+      "_worker-entry.js",
+      "_router.js"
+    ]
+  },
+  "src/routes/vendor.rfqs.tsx?tsr-split=component": {
+    "file": "assets/vendor.rfqs.js",
+    "name": "vendor.rfqs",
+    "src": "src/routes/vendor.rfqs.tsx?tsr-split=component",
+    "isDynamicEntry": true,
+    "imports": [
+      "_worker-entry.js",
+      "_router.js",
+      "_PageHeader.js",
+      "_PermissionGate.js",
+      "_StatusPill.js",
+      "_utils.js",
+      "_createLucideIcon.js",
+      "_trophy.js",
+      "_x.js",
+      "_vendor-context.js",
+      "_color-utils.js",
+      "_lock.js"
+    ]
+  },
+  "src/routes/vendor.settings.tsx?tsr-split=component": {
+    "file": "assets/vendor.settings.js",
+    "name": "vendor.settings",
+    "src": "src/routes/vendor.settings.tsx?tsr-split=component",
+    "isDynamicEntry": true,
+    "imports": [
+      "_worker-entry.js",
+      "_PageHeader.js",
+      "_PermissionGate.js",
+      "_vendor-context.js",
+      "_router.js",
+      "_color-utils.js",
+      "_utils.js",
+      "_lock.js",
+      "_createLucideIcon.js"
+    ]
+  },
+  "src/routes/vendor.storefront.tsx?tsr-split=component": {
+    "file": "assets/vendor.storefront.js",
+    "name": "vendor.storefront",
+    "src": "src/routes/vendor.storefront.tsx?tsr-split=component",
+    "isDynamicEntry": true,
+    "imports": [
+      "_worker-entry.js",
+      "_PageHeader.js",
+      "_PermissionGate.js",
+      "_vendor-context.js",
+      "_router.js",
+      "_createLucideIcon.js",
+      "_star.js",
+      "_utils.js",
+      "_lock.js",
+      "_color-utils.js"
+    ]
+  },
+  "src/routes/vendor.tsx?tsr-split=component": {
+    "file": "assets/vendor.js",
+    "name": "vendor",
+    "src": "src/routes/vendor.tsx?tsr-split=component",
+    "isDynamicEntry": true,
+    "imports": [
+      "_worker-entry.js",
+      "_vendor-context.js",
+      "_router.js",
+      "_sheet.js",
+      "_utils.js",
+      "_shopping-cart.js",
+      "_file-text.js",
+      "_package.js",
+      "_store.js",
+      "_truck.js",
+      "_receipt.js",
+      "_wallet.js",
+      "_shield-check.js",
+      "_users.js",
+      "_star.js",
+      "_color-utils.js",
+      "_search.js",
+      "_createLucideIcon.js",
+      "_index3.js",
+      "_chevron-right.js",
+      "_check.js",
+      "_x.js"
+    ]
+  },
+  "tanstack-start-manifest:v": {
+    "file": "assets/_tanstack-start-manifest_v.js",
+    "name": "_tanstack-start-manifest_v",
+    "src": "tanstack-start-manifest:v",
+    "isDynamicEntry": true
+  },
+  "virtual:cloudflare/worker-entry": {
+    "file": "assets/index.js",
+    "name": "index",
+    "src": "virtual:cloudflare/worker-entry",
+    "isEntry": true,
+    "imports": [
+      "_worker-entry.js"
+    ]
+  }
+}
