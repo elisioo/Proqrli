@@ -12,7 +12,7 @@ namespace Proqrli.Controllers
         }
 
         // Serves wwwroot/frontend/index.html directly so that
-        // Vite's hashed asset filenames are always correct —
+        // Vite's hashed asset filenames are always correct
         // no hardcoded filenames anywhere.
         public IActionResult Index()
         {

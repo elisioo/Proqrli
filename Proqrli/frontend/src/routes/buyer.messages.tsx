@@ -1,3 +1,4 @@
+/* eslint-disable prettier/prettier */
 import * as React from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { BuyerPermissionGate } from "@/components/BuyerPermissionGate";
