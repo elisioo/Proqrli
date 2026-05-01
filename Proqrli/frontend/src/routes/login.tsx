@@ -2,9 +2,10 @@
 /* eslint-disable prettier/prettier */
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import * as React from "react";
-import { ArrowRight, ShoppingCart, Store, Eye, EyeOff } from "lucide-react";
+import { ArrowRight, ShoppingCart, Store, Eye, EyeOff, AlertCircle, Loader2 } from "lucide-react";
 import { TEAM_MEMBERS, ROLE_LABELS } from "@/lib/mock-data";
 import { BUYER_TEAM, BUYER_ROLE_LABELS } from "@/lib/buyer-mock-data";
+import { authApi, type AuthUser } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import logo from "@/assets/logos/logo.png";
 
@@ -36,7 +37,7 @@ const PORTAL_THEME: Record<Portal, { tint: string; tintSoft: string; tintRing: s
 };
 
 function LoginPage() {
-  const [portal, setPortal] = React.useState<Portal>("vendor");
+  const [portal, setPortal] = React.useState<Portal>("buyer");
   const theme = PORTAL_THEME[portal];
 
   return (
@@ -46,9 +47,6 @@ function LoginPage() {
         <div className="flex w-full flex-col px-6 py-8 md:w-[52%] md:px-12 md:py-10">
           {/* Brand */}
           <Link to="/" className="inline-flex items-center gap-2">
-            {/* <span className={cn("flex h-8 w-8 items-center justify-center rounded-lg", theme.tint)}>
-              <span className="font-display text-sm font-extrabold text-white">P</span>
-            </span> */}
             <img src={logo} alt="ProcurLi Logo" className="w-[100px]"/>
           </Link>
 
@@ -82,7 +80,7 @@ function LoginPage() {
               : "Pick up your sourcing right where you left it — RFQs, POs, and approvals."}
           </p>
 
-          <DemoLogin portal={portal} theme={theme} />
+          <LoginForm portal={portal} theme={theme} />
 
           <p className="mt-8 text-center text-sm text-muted-foreground md:text-left">
             New to ProcurLi?{" "}
@@ -101,49 +99,102 @@ function LoginPage() {
   );
 }
 
-function DemoLogin({ portal, theme }: { portal: Portal; theme: typeof PORTAL_THEME[Portal] }) {
+// ─── Login form (real API + mock fallback) ───────────────────────────────────
+function LoginForm({ portal, theme }: { portal: Portal; theme: typeof PORTAL_THEME[Portal] }) {
   const navigate = useNavigate();
   const team = portal === "vendor" ? TEAM_MEMBERS : BUYER_TEAM;
   const roleLabels = portal === "vendor" ? ROLE_LABELS : BUYER_ROLE_LABELS;
 
-  const [email, setEmail] = React.useState(team[0].email);
-  const [password, setPassword] = React.useState("demo");
-  const [showPw, setShowPw] = React.useState(false);
+  const [email, setEmail]     = React.useState(team[0].email);
+  const [password, setPassword] = React.useState("");
+  const [showPw, setShowPw]   = React.useState(false);
+  const [loading, setLoading]  = React.useState(false);
+  const [error, setError]      = React.useState<string | null>(null);
 
   React.useEffect(() => {
     setEmail(team[0].email);
+    setPassword("");
+    setError(null);
   }, [portal, team]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const match = team.find((m) => m.email === email) ?? team[0];
-    if (portal === "vendor") {
-      try { window.localStorage.setItem("procurli:vendor:userId", match.id); } catch {}
-      navigate({ to: "/vendor" });
-    } else {
-      try { window.localStorage.setItem("procurli:buyer:userId", match.id); } catch {}
-      navigate({ to: "/buyer" });
+    setError(null);
+    setLoading(true);
+
+    try {
+      // ── Try real API first ──────────────────────────────────────────────
+      const user: AuthUser = await authApi.login({ email, password });
+
+      // Persist real session so BuyerProvider picks it up
+      if (portal === "buyer") {
+        try { window.localStorage.setItem("procurli:buyer:realUser", JSON.stringify(user)); } catch {}
+        // Also write the legacy key so any code still reading it gets something
+        try { window.localStorage.setItem("procurli:buyer:userId", `real:${user.userId}`); } catch {}
+        navigate({ to: "/buyer" });
+      } else {
+        // Vendor login — store vendor session (vendor context will be updated separately)
+        try { window.localStorage.setItem("procurli:vendor:userId", `real:${user.userId}`); } catch {}
+        navigate({ to: "/vendor" });
+      }
+    } catch (apiErr) {
+      // ── Mock fallback (dev / no backend) ────────────────────────────────
+      const isMockPassword = password === "demo" || password === "";
+      const mockMatch = team.find((m) => m.email === email);
+
+      if (isMockPassword && mockMatch) {
+        // Graceful demo-mode fallback when the backend isn't running
+        if (portal === "vendor") {
+          try { window.localStorage.setItem("procurli:vendor:userId", mockMatch.id); } catch {}
+          navigate({ to: "/vendor" });
+        } else {
+          try { window.localStorage.setItem("procurli:buyer:userId", mockMatch.id); } catch {}
+          navigate({ to: "/buyer" });
+        }
+        return;
+      }
+
+      // Show the API error to the user
+      const msg = apiErr instanceof Error ? apiErr.message : "Login failed. Please try again.";
+      setError(msg);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <form onSubmit={handleSubmit} className="mt-8 space-y-4">
+      {/* Error banner */}
+      {error && (
+        <div className="flex items-start gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+          <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0" />
+          <span>{error}</span>
+        </div>
+      )}
+
       <div>
         <label className="mb-1.5 block text-xs font-semibold text-foreground">Business email</label>
         <input
+          id="login-email"
           value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          onChange={(e) => { setEmail(e.target.value); setError(null); }}
           type="email"
+          autoComplete="email"
+          required
           className="h-12 w-full rounded-full border border-border bg-card px-5 text-sm outline-none transition-colors focus:border-foreground"
         />
       </div>
+
       <div>
         <label className="mb-1.5 block text-xs font-semibold text-foreground">Password</label>
         <div className="relative">
           <input
+            id="login-password"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={(e) => { setPassword(e.target.value); setError(null); }}
             type={showPw ? "text" : "password"}
+            autoComplete="current-password"
+            required
             className="h-12 w-full rounded-full border border-border bg-card px-5 pr-12 text-sm outline-none transition-colors focus:border-foreground"
           />
           <button
@@ -157,12 +208,53 @@ function DemoLogin({ portal, theme }: { portal: Portal; theme: typeof PORTAL_THE
       </div>
 
       <button
+        id="login-submit"
         type="submit"
-        className={cn("inline-flex h-12 w-full items-center justify-center gap-2 rounded-full text-sm font-semibold text-white transition-opacity hover:opacity-90", theme.tint)}
+        disabled={loading}
+        className={cn(
+          "inline-flex h-12 w-full items-center justify-center gap-2 rounded-full text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60",
+          theme.tint,
+        )}
       >
-        Sign in to {portal === "vendor" ? "vendor" : "buyer"} portal <ArrowRight className="h-4 w-4" />
+        {loading ? (
+          <><Loader2 className="h-4 w-4 animate-spin" /> Signing in…</>
+        ) : (
+          <>Sign in to {portal === "vendor" ? "vendor" : "buyer"} portal <ArrowRight className="h-4 w-4" /></>
+        )}
       </button>
 
+      {/* Demo hint */}
+      <p className="text-center text-[11px] text-muted-foreground">
+        <span className="font-semibold">Demo mode:</span> use any team email with password{" "}
+        <code className="rounded bg-paper-mid px-1">demo</code>
+      </p>
+
+      {/* Quick-pick demo users */}
+      <div className="mt-4 space-y-2">
+        <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
+          Quick-pick a demo user
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {team.filter((m) => "active" in m ? m.active : true).slice(0, 4).map((m) => (
+            <button
+              key={m.id}
+              type="button"
+              onClick={() => { setEmail(m.email); setPassword("demo"); setError(null); }}
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-semibold transition-colors",
+                email === m.email
+                  ? "border-foreground bg-foreground text-background"
+                  : "border-border bg-card hover:border-foreground",
+              )}
+            >
+              <span>{(m as { name: string }).name.split(" ")[0]}</span>
+              <span className="opacity-60">
+                {roleLabels[(m.role as keyof typeof roleLabels)]}
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
     </form>
   );
 }
@@ -174,8 +266,6 @@ function SceneIllustration({ portal }: { portal: Portal }) {
   const isVendor = portal === "vendor";
   const accent = isVendor ? "#f59e0b" : "#059669";
   const accentDark = isVendor ? "#b45309" : "#065f46";
-  const skin = "#fcd9b8";
-  const shirt = isVendor ? "#fbbf24" : "#34d399";
 
   return (
     <div className="relative h-full min-h-[420px] w-full">

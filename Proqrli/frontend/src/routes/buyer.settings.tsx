@@ -149,10 +149,12 @@ function Field({ label, ...props }: React.InputHTMLAttributes<HTMLInputElement> 
 
 function RolePill({ role }: { role: BuyerRole }) {
   const tones: Record<BuyerRole, string> = {
-    buyer_owner: "bg-foreground text-background",
+    buyer_owner:       "bg-foreground text-background",
     buyer_procurement: "bg-sky-100 text-sky-800 border border-sky-200",
-    buyer_approver: "bg-amber-100 text-amber-800 border border-amber-200",
-    buyer_finance: "bg-emerald-100 text-emerald-800 border border-emerald-200",
+    buyer_approver:    "bg-amber-100 text-amber-800 border border-amber-200",
+    buyer_finance:     "bg-emerald-100 text-emerald-800 border border-emerald-200",
+    inventory_staff:   "bg-violet-100 text-violet-800 border border-violet-200",
+    inventory_manager: "bg-teal-100 text-teal-800 border border-teal-200",
   };
   return (
     <span className={cn("inline-block rounded-sm px-2 py-[2px] font-mono text-[10px] font-bold uppercase tracking-widest", tones[role])}>

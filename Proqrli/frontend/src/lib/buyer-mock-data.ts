@@ -5,16 +5,20 @@
 // VENDOR_INVOICE (bill), PAYMENT, VENDOR_RISK_SCORE.
 
 export type BuyerRole =
-  | "buyer_owner"        // CFO / Procurement Director
-  | "buyer_procurement"  // Buyer / Procurement officer
-  | "buyer_approver"     // Approves PRs and POs over threshold
-  | "buyer_finance";     // Pays bills, manages cash
+  | "buyer_owner"          // CFO / Procurement Director
+  | "buyer_procurement"    // Buyer / Procurement officer
+  | "buyer_approver"       // Approves PRs and POs over threshold
+  | "buyer_finance"        // Pays bills, manages cash
+  | "inventory_staff"      // Stock in / out operations
+  | "inventory_manager";   // Inventory control & warehouse management
 
 export const BUYER_ROLE_LABELS: Record<BuyerRole, string> = {
   buyer_owner: "Owner",
   buyer_procurement: "Procurement",
   buyer_approver: "Approver",
   buyer_finance: "Finance",
+  inventory_staff: "Inventory Staff",
+  inventory_manager: "Inventory Manager",
 };
 
 export const BUYER_ROLE_DESCRIPTIONS: Record<BuyerRole, string> = {
@@ -22,6 +26,8 @@ export const BUYER_ROLE_DESCRIPTIONS: Record<BuyerRole, string> = {
   buyer_procurement: "Browse marketplace, raise PRs, RFQs, POs. No payment access.",
   buyer_approver: "Approve / reject PRs and POs. Read-only on payments.",
   buyer_finance: "Approve bills, schedule payments, manage budgets.",
+  inventory_staff: "Stock in / out operations. View and update inventory levels.",
+  inventory_manager: "Inventory control — manage stock, reorder alerts, and warehouse settings.",
 };
 
 export const BUYER_PERMISSIONS = [
@@ -90,6 +96,24 @@ export const BUYER_ROLE_PERMISSIONS: Record<BuyerRole, BuyerPermission[]> = {
     "settings:view",
     "billing:view", "billing:manage",
     "budget:view", "budget:manage",
+  ],
+  inventory_staff: [
+    "dashboard:view",
+    "inventory:view", "inventory:manage",
+    "receipts:view", "receipts:create",
+    "messages:view", "messages:send",
+    "settings:view",
+  ],
+  inventory_manager: [
+    "dashboard:view",
+    "inventory:view", "inventory:manage",
+    "requisitions:view", "requisitions:create",
+    "po:view",
+    "receipts:view", "receipts:create",
+    "vendors:view",
+    "risk:view",
+    "messages:view", "messages:send",
+    "settings:view",
   ],
 };
 

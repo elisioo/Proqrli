@@ -206,11 +206,6 @@ function LandingPage() {
                                 Start free trial <ArrowRight className="h-4 w-4" />
                             </button>
                         </Link>
-                        <Link to="/buyer">
-                            <button className="inline-flex h-12 items-center gap-2 rounded-full border border-paper-dark bg-paper/60 px-7 text-[14px] font-medium text-foreground backdrop-blur hover:bg-paper-mid">
-                                Read docs
-                            </button>
-                        </Link>
                     </div>
 
                     {/* Hero feature tiles */}
