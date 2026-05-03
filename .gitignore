@@ -1,21 +1,28 @@
 # Visual Studio
 .vs/
-Proqrli/.vs/
-bin/
-obj/
 *.user
 *.suo
 
-# ASP.NET publish/build
+# Build outputs
+bin/
+obj/
 publish/
 
-# Zips (IMPORTANT)
-*.zip
-
 # Frontend
-Proqrli/frontend/node_modules/
-Proqrli/frontend/dist/
+node_modules/
+dist/
 
-# OS
+# Environment / secrets
+Proqrli/.env
+Proqrli/appsettings.Development.json
+Proqrli/appsettings.Production.json
+Proqrli/secrets.json
+
+# OS files
 .DS_Store
 Thumbs.db
+
+# Optional: generated archives only
+publish/*.zip
+
+*.zip
