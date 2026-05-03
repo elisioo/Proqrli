@@ -26,4 +26,5 @@ Thumbs.db
 
 # Production secrets — NEVER commit these
 appsettings.Production.json
+appsettings.Development.json
 secrets.json
