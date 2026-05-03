@@ -42,6 +42,7 @@ builder.Services.AddAuthorization();
 
 builder.Services.AddScoped<IPasswordHasher<TenantUser>, PasswordHasher<TenantUser>>();
 builder.Services.AddScoped<AuthService>();
+builder.Services.AddScoped<OtpService>();
 
 
 builder.Services.AddControllers()

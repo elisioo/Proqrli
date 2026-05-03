@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using ProqrLi.Models;
 
 namespace ProqrLi.Data
@@ -24,6 +24,7 @@ namespace ProqrLi.Data
         public DbSet<Role> Roles { get; set; }
         public DbSet<UserRole> UserRoles { get; set; }
         public DbSet<TenantAuditLog> TenantAuditLogs { get; set; }
+        public DbSet<EmailOtp> EmailOtps { get; set; }
 
         // ── Module 1: Vendor Accreditation
         public DbSet<AccreditationLink> AccreditationLinks { get; set; }

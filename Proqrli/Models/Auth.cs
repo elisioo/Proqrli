@@ -27,6 +27,14 @@ namespace ProqrLi.Models
         [MaxLength(100)]
         public string? Department { get; set; }
 
+        [MaxLength(100)]
+        public string? Position { get; set; }
+
+        [MaxLength(30)]
+        public string? ContactNumber { get; set; }
+
+        public bool OnboardingComplete { get; set; } = false;
+
         public bool IsActive { get; set; } = true;
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }

@@ -222,39 +222,7 @@ function LoginForm({ portal, theme }: { portal: Portal; theme: typeof PORTAL_THE
           <>Sign in to {portal === "vendor" ? "vendor" : "buyer"} portal <ArrowRight className="h-4 w-4" /></>
         )}
       </button>
-
-      {/* Demo hint */}
-      <p className="text-center text-[11px] text-muted-foreground">
-        <span className="font-semibold">Demo mode:</span> use any team email with password{" "}
-        <code className="rounded bg-paper-mid px-1">demo</code>
-      </p>
-
-      {/* Quick-pick demo users */}
-      <div className="mt-4 space-y-2">
-        <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
-          Quick-pick a demo user
-        </p>
-        <div className="flex flex-wrap gap-2">
-          {team.filter((m) => "active" in m ? m.active : true).slice(0, 4).map((m) => (
-            <button
-              key={m.id}
-              type="button"
-              onClick={() => { setEmail(m.email); setPassword("demo"); setError(null); }}
-              className={cn(
-                "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-semibold transition-colors",
-                email === m.email
-                  ? "border-foreground bg-foreground text-background"
-                  : "border-border bg-card hover:border-foreground",
-              )}
-            >
-              <span>{(m as { name: string }).name.split(" ")[0]}</span>
-              <span className="opacity-60">
-                {roleLabels[(m.role as keyof typeof roleLabels)]}
-              </span>
-            </button>
-          ))}
-        </div>
-      </div>
+      
     </form>
   );
 }

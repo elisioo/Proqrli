@@ -5,83 +5,143 @@ using ProqrLi.Models;
 
 namespace ProqrLi.Services
 {
-    /// <summary>
-    /// Handles registration and login against the custom TenantUser / Role / UserRole tables.
-    /// Uses ASP.NET Identity's PasswordHasher (PBKDF2) — no extra NuGet packages required.
-    /// </summary>
     public class AuthService
     {
-        private readonly ApplicationDbContext _db;
+        private readonly ApplicationDbContext         _db;
         private readonly IPasswordHasher<TenantUser> _hasher;
 
         public AuthService(ApplicationDbContext db, IPasswordHasher<TenantUser> hasher)
         {
-            _db = db;
+            _db     = db;
             _hasher = hasher;
         }
 
-        // ─────────────────────────────────────────────────────────────────────
-        // Register a new buyer tenant + owner user
-        // ─────────────────────────────────────────────────────────────────────
-        public async Task<AuthResponse> RegisterBuyerAsync(RegisterRequest req)
-        {
-            // Validate: email must be globally unique across all TenantUsers
-            bool emailTaken = await _db.TenantUsers
-                .AnyAsync(u => u.Email == req.Email);
+        // ── Helpers ────────────────────────────────────────────────────────────
 
-            if (emailTaken)
+        public async Task<bool> IsEmailTakenAsync(string email)
+            => await _db.TenantUsers.AnyAsync(u => u.Email == email.Trim().ToLowerInvariant());
+
+        // ── Step 3: Register (email + password only) ──────────────────────────
+
+        public async Task<AuthResponse> RegisterAsync(RegisterRequest req)
+        {
+            var email = req.Email.Trim().ToLowerInvariant();
+
+            if (await IsEmailTakenAsync(email))
                 throw new InvalidOperationException("An account with this email already exists.");
 
-            // 1. Create Tenant (buyer organisation)
+            // 1. Create a placeholder Tenant (company details filled during onboarding)
             var tenant = new Tenant
             {
-                TenantType  = "Buyer",
-                CompanyName = req.CompanyName.Trim(),
-                Industry    = string.IsNullOrWhiteSpace(req.Industry) ? null : req.Industry.Trim(),
-                CompanySize = string.IsNullOrWhiteSpace(req.CompanySize) ? null : req.CompanySize.Trim(),
-                ContactEmail = req.Email.Trim().ToLowerInvariant(),
-                Status      = nameof(TenantStatus.Active),
+                TenantType   = req.Portal == "vendor" ? "Vendor" : "Buyer",
+                CompanyName  = email,      // temporary placeholder — replaced during onboarding
+                ContactEmail = email,
+                Status       = nameof(TenantStatus.Active),
             };
             _db.Tenants.Add(tenant);
-            await _db.SaveChangesAsync(); // flush to get TenantID
+            await _db.SaveChangesAsync();
 
             // 2. Create TenantUser
             var user = new TenantUser
             {
                 TenantID = tenant.TenantID,
-                Email    = req.Email.Trim().ToLowerInvariant(),
-                FullName = req.FullName.Trim(),
+                Email    = email,
                 IsActive = true,
+                OnboardingComplete = false,
             };
-            // Hash password using the user object (PBKDF2 via Identity's PasswordHasher)
             user.PasswordHash = _hasher.HashPassword(user, req.Password);
             _db.TenantUsers.Add(user);
-            await _db.SaveChangesAsync(); // flush to get UserID
+            await _db.SaveChangesAsync();
 
-            // 3. Create the buyer_owner role for this tenant
+            // 3. Assign default role
+            var roleName = req.Portal == "vendor" ? "vendor_owner" : "buyer_owner";
             var role = new Role
             {
                 TenantID    = tenant.TenantID,
-                RoleName    = "buyer_owner",
-                Description = "Full access — billing, team, vendors, approvals, payments.",
+                RoleName    = roleName,
+                Description = req.Portal == "vendor"
+                    ? "Full access — billing, team, products, orders."
+                    : "Full access — billing, team, vendors, approvals, payments.",
             };
             _db.Roles.Add(role);
-            await _db.SaveChangesAsync(); // flush to get RoleID
-
-            // 4. Assign the role to the user
-            _db.UserRoles.Add(new UserRole
-            {
-                UserID = user.UserID,
-                RoleID = role.RoleID,
-            });
             await _db.SaveChangesAsync();
 
-            return BuildResponse(user, tenant, role.RoleName);
+            _db.UserRoles.Add(new UserRole { UserID = user.UserID, RoleID = role.RoleID });
+            await _db.SaveChangesAsync();
+
+            return BuildResponse(user, tenant, roleName);
         }
 
-        // ─────────────────────────────────────────────────────────────────────
-        // Validate credentials and return session info
-        // ─────────────────────────────────────────────────────────────────────
+        // ── Step 4: Save onboarding profile ──────────────────────────────────
+
+        public async Task<AuthResponse> SaveOnboardingAsync(int userId, OnboardingRequest req)
+        {
+            var user = await _db.TenantUsers
+                .Include(u => u.Tenant)
+                .FirstOrDefaultAsync(u => u.UserID == userId)
+                ?? throw new InvalidOperationException("User not found.");
+
+            var tenant = user.Tenant!;
+
+            // Update user profile
+            user.FullName          = req.FullName.Trim();
+            user.Position          = req.Position.Trim();
+            user.ContactNumber     = req.ContactNumber.Trim();
+            user.OnboardingComplete = true;
+
+            // Update tenant / company info
+            tenant.CompanyName = req.CompanyName.Trim();
+            tenant.CompanySize = req.CompanySize.Trim();
+            if (!string.IsNullOrWhiteSpace(req.Industry))
+                tenant.Industry = req.Industry.Trim();
+            if (!string.IsNullOrWhiteSpace(req.ContactNumber))
+                tenant.ContactPhone = req.ContactNumber.Trim();
+
+            // Handle Subscription Plan Selection
+            if (req.PlanId.HasValue)
+            {
+                var plan = await _db.SubscriptionPlans.FindAsync(req.PlanId.Value);
+                if (plan != null)
+                {
+                    var subscription = new TenantSubscription
+                    {
+                        TenantID = tenant.TenantID,
+                        PlanID = plan.PlanID,
+                        StartDate = DateTime.UtcNow,
+                        EndDate = DateTime.UtcNow.AddMonths(1), // Assuming monthly billing for now
+                        Status = "Active",
+                        IsTrialPeriod = plan.Price == 0
+                    };
+                    _db.TenantSubscriptions.Add(subscription);
+
+                    // Create a billing record if it's not free
+                    if (plan.Price > 0)
+                    {
+                        var billing = new Billing
+                        {
+                            TenantID = tenant.TenantID,
+                            Amount = plan.Price,
+                            BillingDate = DateTime.UtcNow,
+                            Status = "Pending" // Simulated payment state
+                        };
+                        _db.Billings.Add(billing);
+                    }
+                }
+            }
+
+            await _db.SaveChangesAsync();
+
+            // Resolve role
+            var userRole = await _db.UserRoles
+                .Include(ur => ur.Role)
+                .FirstOrDefaultAsync(ur => ur.UserID == userId);
+            var roleName = userRole?.Role?.RoleName ?? "buyer_owner";
+
+            return BuildResponse(user, tenant, roleName);
+        }
+
+        // ── Login ─────────────────────────────────────────────────────────────
+
         public async Task<AuthResponse> LoginAsync(LoginRequest req)
         {
             var email = req.Email.Trim().ToLowerInvariant();
@@ -97,26 +157,22 @@ namespace ProqrLi.Services
             if (verifyResult == PasswordVerificationResult.Failed)
                 throw new UnauthorizedAccessException("Invalid email or password.");
 
-            // Re-hash on SuccessRehashNeeded (keeps security current)
             if (verifyResult == PasswordVerificationResult.SuccessRehashNeeded)
             {
                 user.PasswordHash = _hasher.HashPassword(user, req.Password);
                 await _db.SaveChangesAsync();
             }
 
-            // Resolve role (first assigned role)
             var userRole = await _db.UserRoles
                 .Include(ur => ur.Role)
                 .FirstOrDefaultAsync(ur => ur.UserID == user.UserID);
-
-            var roleName = userRole?.Role?.RoleName ?? "buyer_procurement";
+            var roleName = userRole?.Role?.RoleName ?? "buyer_owner";
 
             return BuildResponse(user, user.Tenant!, roleName);
         }
 
-        // ─────────────────────────────────────────────────────────────────────
-        // Resolve session from a persisted cookie (GET /api/auth/me)
-        // ─────────────────────────────────────────────────────────────────────
+        // ── Get by ID (used by /me) ────────────────────────────────────────────
+
         public async Task<AuthResponse?> GetByIdAsync(int userId)
         {
             var user = await _db.TenantUsers
@@ -128,22 +184,25 @@ namespace ProqrLi.Services
             var userRole = await _db.UserRoles
                 .Include(ur => ur.Role)
                 .FirstOrDefaultAsync(ur => ur.UserID == userId);
-
-            var roleName = userRole?.Role?.RoleName ?? "buyer_procurement";
+            var roleName = userRole?.Role?.RoleName ?? "buyer_owner";
 
             return BuildResponse(user, user.Tenant!, roleName);
         }
 
         // ─────────────────────────────────────────────────────────────────────
+
         private static AuthResponse BuildResponse(TenantUser user, Tenant tenant, string role) =>
             new(
-                UserId:      user.UserID,
-                Email:       user.Email,
-                FullName:    user.FullName ?? "",
-                TenantId:    tenant.TenantID,
-                CompanyName: tenant.CompanyName,
-                TenantType:  tenant.TenantType,
-                Role:        role
+                UserId:             user.UserID,
+                Email:              user.Email,
+                FullName:           user.FullName ?? "",
+                Position:           user.Position ?? "",
+                ContactNumber:      user.ContactNumber ?? "",
+                TenantId:           tenant.TenantID,
+                CompanyName:        tenant.CompanyName,
+                TenantType:         tenant.TenantType,
+                Role:               role,
+                OnboardingComplete: user.OnboardingComplete
             );
     }
 }

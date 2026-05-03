@@ -1,13 +1,34 @@
 namespace ProqrLi.Models
 {
-    /// <summary>Payload for POST /api/auth/register</summary>
+    /// <summary>Step 1 — request to send OTP to an email</summary>
+    public record SendOtpRequest(string Email);
+
+    /// <summary>Step 2 — OTP verification payload</summary>
+    public record VerifyOtpRequest(string Email, string Code);
+
+    /// <summary>Step 3 — create account (email + password; company set up later in onboarding)</summary>
     public record RegisterRequest(
-        string CompanyName,
-        string FullName,
         string Email,
         string Password,
-        string Industry = "",
-        string CompanySize = "Small"
+        string Portal = "buyer"       // "buyer" | "vendor"
+    );
+
+    /// <summary>Step 4 — onboarding profile submitted after first login</summary>
+    public record OnboardingRequest(
+        string  CompanyName,
+        string  CompanySize,
+        string  FullName,
+        string  ContactNumber,
+        string  Position,
+        string? Industry      = null,
+        // Buyer profile (optional)
+        bool    HasBuyerProfile = false,
+        string? BuyerCompanyName = null,
+        string? BuyerContactName = null,
+        string? BuyerEmail       = null,
+        string? BuyerPhone       = null,
+        // Subscription 
+        int?    PlanId           = null
     );
 
     /// <summary>Payload for POST /api/auth/login</summary>
@@ -17,16 +38,19 @@ namespace ProqrLi.Models
     );
 
     /// <summary>
-    /// Returned by /api/auth/register, /api/auth/login, /api/auth/me.
+    /// Returned by /api/auth/register, /api/auth/login, /api/auth/me, /api/auth/onboarding.
     /// Matches the AuthUser TypeScript type in the frontend api.ts.
     /// </summary>
     public record AuthResponse(
-        int UserId,
+        int    UserId,
         string Email,
         string FullName,
-        int TenantId,
+        string Position,
+        string ContactNumber,
+        int    TenantId,
         string CompanyName,
         string TenantType,
-        string Role
+        string Role,
+        bool   OnboardingComplete
     );
 }

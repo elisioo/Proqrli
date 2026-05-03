@@ -1,3 +1,4 @@
+/* eslint-disable prettier/prettier */
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { PageHeader } from "@/components/PageHeader";
 import { StatCard } from "@/components/StatCard";

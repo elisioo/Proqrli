@@ -29,19 +29,37 @@ export type AuthUser = {
     userId: number;
     email: string;
     fullName: string;
+    position: string;
+    contactNumber: string;
     tenantId: number;
     companyName: string;
     tenantType: string;   // "Buyer" | "Vendor"
     role: string;         // e.g. "buyer_owner", "inventory_manager"
+    onboardingComplete: boolean;
 };
 
+export type SendOtpPayload = { email: string };
+export type VerifyOtpPayload = { email: string; code: string };
+
 export type RegisterPayload = {
-    companyName: string;
-    fullName: string;
     email: string;
     password: string;
+    portal?: string;   // "buyer" | "vendor"
+};
+
+export type OnboardingPayload = {
+    companyName: string;
+    companySize: string;
+    fullName: string;
+    contactNumber: string;
+    position: string;
     industry?: string;
-    companySize?: string;
+    hasBuyerProfile?: boolean;
+    buyerCompanyName?: string;
+    buyerContactName?: string;
+    buyerEmail?: string;
+    buyerPhone?: string;
+    planId?: number;
 };
 
 export type LoginPayload = {
@@ -50,8 +68,14 @@ export type LoginPayload = {
 };
 
 export const authApi = {
+    sendOtp: (body: SendOtpPayload) =>
+        req<{ message: string; devCode?: string }>("/auth/send-otp", { method: "POST", body: JSON.stringify(body) }),
+    verifyOtp: (body: VerifyOtpPayload) =>
+        req<{ verified: boolean }>("/auth/verify-otp", { method: "POST", body: JSON.stringify(body) }),
     register: (body: RegisterPayload) =>
         req<AuthUser>("/auth/register", { method: "POST", body: JSON.stringify(body) }),
+    onboarding: (body: OnboardingPayload) =>
+        req<AuthUser>("/auth/onboarding", { method: "POST", body: JSON.stringify(body) }),
     login: (body: LoginPayload) =>
         req<AuthUser>("/auth/login", { method: "POST", body: JSON.stringify(body) }),
     logout: () =>

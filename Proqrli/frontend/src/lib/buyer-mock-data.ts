@@ -351,10 +351,10 @@ export const VENDOR_BILLS: VendorBill[] = [
   { id: "vb1", billNumber: "INV-NS-001124", vendorName: "Northstar Hydraulics", poRef: "PO-PMC-008405", amount: 3680, status: "Approved", receivedAt: "2026-04-22", dueAt: "2026-05-22" },
   { id: "vb2", billNumber: "INV-ES-002201", vendorName: "Eastern Steel Mills", poRef: "PO-PMC-008410", amount: 5472, status: "Pending", receivedAt: "2026-04-22", dueAt: "2026-06-06" },
   { id: "vb3", billNumber: "INV-BN-005512", vendorName: "Bolt & Nut Co.", poRef: "PO-PMC-008401", amount: 1680, status: "Paid", receivedAt: "2026-04-12", dueAt: "2026-04-12" },
-  { id: "vb4", billNumber: "INV-SG-009941", vendorName: "SafeGear PH", poRef: "PO-PMC-008398", amount: 6080, status: "Paid", receivedAt: "2026-04-08", dueAt: "2026-05-08" },
+  { id: "vb4", billNumber: "INV-SG-009941", vendorName: "SafeGear PH", poRef: "PO-PMC-008398", amount:1080, status: "Paid", receivedAt: "2026-04-08", dueAt: "2026-05-08" },
   { id: "vb5", billNumber: "INV-VC-006621", vendorName: "Vertex Chemicals", poRef: "PO-PMC-008419", amount: 2290, status: "Scheduled", receivedAt: "2026-04-23", dueAt: "2026-05-23" },
-  { id: "vb6", billNumber: "INV-AC-008412", vendorName: "Acme Industrial Supply", poRef: "PO-PMC-008412", amount: 12480, status: "Pending", receivedAt: "2026-04-22", dueAt: "2026-05-22" },
-  { id: "vb7", billNumber: "INV-ES-001990", vendorName: "Eastern Steel Mills", poRef: "PO-PMC-008390", amount: 4200, status: "Overdue", receivedAt: "2026-03-12", dueAt: "2026-04-11" },
+  { id: "vb6", billNumber: "INV-AC-008412", vendorName: "Acme Industrial Supply", poRef: "PO-PMC-008412", amount: 971878, status: "Pending", receivedAt: "2026-04-22", dueAt: "2026-05-22" },
+  { id: "vb7", billNumber: "INV-ES-001990", vendorName: "Eastern Steel Mills", poRef: "PO-PMC-008390", amount: 864200, status: "Overdue", receivedAt: "2026-03-12", dueAt: "2026-04-11" },
   { id: "vb8", billNumber: "INV-OR-000088", vendorName: "OldRep Mining Supplies", poRef: "PO-PMC-008321", amount: 1840, status: "Disputed", receivedAt: "2026-03-22", dueAt: "2026-04-22" },
 ];
 
@@ -445,10 +445,10 @@ export const RISK_ALERTS: RiskAlert[] = [
 ];
 
 export function formatBuyerCurrency(n: number) {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
+    return new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP", minimumFractionDigits: 2, maximumFractionDigits: 2, }).format(n);
 }
 
-// ─── RFQ line items (specs the vendor will quote against) ───
+// RFQ line items (specs the vendor will quote against)
 export type RFQLine = {
   id: string;
   rfqRef: string;

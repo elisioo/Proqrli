@@ -1,3 +1,4 @@
+/* eslint-disable prettier/prettier */
 import * as React from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { Bell, ChevronDown, LogOut, Menu, Palette, Search, UserCog } from "lucide-react";
@@ -62,11 +63,6 @@ export function BuyerTopbar() {
       </div>
 
       <div className="flex items-center gap-3">
-        {/* Cross-portal switch */}
-        <Link to="/vendor" className="hidden h-10 items-center gap-2 rounded-sm border border-border bg-card px-3 text-xs font-medium hover:border-foreground lg:inline-flex">
-          <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Switch to</span>
-          <span className="font-semibold">Vendor portal</span>
-        </Link>
 
         {/* Theme picker */}
         <DropdownMenu>
@@ -211,9 +207,6 @@ export function BuyerTopbar() {
 
             <DropdownMenuItem onClick={() => navigate({ to: "/buyer/settings" })}>
               <UserCog className="mr-2 h-4 w-4" /> Account settings
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => navigate({ to: "/vendor" })}>
-              Switch to vendor portal
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={handleSignOut}

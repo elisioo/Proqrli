@@ -1,3 +1,4 @@
+/* eslint-disable prettier/prettier */
 import { cn } from "@/lib/utils";
 import type { LucideIcon } from "lucide-react";
 
@@ -27,12 +28,15 @@ export function StatCard({
       )}
     >
       <div className="flex items-center justify-between">
-        <span className="t-label" style={tone !== "default" ? { color: "currentColor", opacity: 0.6 } : undefined}>
-          {label}
-        </span>
-        {Icon && <Icon className="h-4 w-4 opacity-60" />}
+        <div className="flex items-center gap-2">
+            <span className="t-label" style={tone !== "default" ? { color: "currentColor", opacity: 0.6 } : undefined}>
+              {label}
+            </span>
+            {Icon && <Icon className="h-4 w-4 opacity-60" />}
+        </div>
+        <div className="font-display text-3xl font-extrabold tracking-tight">{value}</div>
       </div>
-      <div className="font-display text-3xl font-extrabold tracking-tight">{value}</div>
+
       {delta && (
         <div className="text-xs" style={tone === "default" ? { color: "var(--color-ink-muted)" } : { opacity: 0.7 }}>
           {delta}
