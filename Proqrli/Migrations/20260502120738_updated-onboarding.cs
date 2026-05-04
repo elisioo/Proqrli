@@ -1,11 +1,11 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
 namespace Proqrli.Migrations
 {
     /// <inheritdoc />
-    public partial class updatedonboarding : Migration
+    public partial class UpdatedOnboarding : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)

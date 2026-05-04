@@ -1,3 +1,4 @@
+/* eslint-disable no-empty */
 /* eslint-disable prettier/prettier */
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import * as React from "react";
@@ -48,7 +49,7 @@ function RegisterPage() {
   const pwOk = Object.values(pwStrength).every(Boolean) && password === confirmPw;
 
   // ── Step 1: Send OTP ──────────────────────────────────────────────────────
-  const handleSendOtp = async (e: React.FormEvent) => {
+  const handleSendOtp = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
     if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -69,7 +70,7 @@ function RegisterPage() {
   };
 
   // ── Step 2: Verify OTP ────────────────────────────────────────────────────
-  const handleVerifyOtp = async (e: React.FormEvent) => {
+  const handleVerifyOtp = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
     if (otp.trim().length !== 6) { setError("Enter the 6-digit code."); return; }
@@ -86,7 +87,7 @@ function RegisterPage() {
   };
 
   // ── Step 3: Create account ────────────────────────────────────────────────
-  const handleRegister = async (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
     if (!pwOk) { setError("Please meet all password requirements."); return; }
@@ -170,7 +171,7 @@ function RegisterPage() {
           ))}
         </div>
 
-        {/* ── STEP 1: Email ──────────────────────────────────────────────── */}
+        {}
         {step === "email" && (
           <>
             <div className="mb-1 inline-flex h-10 w-10 items-center justify-center rounded-full bg-foreground/10">
@@ -213,7 +214,6 @@ function RegisterPage() {
           </>
         )}
 
-        {/* ── STEP 2: OTP ──────────────────────────────────────────────────── */}
         {step === "otp" && (
           <>
             <div className="mb-1 inline-flex h-10 w-10 items-center justify-center rounded-full bg-foreground/10">

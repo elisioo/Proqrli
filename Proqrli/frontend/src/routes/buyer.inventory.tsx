@@ -1,22 +1,32 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable prettier/prettier */
 import { createFileRoute, Link } from "@tanstack/react-router";
 import * as React from "react";
 import {
     Boxes, AlertTriangle, PackageX, RefreshCw, ShoppingCart,
-    Pencil, Archive, RotateCcw, Plus,
+    Pencil, Archive, RotateCcw, Plus, Info,
 } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { StatCard } from "@/components/StatCard";
 import { BuyerPermissionGate } from "@/components/BuyerPermissionGate";
 import { AutoStatus } from "@/components/StatusPill";
 import { CrudDrawer, Field, inputCls, selectCls, textareaCls } from "@/components/CrudDrawer";
-import { useCollection } from "@/lib/use-collection";
+import { useApiCollection } from "@/lib/use-api-collection";
+import { inventoryApi, type InventoryItemDto } from "@/lib/api";
 import {
-    INVENTORY,
+    AlertDialog,
+    AlertDialogContent,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogCancel,
+    AlertDialogAction,
+} from "@/components/ui/alert-dialog";
+import {
     BUYER_VENDORS,
     getStockState,
     formatBuyerCurrency,
-    type InventoryItem,
 } from "@/lib/buyer-mock-data";
 import { useBuyer } from "@/lib/buyer-context";
 import { cn } from "@/lib/utils";
@@ -29,16 +39,22 @@ export const Route = createFileRoute("/buyer/inventory")({
     ),
 });
 
-type InvRow = InventoryItem & { archived?: boolean };
+type InvRow = InventoryItemDto;
+
+const UOM_OPTIONS = [
+    "Piece", "Box", "Carton", "Dozen", "Pack", "Pair", "Roll", "Set",
+    "Kilogram", "Gram", "Liter", "Milliliter", "Meter", "Centimeter", "Inch", "Foot",
+    "Gallon", "Ounce", "Pound", "Ton", "Pallet", "Drum"
+];
+
+const DEFAULT_CATEGORIES = ["Bearings", "Hydraulics", "Chemicals", "Fasteners", "Electrical", "Safety", "MRO", "Raw Materials"];
 
 const TABS = ["All", "Low stock", "Out of stock", "In stock", "Archived"] as const;
-const CATEGORIES = ["Bearings", "Hydraulics", "Chemicals", "Fasteners", "Electrical", "Safety", "MRO", "Raw Materials"];
-
 const EMPTY: Omit<InvRow, "id"> = {
     sku: "",
     name: "",
-    category: CATEGORIES[0],
-    uom: "pc",
+    category: "",
+    uom: "Piece",
     location: "",
     onHand: 0,
     onOrder: 0,
@@ -50,15 +66,32 @@ const EMPTY: Omit<InvRow, "id"> = {
 function InventoryPage() {
     const { hasPermission } = useBuyer();
     const canManage = hasPermission("inventory:manage");
-    const store = useCollection<InvRow>(INVENTORY as InvRow[], "iv");
+    const store = useApiCollection(inventoryApi);
+    const activeItems = store.items.filter((i) => !i.archived);
+    const archivedItems = store.items.filter((i) => i.archived);
 
     const [tab, setTab] = React.useState<(typeof TABS)[number]>("All");
     const [query, setQuery] = React.useState("");
     const [reorder, setReorder] = React.useState<InvRow | null>(null);
     const [drawer, setDrawer] = React.useState<{ mode: "create" | "edit"; id?: string } | null>(null);
     const [draft, setDraft] = React.useState<Omit<InvRow, "id">>(EMPTY);
+    const [isNewUom, setIsNewUom] = React.useState(false);
+    const [isNewCategory, setIsNewCategory] = React.useState(false);
+    const [confirmState, setConfirmState] = React.useState<{ title: string; desc: string; onConfirm: () => void } | null>(null);
 
-    const baseList = tab === "Archived" ? store.archived : store.items;
+    const allCategories = Array.from(new Set([
+        ...DEFAULT_CATEGORIES,
+        ...store.items.map(i => i.category).filter(Boolean),
+        draft.category
+    ].filter(Boolean)));
+    
+    const allUoms = Array.from(new Set([
+        ...UOM_OPTIONS,
+        ...store.items.map(i => i.uom).filter(Boolean),
+        draft.uom
+    ].filter(Boolean)));
+
+    const baseList = tab === "Archived" ? archivedItems : activeItems;
     const enriched = baseList.map((i) => ({ ...i, state: getStockState(i), available: i.onHand }));
     const filtered = enriched.filter((i) =>
         (tab === "All" || tab === "Archived" || i.state === tab) &&
@@ -67,16 +100,25 @@ function InventoryPage() {
             i.sku.toLowerCase().includes(query.toLowerCase())),
     );
 
-    const liveEnriched = store.items.map((i) => ({ ...i, state: getStockState(i) }));
+    const liveEnriched = activeItems.map((i) => ({ ...i, state: getStockState(i as any) }));
     const lowCount = liveEnriched.filter((i) => i.state === "Low stock").length;
     const outCount = liveEnriched.filter((i) => i.state === "Out of stock").length;
     const inCount = liveEnriched.filter((i) => i.state === "In stock").length;
     const stockValue = liveEnriched.reduce((s, i) => s + i.onHand * i.unitCost, 0);
 
-    const openCreate = () => { setDraft({ ...EMPTY }); setDrawer({ mode: "create" }); };
+    const generateSKU = () => `PRD-${new Date().toISOString().slice(0, 10).replace(/-/g, "")}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+    const openCreate = () => { 
+        setDraft({ ...EMPTY, sku: generateSKU() }); 
+        setIsNewUom(false);
+        setIsNewCategory(false);
+        setDrawer({ mode: "create" }); 
+    };
     const openEdit = (i: InvRow) => {
         const { id, ...rest } = i; void id;
-        setDraft(rest); setDrawer({ mode: "edit", id: i.id });
+        setDraft(rest); 
+        setIsNewUom(false);
+        setIsNewCategory(false);
+        setDrawer({ mode: "edit", id: i.id });
     };
     const closeDrawer = () => setDrawer(null);
     const handleSave = () => {
@@ -85,7 +127,13 @@ function InventoryPage() {
         else if (drawer.id) store.update(drawer.id, draft);
         closeDrawer();
     };
-    const handleArchive = () => { if (drawer?.id) { store.archive(drawer.id); closeDrawer(); } };
+    const handleArchive = () => { 
+        if (drawer?.id) { 
+            const itemToArchive = store.items.find(x => x.id === drawer.id);
+            if (itemToArchive) store.update(drawer.id, { ...itemToArchive, archived: true }); 
+            closeDrawer(); 
+        } 
+    };
 
     return (
         <div className="mx-auto flex max-w-7xl flex-col gap-6">
@@ -131,7 +179,7 @@ function InventoryPage() {
                             {t}
                             {t === "Low stock" && lowCount > 0 && <span className="ml-1.5 rounded-full bg-amber-100 px-1.5 text-[9px] text-amber-800">{lowCount}</span>}
                             {t === "Out of stock" && outCount > 0 && <span className="ml-1.5 rounded-full bg-rose-100 px-1.5 text-[9px] text-rose-800">{outCount}</span>}
-                            {t === "Archived" && store.archived.length > 0 && <span className="ml-1.5 rounded-full bg-muted px-1.5 text-[9px]">{store.archived.length}</span>}
+                            {t === "Archived" && archivedItems.length > 0 && <span className="ml-1.5 rounded-full bg-muted px-1.5 text-[9px]">{archivedItems.length}</span>}
                         </button>
                     ))}
                 </div>
@@ -147,13 +195,13 @@ function InventoryPage() {
                 <table className="w-full text-sm">
                     <thead className="bg-muted text-left font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
                         <tr>
-                            <th className="px-4 py-3">SKU</th>
+                            <th className="px-4 py-3">Product Code</th>
                             <th className="px-4 py-3">Item</th>
                             <th className="px-4 py-3">Location</th>
-                            <th className="px-4 py-3 text-right">On hand</th>
+                            <th className="px-4 py-3 text-right">Current Stock</th>
                             <th className="px-4 py-3 text-right">On order</th>
                             <th className="px-4 py-3 text-right">Available</th>
-                            <th className="px-4 py-3 text-right">Reorder pt</th>
+                            <th className="px-4 py-3 text-right">Reorder Threshold</th>
                             <th className="px-4 py-3">Status</th>
                             <th className="px-4 py-3" />
                         </tr>
@@ -193,7 +241,11 @@ function InventoryPage() {
                                     <div className="flex justify-end gap-1">
                                         {i.archived ? (
                                             <button
-                                                onClick={() => store.restore(i.id)}
+                                                onClick={() => setConfirmState({
+                                                    title: "Restore item?",
+                                                    desc: `Are you sure you want to restore ${i.name} to active inventory?`,
+                                                    onConfirm: () => store.update(i.id, { ...i, archived: false })
+                                                })}
                                                 className="inline-flex h-7 items-center gap-1 rounded-sm border border-border bg-card px-2 text-[10px] font-semibold hover:border-foreground"
                                             >
                                                 <RotateCcw className="h-3 w-3" /> Restore
@@ -217,8 +269,14 @@ function InventoryPage() {
                                                             <Pencil className="h-3 w-3" />
                                                         </button>
                                                         <button
-                                                            onClick={() => store.archive(i.id)}
-                                                            className="inline-flex h-7 items-center gap-1 rounded-sm border border-rose-200 bg-rose-50 px-2 text-[10px] font-semibold text-rose-700 hover:bg-rose-100"
+                                                            type="button"
+                                                            title="Archive"
+                                                            onClick={() => setConfirmState({
+                                                                title: "Archive item?",
+                                                                desc: `Are you sure you want to archive ${i.name}?`,
+                                                                onConfirm: () => store.update(i.id, { ...i, archived: true })
+                                                            })}
+                                                            className="inline-flex h-7 items-center gap-1 rounded-sm border border-amber-200 bg-amber-50 px-2 text-[10px] font-semibold text-amber-700 hover:bg-amber-100"
                                                         >
                                                             <Archive className="h-3 w-3" />
                                                         </button>
@@ -251,16 +309,52 @@ function InventoryPage() {
                 onClose={closeDrawer}
                 onSave={handleSave}
                 onArchive={drawer?.mode === "edit" ? handleArchive : undefined}
-                canSave={draft.sku.trim() !== "" && draft.name.trim() !== ""}
+                canSave={draft.name.trim() !== ""}
             >
                 <div className="grid grid-cols-2 gap-3">
-                    <Field label="SKU">
-                        <input className={inputCls} value={draft.sku}
-                            onChange={(e) => setDraft({ ...draft, sku: e.target.value })} />
+                    <Field label={
+                        <div className="flex items-center gap-1">
+                            Product Code (SKU)
+                            <div className="group relative">
+                                <Info className="h-3 w-3 text-muted-foreground" />
+                                <div className="absolute bottom-full mb-1 hidden w-48 rounded bg-foreground p-2 text-[10px] text-background group-hover:block">
+                                    Unique system-generated identifier for this item.
+                                </div>
+                            </div>
+                        </div>
+                    }>
+                        <input className={cn(inputCls, "cursor-not-allowed bg-muted opacity-70")} disabled value={draft.sku} />
                     </Field>
-                    <Field label="UOM">
-                        <input className={inputCls} value={draft.uom}
-                            onChange={(e) => setDraft({ ...draft, uom: e.target.value })} />
+                    <Field label={
+                        <div className="flex items-center gap-1">
+                            Unit of Measure
+                            <div className="group relative">
+                                <Info className="h-3 w-3 text-muted-foreground" />
+                                <div className="absolute bottom-full mb-1 hidden w-48 rounded bg-foreground p-2 text-[10px] text-background group-hover:block">
+                                    How this item is counted (e.g., Box, Kg, Liter, Piece).
+                                </div>
+                            </div>
+                        </div>
+                    }>
+                        {isNewUom ? (
+                            <div className="flex items-center gap-2">
+                                <input className={inputCls} autoFocus value={draft.uom} placeholder="Type custom UOM..."
+                                    onChange={(e) => setDraft({ ...draft, uom: e.target.value })} />
+                                <button type="button" onClick={() => setIsNewUom(false)} className="text-xs font-semibold text-muted-foreground hover:text-foreground">Cancel</button>
+                            </div>
+                        ) : (
+                            <select className={selectCls} value={draft.uom} onChange={(e) => {
+                                if (e.target.value === "___NEW___") {
+                                    setIsNewUom(true);
+                                    setDraft({ ...draft, uom: "" });
+                                } else {
+                                    setDraft({ ...draft, uom: e.target.value });
+                                }
+                            }}>
+                                {allUoms.map((u) => <option key={u} value={u}>{u}</option>)}
+                                <option value="___NEW___">+ Add custom UOM...</option>
+                            </select>
+                        )}
                     </Field>
                 </div>
                 <Field label="Item name">
@@ -269,39 +363,69 @@ function InventoryPage() {
                 </Field>
                 <div className="grid grid-cols-2 gap-3">
                     <Field label="Category">
-                        <select className={selectCls} value={draft.category}
-                            onChange={(e) => setDraft({ ...draft, category: e.target.value })}>
-                            {CATEGORIES.map((c) => <option key={c}>{c}</option>)}
-                        </select>
+                        {isNewCategory ? (
+                            <div className="flex items-center gap-2">
+                                <input className={inputCls} autoFocus value={draft.category} placeholder="Type new category..."
+                                    onChange={(e) => setDraft({ ...draft, category: e.target.value })} />
+                                <button type="button" onClick={() => setIsNewCategory(false)} className="text-xs font-semibold text-muted-foreground hover:text-foreground">Cancel</button>
+                            </div>
+                        ) : (
+                            <select className={selectCls} value={draft.category} onChange={(e) => {
+                                if (e.target.value === "___NEW___") {
+                                    setIsNewCategory(true);
+                                    setDraft({ ...draft, category: "" });
+                                } else {
+                                    setDraft({ ...draft, category: e.target.value });
+                                }
+                            }}>
+                                {allCategories.map((c) => <option key={c} value={c}>{c}</option>)}
+                                <option value="___NEW___">+ Create new category...</option>
+                            </select>
+                        )}
                     </Field>
                     <Field label="Location">
                         <input className={inputCls} value={draft.location}
                             onChange={(e) => setDraft({ ...draft, location: e.target.value })}
-                            placeholder="Bay 4 · Rack A1" />
+                            placeholder="e.g. [Aisle]-[Rack]-[Shelf]" />
                     </Field>
                 </div>
                 <div className="grid grid-cols-3 gap-3">
-                    <Field label="On hand">
-                        <input type="number" className={inputCls} value={draft.onHand}
-                            onChange={(e) => setDraft({ ...draft, onHand: Number(e.target.value) })} />
+                    <Field label="Current Stock">
+                        <input type="number" min="0" className={inputCls} value={draft.onHand}
+                            onKeyDown={(e) => { if (["-", "e", "E", "+"].includes(e.key)) e.preventDefault(); }}
+                            onChange={(e) => setDraft({ ...draft, onHand: Math.max(0, Number(e.target.value)) })} />
                     </Field>
                     <Field label="On order">
-                        <input type="number" className={inputCls} value={draft.onOrder}
-                            onChange={(e) => setDraft({ ...draft, onOrder: Number(e.target.value) })} />
+                        <input type="number" min="0" className={inputCls} value={draft.onOrder}
+                            onKeyDown={(e) => { if (["-", "e", "E", "+"].includes(e.key)) e.preventDefault(); }}
+                            onChange={(e) => setDraft({ ...draft, onOrder: Math.max(0, Number(e.target.value)) })} />
                     </Field>
                     <Field label="Unit cost">
-                        <input type="number" step="0.01" className={inputCls} value={draft.unitCost}
-                            onChange={(e) => setDraft({ ...draft, unitCost: Number(e.target.value) })} />
+                        <input type="number" min="0" step="0.01" className={inputCls} value={draft.unitCost}
+                            onKeyDown={(e) => { if (["-", "e", "E", "+"].includes(e.key)) e.preventDefault(); }}
+                            onChange={(e) => setDraft({ ...draft, unitCost: Math.max(0, Number(e.target.value)) })} />
                     </Field>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                    <Field label="Reorder point">
-                        <input type="number" className={inputCls} value={draft.reorderPoint}
-                            onChange={(e) => setDraft({ ...draft, reorderPoint: Number(e.target.value) })} />
+                    <Field label={
+                        <div className="flex items-center gap-1">
+                            Reorder threshold
+                            <div className="group relative">
+                                <Info className="h-3 w-3 text-muted-foreground" />
+                                <div className="absolute bottom-full mb-1 hidden w-48 rounded bg-foreground p-2 text-[10px] text-background group-hover:block">
+                                    When stock falls below this number, the system will suggest reordering.
+                                </div>
+                            </div>
+                        </div>
+                    }>
+                        <input type="number" min="0" className={inputCls} value={draft.reorderPoint}
+                            onKeyDown={(e) => { if (["-", "e", "E", "+"].includes(e.key)) e.preventDefault(); }}
+                            onChange={(e) => setDraft({ ...draft, reorderPoint: Math.max(0, Number(e.target.value)) })} />
                     </Field>
                     <Field label="Reorder qty">
-                        <input type="number" className={inputCls} value={draft.reorderQty}
-                            onChange={(e) => setDraft({ ...draft, reorderQty: Number(e.target.value) })} />
+                        <input type="number" min="0" className={inputCls} value={draft.reorderQty}
+                            onKeyDown={(e) => { if (["-", "e", "E", "+"].includes(e.key)) e.preventDefault(); }}
+                            onChange={(e) => setDraft({ ...draft, reorderQty: Math.max(0, Number(e.target.value)) })} />
                     </Field>
                 </div>
                 <Field label="Preferred vendor">
@@ -319,6 +443,21 @@ function InventoryPage() {
                     <textarea className={textareaCls} placeholder="Storage requirements, handling instructions…" />
                 </Field>
             </CrudDrawer>
+
+            <AlertDialog open={!!confirmState} onOpenChange={(o) => { if (!o) setConfirmState(null); }}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>{confirmState?.title}</AlertDialogTitle>
+                        <AlertDialogDescription>{confirmState?.desc}</AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => { confirmState?.onConfirm(); setConfirmState(null); }}>
+                            Confirm
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }

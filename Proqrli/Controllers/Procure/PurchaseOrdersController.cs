@@ -18,6 +18,7 @@ namespace ProqrLi.Controllers
         public async Task<IActionResult> GetAll()
         {
             var list = await _db.PurchaseOrders
+                .Include(p => p.Tenant)
                 .Include(p => p.VendorTenant)
                 .Include(p => p.PurchaseRequisition)
                 .Include(p => p.CreatedByUser)
@@ -32,6 +33,7 @@ namespace ProqrLi.Controllers
         public async Task<IActionResult> GetById(int id)
         {
             var po = await _db.PurchaseOrders
+                .Include(p => p.Tenant)
                 .Include(p => p.VendorTenant)
                 .Include(p => p.PurchaseRequisition)
                 .Include(p => p.CreatedByUser)

@@ -137,7 +137,7 @@ function LandingPage() {
                     <li><a href="#how" className="text-[13px] text-ink-soft hover:text-foreground">How it works</a></li>
                     <li><a href="#roles" className="text-[13px] text-ink-soft hover:text-foreground">Roles</a></li>
                     <li><a href="#faq" className="text-[13px] text-ink-soft hover:text-foreground">FAQ</a></li>
-                    <li><Link to="/vendor" className="text-[13px] text-ink-soft hover:text-foreground">Vendors</Link></li>
+                    <li><a href="#vendors" className="text-[13px] text-ink-soft hover:text-foreground">Vendors</a></li>
                 </ul>
 
                 <div className="flex items-center gap-2">
@@ -183,16 +183,14 @@ function LandingPage() {
                     {/* Eyebrow pill */}
            
 
-                    <h1 className="font-display text-[clamp(44px,7.5vw,96px)] font-extrabold leading-[0.98] tracking-[-0.04em] text-foreground">
+                    <h1 className="font-display text-[clamp(40px,7.5vw,96px)] font-extrabold leading-[1.1] sm:leading-[0.98] tracking-[-0.04em] text-foreground">
                         Release, Secure and
                         <br className="hidden sm:block" />
-                        <span className="inline-flex items-center gap-3 sm:gap-4">
-                            Scale your Procurement
-                            <span className="inline-flex h-[0.85em] w-[0.85em] flex-shrink-0 items-center justify-center rounded-[0.22em] bg-foreground align-middle shadow-[0_8px_24px_rgba(24,23,20,0.25)]">
-                                <Boxes className="h-[0.5em] w-[0.5em] text-paper" strokeWidth={2} />
-                            </span>{" "}
-                            Stack.
+                        {" "}Scale your <span className="outline-text">Procurement</span>
+                        <span className="inline-flex h-[0.85em] w-[0.85em] flex-shrink-0 items-center justify-center rounded-[0.22em] bg-foreground align-middle shadow-[0_8px_24px_rgba(24,23,20,0.25)] mx-2 sm:mx-3 text-paper">
+                            <Boxes className="h-[0.5em] w-[0.5em]" strokeWidth={2} />
                         </span>
+                        Stack.
                     </h1>
 
                     <p className="mt-7 max-w-xl text-[15.5px] font-light leading-[1.7] text-ink-soft md:text-[16.5px]">
@@ -385,7 +383,7 @@ function LandingPage() {
             </section>
     
             {/* VENDOR CTA SECTION */}
-            <section className="bg-foreground px-6 py-24 md:px-10 md:py-32">
+            <section id="vendors" className="bg-foreground px-6 py-24 md:px-10 md:py-32">
                 <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-16">
                     <div className="min-w-[300px] flex-1">
                         <div className="mb-4 inline-block rounded-full bg-paper/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-paper/50">

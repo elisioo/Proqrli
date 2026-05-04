@@ -105,19 +105,21 @@ function LoginForm({ portal, theme }: { portal: Portal; theme: typeof PORTAL_THE
   const team = portal === "vendor" ? TEAM_MEMBERS : BUYER_TEAM;
   const roleLabels = portal === "vendor" ? ROLE_LABELS : BUYER_ROLE_LABELS;
 
-  const [email, setEmail]     = React.useState(team[0].email);
+ 
+  const [email, setEmail]     = React.useState("");
   const [password, setPassword] = React.useState("");
   const [showPw, setShowPw]   = React.useState(false);
   const [loading, setLoading]  = React.useState(false);
   const [error, setError]      = React.useState<string | null>(null);
 
   React.useEffect(() => {
-    setEmail(team[0].email);
+   
+    setEmail("");
     setPassword("");
     setError(null);
   }, [portal, team]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
     setLoading(true);
@@ -179,7 +181,7 @@ function LoginForm({ portal, theme }: { portal: Portal; theme: typeof PORTAL_THE
           value={email}
           onChange={(e) => { setEmail(e.target.value); setError(null); }}
           type="email"
-          autoComplete="email"
+          placeholder="Enter your email"
           required
           className="h-12 w-full rounded-full border border-border bg-card px-5 text-sm outline-none transition-colors focus:border-foreground"
         />
@@ -193,7 +195,7 @@ function LoginForm({ portal, theme }: { portal: Portal; theme: typeof PORTAL_THE
             value={password}
             onChange={(e) => { setPassword(e.target.value); setError(null); }}
             type={showPw ? "text" : "password"}
-            autoComplete="current-password"
+            placeholder="Enter your password"
             required
             className="h-12 w-full rounded-full border border-border bg-card px-5 pr-12 text-sm outline-none transition-colors focus:border-foreground"
           />

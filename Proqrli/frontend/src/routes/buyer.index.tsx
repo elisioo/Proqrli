@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable prettier/prettier */
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { PageHeader } from "@/components/PageHeader";
@@ -14,17 +15,10 @@ import {
   TrendingUp,
 } from "lucide-react";
 import {
-  BUYER_PURCHASE_ORDERS,
-  BUYER_VENDORS,
-  INVENTORY,
-  REQUISITIONS,
-  RISK_ALERTS,
-  SPEND_BY_CATEGORY,
-  SPEND_SERIES,
-  VENDOR_BILLS,
   formatBuyerCurrency,
   getStockState,
 } from "@/lib/buyer-mock-data";
+import { requisitionsApi, purchaseOrdersApi, billsApi, inventoryApi } from "@/lib/api";
 import { useBuyer } from "@/lib/buyer-context";
 import {
   Area,
@@ -39,6 +33,15 @@ import {
 } from "recharts";
 
 export const Route = createFileRoute("/buyer/")({
+  loader: async () => {
+    const [realRequisitions, realPOs, realBills, realInventory] = await Promise.all([
+      requisitionsApi.getAll().catch(() => []),
+      purchaseOrdersApi.getAll().catch(() => []),
+      billsApi.getAll().catch(() => []),
+      inventoryApi.getAll().catch(() => []),
+    ]);
+    return { realRequisitions, realPOs, realBills, realInventory };
+  },
   component: () => (
     <BuyerPermissionGate permission="dashboard:view">
       <BuyerDashboard />
@@ -48,12 +51,54 @@ export const Route = createFileRoute("/buyer/")({
 
 function BuyerDashboard() {
   const { user, tenant } = useBuyer();
-  const openPRs = REQUISITIONS.filter((r) => r.status === "Pending Approval").length;
-  const openPOs = BUYER_PURCHASE_ORDERS.filter((p) => !["Closed", "Cancelled", "Received"].includes(p.status)).length;
-  const billsDue = VENDOR_BILLS.filter((b) => ["Pending", "Approved", "Scheduled", "Overdue"].includes(b.status))
-    .reduce((s, b) => s + b.amount, 0);
-  const openRisks = RISK_ALERTS.filter((r) => r.level !== "Low").length;
-  const highRiskVendors = BUYER_VENDORS.filter((v) => v.riskClass === "High" && v.status !== "Blocked");
+  const { realRequisitions, realPOs, realBills, realInventory } = Route.useLoaderData();
+  const openPRs = realRequisitions.filter((r: any) => r.status === "Pending Approval" || r.status === "Draft").length;
+  const openPOs = realPOs.filter((p: any) => !["Closed", "Cancelled", "Received"].includes(p.status)).length;
+  const billsDue = realBills.filter((b: any) => ["Pending", "Approved", "Scheduled", "Overdue"].includes(b.status))
+    .reduce((s: any, b: any) => s + (b.totalAmount || b.amount || 0), 0);
+  
+  // Real-time Risk Alerts (Overdue POs)
+  const realRiskAlerts = realPOs
+    .filter((po: any) => po.status !== "Closed" && po.status !== "Received" && po.expectedDelivery && new Date(po.expectedDelivery) < new Date())
+    .map((po: any) => ({
+      id: po.id,
+      vendorName: po.vendor?.companyName || "Unknown Vendor",
+      level: "Medium",
+      signal: "Overdue Delivery",
+      detail: `PO ${po.poNumber} is overdue since ${new Date(po.expectedDelivery).toLocaleDateString()}.`
+    }));
+  const openRisks = realRiskAlerts.length;
+
+  // Real-time Spend Series (Last 6 Months from POs)
+  const spendSeries = React.useMemo(() => {
+    const series = Array.from({ length: 6 }).map((_, i) => {
+      const d = new Date();
+      d.setMonth(d.getMonth() - (5 - i));
+      return { month: d.toLocaleString('default', { month: 'short', year: '2-digit' }), spend: 0, orders: 0 };
+    });
+    realPOs.forEach((po: any) => {
+      const d = new Date(po.createdAt || po.poDate || Date.now());
+      const mStr = d.toLocaleString('default', { month: 'short', year: '2-digit' });
+      const bucket = series.find(s => s.month === mStr);
+      if (bucket) {
+        bucket.spend += (po.totalAmount || 0);
+        bucket.orders += 1;
+      }
+    });
+    return series;
+  }, [realPOs]);
+
+  // Real-time Category Distribution (Value by Category from Inventory)
+  const categorySeries = React.useMemo(() => {
+    const map: Record<string, number> = {};
+    realInventory.forEach((i: any) => {
+      const cat = i.category || "Uncategorized";
+      map[cat] = (map[cat] || 0) + ((i.onHand || 0) * (i.unitCost || 0));
+    });
+    return Object.keys(map).map(k => ({ category: k, spend: map[k] })).sort((a, b) => b.spend - a.spend).slice(0, 6);
+  }, [realInventory]);
+
+  const totalRecentSpend = spendSeries.reduce((s, m) => s + m.spend, 0);
 
   return (
     <div className="mx-auto flex max-w-7xl flex-col gap-8">
@@ -81,16 +126,18 @@ function BuyerDashboard() {
             <div>
               <div className="t-label">Spend trend · last 6 months</div>
               <div className="mt-1 font-display text-2xl font-extrabold">
-                {formatBuyerCurrency(SPEND_SERIES.reduce((s, m) => s + m.spend, 0))}
+                {formatBuyerCurrency(totalRecentSpend)}
               </div>
             </div>
-            <span className="inline-flex items-center gap-1 rounded-sm border border-emerald-200 bg-emerald-50 px-2 py-1 font-mono text-[10px] uppercase tracking-widest text-emerald-800">
-              <TrendingUp className="h-3 w-3" /> +17.6%
-            </span>
+            {totalRecentSpend > 0 && (
+              <span className="inline-flex items-center gap-1 rounded-sm border border-emerald-200 bg-emerald-50 px-2 py-1 font-mono text-[10px] uppercase tracking-widest text-emerald-800">
+                <TrendingUp className="h-3 w-3" /> Active
+              </span>
+            )}
           </div>
           <div className="h-[260px]">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={SPEND_SERIES}>
+              <AreaChart data={spendSeries}>
                 <defs>
                   <linearGradient id="sp" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor="var(--accent-solid)" stopOpacity={0.45} />
@@ -108,11 +155,11 @@ function BuyerDashboard() {
         </div>
 
         <div className="rounded-md border border-border bg-card p-5">
-          <div className="t-label mb-2">Top categories</div>
-          <div className="font-display text-2xl font-extrabold">By spend</div>
+          <div className="t-label mb-2">Inventory value by category</div>
+          <div className="font-display text-2xl font-extrabold">By value</div>
           <div className="mt-4 h-[230px]">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={SPEND_BY_CATEGORY} layout="vertical" margin={{ left: 8 }}>
+              <BarChart data={categorySeries} layout="vertical" margin={{ left: 8 }}>
                 <XAxis type="number" hide />
                 <YAxis dataKey="category" type="category" tick={{ fontSize: 10, fontFamily: "var(--font-mono)" }} stroke="var(--ink-muted)" width={88} />
                 <Tooltip contentStyle={{ borderRadius: 4, fontSize: 12, border: "1px solid var(--border-tone)", background: "var(--card)" }} formatter={(v: number) => formatBuyerCurrency(v)} />
@@ -130,14 +177,14 @@ function BuyerDashboard() {
             <Link to="/buyer/requisitions" className="text-xs font-semibold underline-offset-4 hover:underline">View all →</Link>
           </div>
           <ul className="divide-y divide-border">
-            {REQUISITIONS.filter((r) => r.status === "Pending Approval" || r.status === "Approved").slice(0, 4).map((r) => (
-              <li key={r.id} className="flex items-center justify-between px-5 py-3">
+            {realRequisitions.filter((r: any) => r.status === "Pending Approval" || r.status === "Approved" || r.status === "Draft").slice(0, 4).map((r: any) => (
+              <li key={r.prid || r.id} className="flex items-center justify-between px-5 py-3">
                 <div className="min-w-0">
-                  <div className="truncate text-sm font-semibold">{r.title}</div>
-                  <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">{r.prNumber} · {r.requestedBy}</div>
+                  <div className="truncate text-sm font-semibold">{r.purpose || r.title || "Requisition"}</div>
+                  <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">{r.prNumber || "Draft"} · {r.requestedBy?.fullName || r.requestedBy || "System"}</div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="font-mono text-xs font-semibold">{formatBuyerCurrency(r.amount)}</span>
+                  <span className="font-mono text-xs font-semibold">{formatBuyerCurrency(r.totalEstimated || r.amount || 0)}</span>
                   <AutoStatus status={r.status} />
                 </div>
               </li>
@@ -151,7 +198,7 @@ function BuyerDashboard() {
             <Link to="/buyer/risk" className="text-xs font-semibold underline-offset-4 hover:underline">Open monitor →</Link>
           </div>
           <ul className="divide-y divide-border">
-            {RISK_ALERTS.slice(0, 4).map((a) => (
+            {realRiskAlerts.slice(0, 4).map((a: any) => (
               <li key={a.id} className="px-5 py-3">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
@@ -165,28 +212,21 @@ function BuyerDashboard() {
                 </div>
               </li>
             ))}
+            {realRiskAlerts.length === 0 && (
+              <li className="px-5 py-8 text-center text-sm text-muted-foreground">No active risk alerts.</li>
+            )}
           </ul>
         </div>
       </div>
 
-      <LowStockSuggestions />
-
-      {highRiskVendors.length > 0 && (
-        <div className="rounded-md border border-rose-200 bg-rose-50 p-5">
-          <div className="flex items-center gap-2 t-label text-rose-800">
-            <ShieldAlert className="h-3 w-3" /> High-risk vendors active in your supply chain
-          </div>
-          <p className="mt-2 text-sm text-rose-900">
-            {highRiskVendors.length} vendor(s) flagged High risk by ML scoring. Review their POs and consider secondary sources.
-          </p>
-        </div>
-      )}
+      <LowStockSuggestions inventory={realInventory} />
     </div>
   );
 }
 
-function LowStockSuggestions() {
-  const items = INVENTORY
+function LowStockSuggestions({ inventory }: { inventory: any[] }) {
+  const items = inventory
+    .filter((i) => !i.archived)
     .map((i) => ({ ...i, state: getStockState(i) }))
     .filter((i) => i.state !== "In stock")
     .sort((a, b) => a.onHand - b.onHand)

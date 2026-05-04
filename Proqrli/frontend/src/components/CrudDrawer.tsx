@@ -69,7 +69,7 @@ export function CrudDrawer({
                             <button
                                 type="button"
                                 onClick={onArchive}
-                                className="inline-flex h-9 items-center gap-1 rounded-sm border border-rose-200 bg-rose-50 px-3 text-xs font-semibold text-rose-700 hover:bg-rose-100"
+                                className="inline-flex h-9 items-center gap-1 rounded-sm border border-amber-200 bg-amber-50 px-3 text-xs font-semibold text-amber-700 hover:bg-amber-100"
                             >
                                 <Archive className="h-3 w-3" /> Archive
                             </button>
@@ -104,7 +104,7 @@ export function Field({
     hint,
     children,
 }: {
-    label: string;
+    label: React.ReactNode;
     hint?: string;
     children: React.ReactNode;
 }) {

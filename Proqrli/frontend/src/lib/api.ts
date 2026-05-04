@@ -210,12 +210,12 @@ export const purchaseOrdersApi = {
 // ─── Bills
 
 export const billsApi = {
-    getAll:  ()                              => req<VendorBill[]>("/bills"),
-    getById: (id: string)                    => req<VendorBill>(`/bills/${id}`),
-    create:  (body: CreateVendorBillPayload) => req<VendorBill>("/bills", { method: "POST", body: JSON.stringify(body) }),
+    getAll:  ()                              => req<VendorBill[]>("/invoices"),
+    getById: (id: string)                    => req<VendorBill>(`/invoices/${id}`),
+    create:  (body: CreateVendorBillPayload) => req<VendorBill>("/invoices", { method: "POST", body: JSON.stringify(body) }),
     update:  (id: string, body: Partial<{ status: string; amount: number; dueAt: string }>) =>
-                                               req<VendorBill>(`/bills/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
-    cancel:  (id: string)                    => req<void>(`/bills/${id}`, { method: "DELETE" }),
+                                               req<VendorBill>(`/invoices/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
+    cancel:  (id: string)                    => req<void>(`/invoices/${id}`, { method: "DELETE" }),
 };
 
 // ─── Payments 
@@ -227,3 +227,30 @@ export const paymentsApi = {
     update:  (id: string, body: Partial<{ status: string; scheduledFor: string }>) =>
                                                req<BuyerPayment>(`/payments/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
 };
+
+// ─── Inventory
+
+export type InventoryItemDto = {
+    id: string;
+    sku: string;
+    name: string;
+    category: string;
+    uom: string;
+    location: string;
+    onHand: number;
+    onOrder: number;
+    reorderPoint: number;
+    reorderQty: number;
+    unitCost: number;
+    preferredVendorId?: string;
+    preferredVendorName?: string;
+    archived?: boolean;
+};
+
+export const inventoryApi = {
+    getAll:  ()                                        => req<InventoryItemDto[]>("/inventory"),
+    create:  (body: Omit<InventoryItemDto, "id">)      => req<InventoryItemDto>("/inventory", { method: "POST", body: JSON.stringify(body) }),
+    update:  (id: string, body: Partial<InventoryItemDto>) => req<InventoryItemDto>(`/inventory/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
+    archive: (id: string)                              => req<void>(`/inventory/${id}`, { method: "DELETE" }),
+};
+

@@ -6,6 +6,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UserSecretsId>aspnet-Proqrli-b52b53eb-2504-41b6-a7e4-fb22165c03cb</UserSecretsId>
     <NuGetAuditLevel>moderate</NuGetAuditLevel>
+    <TypeScriptCompileBlocked>true</TypeScriptCompileBlocked>
+    <TypeScriptToolsVersion>Latest</TypeScriptToolsVersion>
   </PropertyGroup>
 
   <ItemGroup>
@@ -15,6 +17,10 @@
     <Content Include="frontend\bun.lockb" />
     <Content Include="frontend\bunfig.toml" />
     <Content Include="frontend\eslint.config.js" />
+    <Content Include="frontend\public\tab_logo.svg">
+      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
     <Content Include="frontend\src\assets\logos\logo.png" />
     <Content Include="frontend\src\components\BuyerPermissionGate.tsx" />
     <Content Include="frontend\src\components\buyer\BuyerSidebar.tsx" />

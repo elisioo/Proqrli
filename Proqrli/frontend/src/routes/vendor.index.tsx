@@ -26,20 +26,25 @@ import { AutoStatus } from "@/components/StatusPill";
 import { useVendor } from "@/lib/vendor-context";
 import {
   MARKETPLACE_ORDERS,
-  PURCHASE_ORDERS,
   REVENUE_SERIES,
   REVIEWS,
   formatCurrency,
 } from "@/lib/mock-data";
+import { purchaseOrdersApi } from "@/lib/api";
 
 export const Route = createFileRoute("/vendor/")({
+  loader: async () => {
+    const realPOs = await purchaseOrdersApi.getAll().catch(() => []);
+    return { realPOs };
+  },
   component: DashboardPage,
 });
 
 function DashboardPage() {
   const { user, tenant } = useVendor();
+  const { realPOs } = Route.useLoaderData();
   const recentOrders = MARKETPLACE_ORDERS.slice(0, 5);
-  const recentPOs = PURCHASE_ORDERS.slice(0, 4);
+  const recentPOs = realPOs.slice(0, 4);
   const totalRevenue = REVENUE_SERIES.reduce((s, d) => s + d.revenue, 0);
   const totalOrders = REVENUE_SERIES.reduce((s, d) => s + d.orders, 0);
 
@@ -168,15 +173,15 @@ function DashboardPage() {
             </Link>
           </div>
           <div className="divide-y divide-border">
-            {recentPOs.map((p) => (
-              <div key={p.id} className="flex items-center justify-between gap-3 px-5 py-3">
+            {recentPOs.map((p: any) => (
+              <div key={p.poid || p.id} className="flex items-center justify-between gap-3 px-5 py-3">
                 <div className="min-w-0">
                   <div className="font-mono text-xs text-muted-foreground">{p.poNumber}</div>
-                  <div className="truncate text-sm font-medium">{p.buyerName}</div>
+                  <div className="truncate text-sm font-medium">{p.tenant?.companyName || p.buyerName || "Buyer Company"}</div>
                 </div>
                 <div className="flex items-center gap-3">
                   <AutoStatus status={p.status} />
-                  <span className="font-mono text-sm font-semibold">{formatCurrency(p.total)}</span>
+                  <span className="font-mono text-sm font-semibold">{formatCurrency(p.totalAmount || p.total || 0)}</span>
                 </div>
               </div>
             ))}

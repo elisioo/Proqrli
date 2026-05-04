@@ -601,7 +601,7 @@ export const INVENTORY: InventoryItem[] = [
 
 export type StockState = "In stock" | "Low stock" | "Out of stock";
 
-export function getStockState(item: InventoryItem): StockState {
+export function getStockState(item: { onHand: number; reorderPoint: number }): StockState {
   if (item.onHand <= 0) return "Out of stock";
   if (item.onHand <= item.reorderPoint) return "Low stock";
   return "In stock";
