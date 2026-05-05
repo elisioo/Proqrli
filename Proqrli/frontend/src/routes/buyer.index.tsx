@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable prettier/prettier */
+import { useMemo } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { PageHeader } from "@/components/PageHeader";
 import { StatCard } from "@/components/StatCard";
@@ -70,7 +71,7 @@ function BuyerDashboard() {
   const openRisks = realRiskAlerts.length;
 
   // Real-time Spend Series (Last 6 Months from POs)
-  const spendSeries = React.useMemo(() => {
+  const spendSeries = useMemo(() => {
     const series = Array.from({ length: 6 }).map((_, i) => {
       const d = new Date();
       d.setMonth(d.getMonth() - (5 - i));
@@ -89,7 +90,7 @@ function BuyerDashboard() {
   }, [realPOs]);
 
   // Real-time Category Distribution (Value by Category from Inventory)
-  const categorySeries = React.useMemo(() => {
+  const categorySeries = useMemo(() => {
     const map: Record<string, number> = {};
     realInventory.forEach((i: any) => {
       const cat = i.category || "Uncategorized";
