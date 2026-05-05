@@ -135,7 +135,7 @@ function LandingPage() {
                 <ul className="hidden items-center gap-8 rounded-full border border-paper-dark bg-paper/70 px-7 py-2.5 backdrop-blur md:flex">
                     <li><a href="#features" className="text-[13px] text-ink-soft hover:text-foreground">Features</a></li>
                     <li><a href="#how" className="text-[13px] text-ink-soft hover:text-foreground">How it works</a></li>
-                    <li><a href="#roles" className="text-[13px] text-ink-soft hover:text-foreground">Roles</a></li>
+                    <li><a href="#whatsin" className="text-[13px] text-ink-soft hover:text-foreground">What's in</a></li>
                     <li><a href="#faq" className="text-[13px] text-ink-soft hover:text-foreground">FAQ</a></li>
                     <li><a href="#vendors" className="text-[13px] text-ink-soft hover:text-foreground">Vendors</a></li>
                 </ul>
@@ -304,7 +304,7 @@ function LandingPage() {
             </section>
 
             {/* DARK SHOWCASE — dashboard preview, mirrors ToDesktop dark feature block */}
-            <section className="bg-foreground px-6 py-24 md:px-10 md:py-32">
+            <section id="whatsin" className="bg-foreground px-6 py-24 md:px-10 md:py-32">
                 <div className="mx-auto max-w-6xl">
                     <div className="mb-5 flex items-center gap-2.5 text-[10.5px] font-semibold uppercase tracking-[0.18em] text-paper/40">
                         <span className="h-px w-6 bg-paper/30" />
