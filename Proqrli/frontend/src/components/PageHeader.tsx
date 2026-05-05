@@ -1,3 +1,4 @@
+/* eslint-disable prettier/prettier */
 import { cn } from "@/lib/utils";
 
 export function PageHeader({
@@ -18,7 +19,7 @@ export function PageHeader({
       <div>
         {eyebrow && (
           <div className="t-label mb-3 flex items-center gap-2">
-            <span className="h-px w-6 bg-ink-muted" />
+            {/*<span className="h-px w-6 bg-ink-muted" />*/}
             {eyebrow}
           </div>
         )}

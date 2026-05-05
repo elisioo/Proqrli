@@ -66,6 +66,13 @@ builder.Services.AddRazorPages();
 
 var app = builder.Build();
 
+// Run Database Seeder
+using (var scope = app.Services.CreateScope())
+{
+    var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    DbSeeder.Seed(context);
+}
+
 
 if (app.Environment.IsDevelopment())
 {

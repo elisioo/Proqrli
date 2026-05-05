@@ -15,8 +15,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { BuyerSidebar } from "./BuyerSidebar";
+import { SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
 
 export function BuyerTopbar() {
@@ -38,19 +37,15 @@ export function BuyerTopbar() {
     navigate({ to: "/login" });
   };
 
+  const { state, isMobile } = useSidebar();
+
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-3 border-b border-border bg-paper/85 px-4 backdrop-blur md:px-6">
       <div className="flex min-w-0 flex-1 items-center gap-3">
-        <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-          <SheetTrigger asChild>
-            <Button variant="ghost" size="icon" className="md:hidden">
-              <Menu className="h-5 w-5" />
-            </Button>
-          </SheetTrigger>
-          <SheetContent side="left" className="w-[280px] p-0">
-            <BuyerSidebar onNavigate={() => setMobileOpen(false)} />
-          </SheetContent>
-        </Sheet>
+        {/* Show toggle in topbar if on mobile OR if sidebar is collapsed */}
+        {(isMobile || state === "collapsed") && (
+          <SidebarTrigger className="-ml-1" />
+        )}
 
         <div className="relative hidden w-full max-w-md md:block">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />

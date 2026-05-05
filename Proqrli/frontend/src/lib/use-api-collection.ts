@@ -74,9 +74,9 @@ export function useApiCollection<
 
     const archive = React.useCallback(async (id: string) => {
         await endpoints.archive(id);
-        // Remove from local list (backend soft-deletes via status=Cancelled)
-        setItems(prev => prev.filter(i => i.id !== id));
-    }, [endpoints]);
+        // Reload from backend to get the exact new state (e.g., status changed to Archived or IsActive=false)
+        await load();
+    }, [endpoints, load]);
 
     return { items, state, error, reload: load, create, update, archive };
 }

@@ -358,7 +358,7 @@ function InventoryPage() {
                     </Field>
                 </div>
                 <Field label="Item name">
-                    <input className={inputCls} value={draft.name}
+                    <input className={inputCls} value={draft.name} placeholder="Enter the item name"
                         onChange={(e) => setDraft({ ...draft, name: e.target.value })} />
                 </Field>
                 <div className="grid grid-cols-2 gap-3">
@@ -391,17 +391,20 @@ function InventoryPage() {
                 </div>
                 <div className="grid grid-cols-3 gap-3">
                     <Field label="Current Stock">
-                        <input type="number" min="0" className={inputCls} value={draft.onHand}
+                        <input type="number" min="0" className={inputCls} value={draft.onHand === 0 ? "" : draft.onHand}
+                            placeholder="0"
                             onKeyDown={(e) => { if (["-", "e", "E", "+"].includes(e.key)) e.preventDefault(); }}
                             onChange={(e) => setDraft({ ...draft, onHand: Math.max(0, Number(e.target.value)) })} />
                     </Field>
                     <Field label="On order">
-                        <input type="number" min="0" className={inputCls} value={draft.onOrder}
+                        <input type="number" min="0" className={inputCls} value={draft.onOrder === 0 ? "" : draft.onOrder}
+                            placeholder="0"
                             onKeyDown={(e) => { if (["-", "e", "E", "+"].includes(e.key)) e.preventDefault(); }}
                             onChange={(e) => setDraft({ ...draft, onOrder: Math.max(0, Number(e.target.value)) })} />
                     </Field>
                     <Field label="Unit cost">
-                        <input type="number" min="0" step="0.01" className={inputCls} value={draft.unitCost}
+                        <input type="number" min="0" step="0.01" className={inputCls} value={draft.unitCost === 0 ? "" : draft.unitCost}
+                            placeholder="0.00"
                             onKeyDown={(e) => { if (["-", "e", "E", "+"].includes(e.key)) e.preventDefault(); }}
                             onChange={(e) => setDraft({ ...draft, unitCost: Math.max(0, Number(e.target.value)) })} />
                     </Field>
@@ -418,12 +421,14 @@ function InventoryPage() {
                             </div>
                         </div>
                     }>
-                        <input type="number" min="0" className={inputCls} value={draft.reorderPoint}
+                        <input type="number" min="0" className={inputCls} value={draft.reorderPoint === 0 ? "" : draft.reorderPoint}
+                            placeholder="0"
                             onKeyDown={(e) => { if (["-", "e", "E", "+"].includes(e.key)) e.preventDefault(); }}
                             onChange={(e) => setDraft({ ...draft, reorderPoint: Math.max(0, Number(e.target.value)) })} />
                     </Field>
                     <Field label="Reorder qty">
-                        <input type="number" min="0" className={inputCls} value={draft.reorderQty}
+                        <input type="number" min="0" className={inputCls} value={draft.reorderQty === 0 ? "" : draft.reorderQty}
+                            placeholder="0"
                             onKeyDown={(e) => { if (["-", "e", "E", "+"].includes(e.key)) e.preventDefault(); }}
                             onChange={(e) => setDraft({ ...draft, reorderQty: Math.max(0, Number(e.target.value)) })} />
                     </Field>
@@ -479,7 +484,9 @@ function ReorderModal({ item, onClose }: { item: InvRow; onClose: () => void }) 
                     <div className="grid grid-cols-2 gap-3">
                         <div>
                             <div className="t-label mb-1">Reorder quantity</div>
-                            <input type="number" value={qty} onChange={(e) => setQty(Number(e.target.value))}
+                            <input type="number" min="1" value={qty === 0 ? "" : qty} placeholder="0"
+                                onKeyDown={(e) => { if (["-", "e", "E", "+"].includes(e.key)) e.preventDefault(); }}
+                                onChange={(e) => setQty(Math.max(0, Number(e.target.value)))}
                                 className="h-10 w-full rounded-sm border border-border bg-background px-3 font-mono text-sm outline-none focus:border-foreground" />
                             <p className="mt-1 text-[10px] text-muted-foreground">Suggested: {item.reorderQty} {item.uom}</p>
                         </div>

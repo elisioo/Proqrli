@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ProqrLi.Data;
 using ProqrLi.Models;
+using ProqrLi.DTOs;
 
 namespace ProqrLi.Controllers
 {
@@ -13,6 +14,23 @@ namespace ProqrLi.Controllers
 
         public PurchaseRequisitionsController(ApplicationDbContext db) => _db = db;
 
+        private static RequisitionDto ToDto(PurchaseRequisition r, int itemCount = 0)
+        {
+            return new RequisitionDto
+            {
+                Id          = r.PRID.ToString(),
+                PrNumber    = r.PRNumber ?? "",
+                Title       = r.Purpose ?? "",
+                RequestedBy = r.RequestedBy?.FullName ?? "",
+                Department  = r.Department ?? "",
+                Amount      = r.TotalEstimated,
+                ItemCount   = itemCount,
+                Status      = r.Status,
+                RaisedAt    = r.RequestDate.ToString("yyyy-MM-dd"),
+                NeededBy    = r.RequiredDate?.ToString("yyyy-MM-dd") ?? "",
+            };
+        }
+
         // GET /api/purchaserequisitions
         [HttpGet]
         public async Task<IActionResult> GetAll()
@@ -23,7 +41,16 @@ namespace ProqrLi.Controllers
                 .OrderByDescending(r => r.RequestDate)
                 .ToListAsync();
 
-            return Ok(list);
+            // Count line items per PR
+            var prIds = list.Select(r => r.PRID).ToList();
+            var counts = await _db.RequisitionItems
+                .Where(ri => prIds.Contains(ri.PRID))
+                .GroupBy(ri => ri.PRID)
+                .Select(g => new { PRID = g.Key, Count = g.Count() })
+                .ToDictionaryAsync(g => g.PRID, g => g.Count);
+
+            var dtos = list.Select(r => ToDto(r, counts.GetValueOrDefault(r.PRID, 0))).ToList();
+            return Ok(dtos);
         }
 
         // GET /api/purchaserequisitions/5
@@ -36,29 +63,73 @@ namespace ProqrLi.Controllers
                 .FirstOrDefaultAsync(r => r.PRID == id);
 
             if (pr == null) return NotFound();
-            return Ok(pr);
+            var itemCount = await _db.RequisitionItems.CountAsync(ri => ri.PRID == id);
+            return Ok(ToDto(pr, itemCount));
         }
 
         // POST /api/purchaserequisitions
         [HttpPost]
-        public async Task<IActionResult> Create([FromBody] PurchaseRequisition pr)
+        public async Task<IActionResult> Create([FromBody] CreateRequisitionDto dto)
         {
-            // Auto-generate PR number if not provided
-            if (string.IsNullOrWhiteSpace(pr.PRNumber))
-                pr.PRNumber = $"PR-{DateTime.UtcNow.Year}-{Guid.NewGuid().ToString()[..4].ToUpper()}";
+            // Resolve tenant (simplified — first tenant for now)
+            var tenantId = await _db.Tenants.Select(t => t.TenantID).FirstOrDefaultAsync();
+            if (tenantId == 0) tenantId = 1;
 
-            pr.RequestDate = DateTime.UtcNow;
-            pr.Status = "Draft";
+            // Resolve requestedBy user
+            var requestedByUser = !string.IsNullOrWhiteSpace(dto.RequestedBy)
+                ? await _db.TenantUsers.FirstOrDefaultAsync(u => u.FullName == dto.RequestedBy)
+                : null;
+
+            var pr = new PurchaseRequisition
+            {
+                PRNumber       = string.IsNullOrWhiteSpace(dto.PrNumber) ? $"PR-{DateTime.UtcNow.Year}-{Guid.NewGuid().ToString()[..4].ToUpper()}" : dto.PrNumber,
+                Purpose        = dto.Title,
+                Department     = dto.Department,
+                TotalEstimated = dto.Amount,
+                RequestDate    = DateTime.UtcNow,
+                RequiredDate   = DateTime.TryParse(dto.NeededBy, out var nb) ? nb : DateTime.UtcNow.AddDays(14),
+                Status         = "Draft",
+                TenantID       = tenantId,
+                RequestedByID  = requestedByUser?.UserID ?? (await _db.TenantUsers.Select(u => u.UserID).FirstOrDefaultAsync()),
+            };
 
             _db.PurchaseRequisitions.Add(pr);
             await _db.SaveChangesAsync();
 
-            return CreatedAtAction(nameof(GetById), new { id = pr.PRID }, pr);
+            // Reload with includes for the DTO
+            var saved = await _db.PurchaseRequisitions
+                .Include(r => r.RequestedBy)
+                .FirstAsync(r => r.PRID == pr.PRID);
+
+            return CreatedAtAction(nameof(GetById), new { id = pr.PRID }, ToDto(saved, 0));
         }
 
-        // PUT /api/purchaserequisitions/5
+        // PATCH /api/purchaserequisitions/5
+        [HttpPatch("{id:int}")]
+        public async Task<IActionResult> Update(int id, [FromBody] UpdateRequisitionDto dto)
+        {
+            var pr = await _db.PurchaseRequisitions
+                .Include(r => r.RequestedBy)
+                .FirstOrDefaultAsync(r => r.PRID == id);
+
+            if (pr == null) return NotFound();
+
+            if (dto.Title      != null) pr.Purpose        = dto.Title;
+            if (dto.Department != null) pr.Department      = dto.Department;
+            if (dto.Amount     != null) pr.TotalEstimated  = dto.Amount.Value;
+            if (dto.Status     != null) pr.Status          = dto.Status;
+            if (dto.NeededBy   != null && DateTime.TryParse(dto.NeededBy, out var nb))
+                pr.RequiredDate = nb;
+
+            await _db.SaveChangesAsync();
+
+            var itemCount = await _db.RequisitionItems.CountAsync(ri => ri.PRID == id);
+            return Ok(ToDto(pr, itemCount));
+        }
+
+        // PUT /api/purchaserequisitions/5  (keep for backwards compat)
         [HttpPut("{id:int}")]
-        public async Task<IActionResult> Update(int id, [FromBody] PurchaseRequisition pr)
+        public async Task<IActionResult> PutUpdate(int id, [FromBody] PurchaseRequisition pr)
         {
             if (id != pr.PRID) return BadRequest("ID mismatch.");
 

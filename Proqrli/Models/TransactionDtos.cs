@@ -57,6 +57,7 @@ namespace ProqrLi.DTOs
         public string PaymentTerms     { get; set; } = "";
         public string RaisedBy         { get; set; } = "";
         public string? PrRef           { get; set; }        // PR number or null
+        public bool Archived           { get; set; }
     }
 
     public class CreatePurchaseOrderDto

@@ -131,7 +131,7 @@ namespace ProqrLi.Models
         public Tenant? Tenant { get; set; }
 
         [ForeignKey("PurchaseRequisition")]
-        public int PRID { get; set; }
+        public int? PRID { get; set; }
         public PurchaseRequisition? PurchaseRequisition { get; set; }
 
         public int VendorTenantID { get; set; }

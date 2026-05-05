@@ -1,17 +1,14 @@
 /* eslint-disable prettier/prettier */
 import { createFileRoute } from "@tanstack/react-router";
 import * as React from "react";
-import { Star, Pencil, Archive, RotateCcw } from "lucide-react";
+import { Star, Pencil, Archive, Loader2 } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { BuyerPermissionGate } from "@/components/BuyerPermissionGate";
 import { AutoStatus } from "@/components/StatusPill";
 import { CrudDrawer, Field, inputCls, selectCls, textareaCls } from "@/components/CrudDrawer";
-import { useCollection } from "@/lib/use-collection";
-import {
-    BUYER_VENDORS,
-    formatBuyerCurrency,
-    type BuyerVendor,
-} from "@/lib/buyer-mock-data";
+import { useApiCollection } from "@/lib/use-api-collection";
+import { vendorsApi, type VendorRecord, type CreateVendorPayload, type UpdateVendorPayload } from "@/lib/api";
+import { formatBuyerCurrency } from "@/lib/buyer-mock-data";
 import { useBuyer } from "@/lib/buyer-context";
 import { cn } from "@/lib/utils";
 
@@ -23,21 +20,13 @@ export const Route = createFileRoute("/buyer/vendors")({
     ),
 });
 
-type VendorRow = BuyerVendor & { archived?: boolean };
-
 const CATEGORIES = ["Industrial Equipment", "Hydraulics", "Chemicals", "Fasteners", "Electrical", "Safety", "Raw Materials", "MRO"];
+const VENDOR_STATUSES = ["Pending", "Accredited", "Blocked"] as const;
 
-const EMPTY: Omit<VendorRow, "id"> = {
+const EMPTY = {
     companyName: "",
     category: CATEGORIES[0],
-    status: "Pending",
-    riskClass: "Low",
-    riskScore: 0.2,
-    rating: 0,
-    totalSpend: 0,
-    orders: 0,
-    onTimeRate: 0,
-    initials: "??",
+    status: "Pending" as string,
 };
 
 function deriveInitials(name: string) {
@@ -52,145 +41,171 @@ function deriveInitials(name: string) {
 function VendorsPage() {
     const { hasPermission } = useBuyer();
     const canManage = hasPermission("vendors:manage");
-    const store = useCollection<VendorRow>(BUYER_VENDORS as VendorRow[], "v");
+    const store = useApiCollection<VendorRecord, CreateVendorPayload, UpdateVendorPayload>(vendorsApi);
 
-    const [view, setView] = React.useState<"active" | "archived">("active");
+    const [view, setView] = React.useState<"active" | "blocked">("active");
     const [drawer, setDrawer] = React.useState<{ mode: "create" | "edit"; id?: string } | null>(null);
-    const [draft, setDraft] = React.useState<Omit<VendorRow, "id">>(EMPTY);
+    const [draft, setDraft] = React.useState(EMPTY);
+    const [saving, setSaving] = React.useState(false);
 
-    const list = view === "active" ? store.items : store.archived;
+    const activeVendors = store.items.filter((v) => v.status !== "Blocked");
+    const blockedVendors = store.items.filter((v) => v.status === "Blocked");
+    const list = view === "active" ? activeVendors : blockedVendors;
 
     const openCreate = () => { setDraft({ ...EMPTY }); setDrawer({ mode: "create" }); };
-    const openEdit = (v: VendorRow) => {
-        const { id, ...rest } = v; void id;
-        setDraft(rest); setDrawer({ mode: "edit", id: v.id });
+    const openEdit = (v: VendorRecord) => {
+        setDraft({
+            companyName: v.companyName,
+            category: v.category || CATEGORIES[0],
+            status: v.status,
+        });
+        setDrawer({ mode: "edit", id: v.id });
     };
     const closeDrawer = () => setDrawer(null);
-    const handleSave = () => {
+
+    const handleSave = async () => {
         if (!drawer) return;
-        const final = { ...draft, initials: draft.initials || deriveInitials(draft.companyName) };
-        if (drawer.mode === "create") store.create(final);
-        else if (drawer.id) store.update(drawer.id, final);
-        closeDrawer();
+        setSaving(true);
+        try {
+            if (drawer.mode === "create") {
+                await store.create({
+                    companyName: draft.companyName,
+                    category: draft.category,
+                    status: draft.status,
+                });
+            } else if (drawer.id) {
+                await store.update(drawer.id, {
+                    companyName: draft.companyName,
+                    category: draft.category,
+                    status: draft.status,
+                });
+            }
+            closeDrawer();
+        } catch (err) {
+            console.error("Save failed:", err);
+        } finally {
+            setSaving(false);
+        }
     };
-    const handleArchive = () => { if (drawer?.id) { store.archive(drawer.id); closeDrawer(); } };
+
+    const handleArchive = async () => {
+        if (drawer?.id) { await store.archive(drawer.id); closeDrawer(); }
+    };
 
     return (
         <div className="mx-auto flex max-w-7xl flex-col gap-6">
             <PageHeader
                 eyebrow="Accredited supply base"
                 title="Vendors"
-                description="Manage approved vendors, view their ML risk score, and onboard new ones."
+                description="Manage approved vendors, view their risk score, and onboard new ones."
                 actions={
                     canManage && (
-                        <button
-                            onClick={openCreate}
-                            className="h-10 rounded-sm bg-foreground px-4 text-sm font-semibold text-background hover:opacity-85"
-                        >
+                        <button onClick={openCreate}
+                            className="h-10 rounded-sm bg-foreground px-4 text-sm font-semibold text-background hover:opacity-85">
                             + Invite vendor
                         </button>
                     )
                 }
             />
 
-            <div className="flex gap-1 border-b border-border">
-                {(["active", "archived"] as const).map((v) => (
-                    <button key={v} onClick={() => setView(v)}
-                        className={cn(
-                            "border-b-2 px-3 py-2 text-xs font-mono uppercase tracking-widest",
-                            view === v ? "border-foreground text-foreground" : "border-transparent text-muted-foreground hover:text-foreground",
-                        )}
-                    >
-                        {v} ({v === "active" ? store.items.length : store.archived.length})
-                    </button>
-                ))}
-            </div>
+            {store.state === "loading" && (
+                <div className="flex items-center justify-center py-12 text-muted-foreground">
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading vendors…
+                </div>
+            )}
 
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {list.map((v) => (
-                    <div key={v.id} className="rounded-md border border-border bg-card p-5">
-                        <div className="flex items-start justify-between">
-                            <div className="flex items-center gap-3">
-                                <span className="flex h-12 w-12 items-center justify-center rounded-sm bg-foreground font-mono text-sm font-bold text-background">
-                                    {v.initials}
-                                </span>
-                                <div>
-                                    <div className="font-display text-base font-extrabold">{v.companyName}</div>
-                                    <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">{v.category}</div>
-                                </div>
-                            </div>
-                            <AutoStatus status={v.archived ? "Archived" : v.status} />
-                        </div>
+            {store.state === "error" && (
+                <div className="rounded-md border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
+                    Failed to load: {store.error}
+                    <button onClick={store.reload} className="ml-2 font-semibold underline">Retry</button>
+                </div>
+            )}
 
-                        <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
-                            <div>
-                                <div className="t-label">Risk</div>
-                                <div className="mt-1 flex items-center gap-2">
-                                    <AutoStatus status={v.riskClass} />
-                                    <span className="font-mono text-[10px] text-muted-foreground">{(v.riskScore * 100).toFixed(0)}%</span>
-                                </div>
-                            </div>
-                            <div>
-                                <div className="t-label">Rating</div>
-                                <div className="mt-1 inline-flex items-center gap-1 font-semibold">
-                                    <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
-                                    {v.rating > 0 ? v.rating.toFixed(1) : "—"}
-                                </div>
-                            </div>
-                            <div>
-                                <div className="t-label">Lifetime spend</div>
-                                <div className="mt-1 font-mono text-sm font-semibold">{formatBuyerCurrency(v.totalSpend)}</div>
-                            </div>
-                            <div>
-                                <div className="t-label">On-time</div>
-                                <div className="mt-1 font-mono text-sm font-semibold">{v.onTimeRate}%</div>
-                            </div>
-                        </div>
+            {store.state === "idle" && (
+                <>
+                    <div className="flex gap-1 border-b border-border">
+                        {(["active", "blocked"] as const).map((v) => (
+                            <button key={v} onClick={() => setView(v)}
+                                className={cn(
+                                    "border-b-2 px-3 py-2 text-xs font-mono uppercase tracking-widest",
+                                    view === v ? "border-foreground text-foreground" : "border-transparent text-muted-foreground hover:text-foreground",
+                                )}>
+                                {v} ({v === "active" ? activeVendors.length : blockedVendors.length})
+                            </button>
+                        ))}
+                    </div>
 
-                        <div className="mt-4 flex gap-2">
-                            {v.archived ? (
-                                <button
-                                    onClick={() => store.restore(v.id)}
-                                    className="inline-flex flex-1 items-center justify-center gap-1 rounded-sm border border-border bg-card py-2 text-xs font-semibold hover:border-foreground"
-                                >
-                                    <RotateCcw className="h-3 w-3" /> Restore
-                                </button>
-                            ) : (
-                                <>
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                        {list.map((v) => (
+                            <div key={v.id} className="rounded-md border border-border bg-card p-5">
+                                <div className="flex items-start justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <span className="flex h-12 w-12 items-center justify-center rounded-sm bg-foreground font-mono text-sm font-bold text-background">
+                                            {v.initials || deriveInitials(v.companyName)}
+                                        </span>
+                                        <div>
+                                            <div className="font-display text-base font-extrabold">{v.companyName}</div>
+                                            <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">{v.category}</div>
+                                        </div>
+                                    </div>
+                                    <AutoStatus status={v.status} />
+                                </div>
+
+                                <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
+                                    <div>
+                                        <div className="t-label">Risk</div>
+                                        <div className="mt-1 flex items-center gap-2">
+                                            <AutoStatus status={v.riskClass || "Low"} />
+                                            <span className="font-mono text-[10px] text-muted-foreground">{((v.riskScore || 0) * 100).toFixed(0)}%</span>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div className="t-label">Rating</div>
+                                        <div className="mt-1 inline-flex items-center gap-1 font-semibold">
+                                            <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+                                            {v.rating > 0 ? v.rating.toFixed(1) : "—"}
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div className="t-label">Lifetime spend</div>
+                                        <div className="mt-1 font-mono text-sm font-semibold">{formatBuyerCurrency(v.totalSpend || 0)}</div>
+                                    </div>
+                                    <div>
+                                        <div className="t-label">On-time</div>
+                                        <div className="mt-1 font-mono text-sm font-semibold">{v.onTimeRate || 0}%</div>
+                                    </div>
+                                </div>
+
+                                <div className="mt-4 flex gap-2">
                                     {canManage && (
-                                        <button
-                                            onClick={() => openEdit(v)}
-                                            className="inline-flex flex-1 items-center justify-center gap-1 rounded-sm border border-border bg-card py-2 text-xs font-semibold hover:border-foreground"
-                                        >
+                                        <button onClick={() => openEdit(v)}
+                                            className="inline-flex flex-1 items-center justify-center gap-1 rounded-sm border border-border bg-card py-2 text-xs font-semibold hover:border-foreground">
                                             <Pencil className="h-3 w-3" /> Edit
                                         </button>
                                     )}
                                     <button
                                         className="flex-1 rounded-sm bg-foreground py-2 text-xs font-semibold text-background hover:opacity-85"
-                                        disabled={v.status !== "Accredited"}
-                                    >
+                                        disabled={v.status !== "Accredited"}>
                                         Invite to RFQ
                                     </button>
-                                    {canManage && (
-                                        <button
-                                            onClick={() => store.archive(v.id)}
+                                    {canManage && v.status !== "Blocked" && (
+                                        <button onClick={() => store.archive(v.id)}
                                             className="inline-flex items-center justify-center rounded-sm border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-100"
-                                            title="Archive"
-                                        >
+                                            title="Block">
                                             <Archive className="h-3 w-3" />
                                         </button>
                                     )}
-                                </>
-                            )}
-                        </div>
+                                </div>
+                            </div>
+                        ))}
+                        {list.length === 0 && (
+                            <div className="col-span-full rounded-md border border-dashed border-border bg-card/50 p-12 text-center text-sm text-muted-foreground">
+                                No vendors in this view.
+                            </div>
+                        )}
                     </div>
-                ))}
-                {list.length === 0 && (
-                    <div className="col-span-full rounded-md border border-dashed border-border bg-card/50 p-12 text-center text-sm text-muted-foreground">
-                        No vendors in this view.
-                    </div>
-                )}
-            </div>
+                </>
+            )}
 
             <CrudDrawer
                 open={drawer !== null}
@@ -200,11 +215,12 @@ function VendorsPage() {
                 onClose={closeDrawer}
                 onSave={handleSave}
                 onArchive={drawer?.mode === "edit" ? handleArchive : undefined}
-                canSave={draft.companyName.trim() !== ""}
+                canSave={draft.companyName.trim() !== "" && !saving}
+                saveLabel={saving ? "Saving…" : undefined}
             >
                 <Field label="Company name">
                     <input className={inputCls} value={draft.companyName}
-                        onChange={(e) => setDraft({ ...draft, companyName: e.target.value, initials: deriveInitials(e.target.value) })} />
+                        onChange={(e) => setDraft({ ...draft, companyName: e.target.value })} />
                 </Field>
                 <div className="grid grid-cols-2 gap-3">
                     <Field label="Category">
@@ -215,41 +231,9 @@ function VendorsPage() {
                     </Field>
                     <Field label="Status">
                         <select className={selectCls} value={draft.status}
-                            onChange={(e) => setDraft({ ...draft, status: e.target.value as BuyerVendor["status"] })}>
-                            <option>Pending</option>
-                            <option>Accredited</option>
-                            <option>Blocked</option>
+                            onChange={(e) => setDraft({ ...draft, status: e.target.value })}>
+                            {VENDOR_STATUSES.map((s) => <option key={s}>{s}</option>)}
                         </select>
-                    </Field>
-                </div>
-                <div className="grid grid-cols-3 gap-3">
-                    <Field label="Risk class">
-                        <select className={selectCls} value={draft.riskClass}
-                            onChange={(e) => setDraft({ ...draft, riskClass: e.target.value as BuyerVendor["riskClass"] })}>
-                            <option>Low</option><option>Medium</option><option>High</option>
-                        </select>
-                    </Field>
-                    <Field label="Risk score (0-1)">
-                        <input type="number" step="0.01" min="0" max="1" className={inputCls} value={draft.riskScore}
-                            onChange={(e) => setDraft({ ...draft, riskScore: Number(e.target.value) })} />
-                    </Field>
-                    <Field label="Rating">
-                        <input type="number" step="0.1" min="0" max="5" className={inputCls} value={draft.rating}
-                            onChange={(e) => setDraft({ ...draft, rating: Number(e.target.value) })} />
-                    </Field>
-                </div>
-                <div className="grid grid-cols-3 gap-3">
-                    <Field label="Lifetime spend">
-                        <input type="number" className={inputCls} value={draft.totalSpend}
-                            onChange={(e) => setDraft({ ...draft, totalSpend: Number(e.target.value) })} />
-                    </Field>
-                    <Field label="Orders">
-                        <input type="number" className={inputCls} value={draft.orders}
-                            onChange={(e) => setDraft({ ...draft, orders: Number(e.target.value) })} />
-                    </Field>
-                    <Field label="On-time %">
-                        <input type="number" min="0" max="100" className={inputCls} value={draft.onTimeRate}
-                            onChange={(e) => setDraft({ ...draft, onTimeRate: Number(e.target.value) })} />
                     </Field>
                 </div>
                 <Field label="Notes">

@@ -85,6 +85,10 @@ export const authApi = {
 };
 
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// ─── Requisitions ──────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+
 export type Requisition = {
     id: string;
     prNumber: string;
@@ -93,9 +97,10 @@ export type Requisition = {
     department: string;
     amount: number;
     itemCount: number;
-    status: "Draft" | "Pending Approval" | "Approved" | "Rejected" | "Converted to RFQ" | "Converted to PO";
+    status: "Draft" | "Pending Approval" | "Approved" | "Rejected" | "Converted to RFQ" | "Converted to PO" | "Cancelled";
     raisedAt: string;
     neededBy: string;
+    archived?: boolean;
 };
 
 export type CreateRequisitionPayload = {
@@ -113,9 +118,22 @@ export type UpdateRequisitionPayload = Partial<{
     department: string;
     amount: number;
     itemCount: number;
-    status: Requisition["status"];
+    status: string;
     neededBy: string;
 }>;
+
+export const requisitionsApi = {
+    getAll:  ()                              => req<Requisition[]>("/purchaserequisitions"),
+    getById: (id: string)                    => req<Requisition>(`/purchaserequisitions/${id}`),
+    create:  (body: CreateRequisitionPayload)=> req<Requisition>("/purchaserequisitions", { method: "POST", body: JSON.stringify(body) }),
+    update:  (id: string, body: UpdateRequisitionPayload) =>
+                                               req<Requisition>(`/purchaserequisitions/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
+    archive: (id: string)                    => req<void>(`/purchaserequisitions/${id}`, { method: "DELETE" }),
+};
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ─── Purchase Orders ───────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
 
 export type PurchaseOrder = {
     id: string;
@@ -130,6 +148,7 @@ export type PurchaseOrder = {
     paymentTerms: string;
     raisedBy: string;
     prRef?: string;
+    archived?: boolean;
 };
 
 export type CreatePurchaseOrderPayload = {
@@ -142,11 +161,26 @@ export type CreatePurchaseOrderPayload = {
 };
 
 export type UpdatePurchaseOrderPayload = Partial<{
-    status: PurchaseOrder["status"];
+    status: string;
     expectedDelivery: string;
     paymentTerms: string;
     total: number;
 }>;
+
+export const purchaseOrdersApi = {
+    getAll:  ()                                => req<PurchaseOrder[]>("/purchaseorders"),
+    getById: (id: string)                      => req<PurchaseOrder>(`/purchaseorders/${id}`),
+    create:  (body: CreatePurchaseOrderPayload)=> req<PurchaseOrder>("/purchaseorders", { method: "POST", body: JSON.stringify(body) }),
+    update:  (id: string, body: UpdatePurchaseOrderPayload) =>
+                                                 req<PurchaseOrder>(`/purchaseorders/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
+    archive:  (id: string)                     => req<void>(`/purchaseorders/${id}`, { method: "DELETE" }),
+    getPRLookup: ()                            => req<{ id: number; label: string }[]>("/purchaseorders/pr-lookup"),
+    getVendorLookup: ()                        => req<{ id: number; label: string }[]>("/purchaseorders/vendor-lookup"),
+};
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ─── Bills (Vendor Invoices) ───────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
 
 export type VendorBill = {
     id: string;
@@ -157,6 +191,7 @@ export type VendorBill = {
     status: "Pending" | "Approved" | "Scheduled" | "Paid" | "Disputed" | "Overdue" | "Cancelled";
     receivedAt: string;
     dueAt: string;
+    archived?: boolean;
 };
 
 export type CreateVendorBillPayload = {
@@ -167,15 +202,36 @@ export type CreateVendorBillPayload = {
     dueAt: string;
 };
 
+export type UpdateVendorBillPayload = Partial<{
+    status: string;
+    amount: number;
+    dueAt: string;
+}>;
+
+export const billsApi = {
+    getAll:  ()                              => req<VendorBill[]>("/invoices"),
+    getById: (id: string)                    => req<VendorBill>(`/invoices/${id}`),
+    create:  (body: CreateVendorBillPayload) => req<VendorBill>("/invoices", { method: "POST", body: JSON.stringify(body) }),
+    update:  (id: string, body: UpdateVendorBillPayload) =>
+                                               req<VendorBill>(`/invoices/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
+    archive:  (id: string)                   => req<void>(`/invoices/${id}`, { method: "DELETE" }),
+    getPOLookup: ()                          => req<{ id: number; label: string; vendorName: string }[]>("/invoices/po-lookup"),
+};
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ─── Payments ──────────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+
 export type BuyerPayment = {
     id: string;
     reference: string;
     vendorName: string;
     billRef: string;
     amount: number;
-    status: "Scheduled" | "Processing" | "Paid" | "Failed";
+    status: "Scheduled" | "Processing" | "Paid" | "Failed" | "Pending";
     scheduledFor: string;
     method: string;
+    archived?: boolean;
 };
 
 export type CreatePaymentPayload = {
@@ -185,50 +241,24 @@ export type CreatePaymentPayload = {
     scheduledFor: string;
 };
 
-// ─── Requisitions
-
-export const requisitionsApi = {
-    getAll:  ()                              => req<Requisition[]>("/purchaserequisitions"),
-    getById: (id: string)                    => req<Requisition>(`/purchaserequisitions/${id}`),
-    create:  (body: CreateRequisitionPayload)=> req<Requisition>("/purchaserequisitions", { method: "POST", body: JSON.stringify(body) }),
-    update:  (id: string, body: UpdateRequisitionPayload) =>
-                                               req<Requisition>(`/purchaserequisitions/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
-    archive: (id: string)                    => req<void>(`/purchaserequisitions/${id}`, { method: "DELETE" }),
-};
-
-// ─── Purchase Orders 
-
-export const purchaseOrdersApi = {
-    getAll:  ()                                => req<PurchaseOrder[]>("/purchaseorders"),
-    getById: (id: string)                      => req<PurchaseOrder>(`/purchaseorders/${id}`),
-    create:  (body: CreatePurchaseOrderPayload)=> req<PurchaseOrder>("/purchaseorders", { method: "POST", body: JSON.stringify(body) }),
-    update:  (id: string, body: UpdatePurchaseOrderPayload) =>
-                                                 req<PurchaseOrder>(`/purchaseorders/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
-    cancel:  (id: string)                      => req<void>(`/purchaseorders/${id}`, { method: "DELETE" }),
-};
-
-// ─── Bills
-
-export const billsApi = {
-    getAll:  ()                              => req<VendorBill[]>("/invoices"),
-    getById: (id: string)                    => req<VendorBill>(`/invoices/${id}`),
-    create:  (body: CreateVendorBillPayload) => req<VendorBill>("/invoices", { method: "POST", body: JSON.stringify(body) }),
-    update:  (id: string, body: Partial<{ status: string; amount: number; dueAt: string }>) =>
-                                               req<VendorBill>(`/invoices/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
-    cancel:  (id: string)                    => req<void>(`/invoices/${id}`, { method: "DELETE" }),
-};
-
-// ─── Payments 
+export type UpdatePaymentPayload = Partial<{
+    status: string;
+    scheduledFor: string;
+}>;
 
 export const paymentsApi = {
     getAll:  ()                              => req<BuyerPayment[]>("/payments"),
     getById: (id: string)                    => req<BuyerPayment>(`/payments/${id}`),
     create:  (body: CreatePaymentPayload)    => req<BuyerPayment>("/payments", { method: "POST", body: JSON.stringify(body) }),
-    update:  (id: string, body: Partial<{ status: string; scheduledFor: string }>) =>
+    update:  (id: string, body: UpdatePaymentPayload) =>
                                                req<BuyerPayment>(`/payments/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
+    archive: (id: string)                    => req<void>(`/payments/${id}`, { method: "DELETE" }),
+    getInvoiceLookup: ()                     => req<{ id: number; label: string }[]>("/payments/invoice-lookup"),
 };
 
-// ─── Inventory
+// ═══════════════════════════════════════════════════════════════════════════════
+// ─── Inventory ─────────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
 
 export type InventoryItemDto = {
     id: string;
@@ -254,3 +284,203 @@ export const inventoryApi = {
     archive: (id: string)                              => req<void>(`/inventory/${id}`, { method: "DELETE" }),
 };
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// ─── Vendors (Accreditation) ───────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export type VendorRecord = {
+    id: string;
+    companyName: string;
+    category: string;
+    status: "Accredited" | "Pending" | "Blocked";
+    riskClass: "Low" | "Medium" | "High";
+    riskScore: number;
+    rating: number;
+    totalSpend: number;
+    orders: number;
+    onTimeRate: number;
+    initials: string;
+    archived?: boolean;
+};
+
+export type CreateVendorPayload = {
+    companyName: string;
+    category?: string;
+    status?: string;
+};
+
+export type UpdateVendorPayload = Partial<{
+    companyName: string;
+    category: string;
+    status: string;
+    riskClass: string;
+    riskScore: number;
+    rating: number;
+}>;
+
+export const vendorsApi = {
+    getAll:  ()                                => req<VendorRecord[]>("/vendors"),
+    getById: (id: string)                      => req<VendorRecord>(`/vendors/${id}`),
+    create:  (body: CreateVendorPayload)       => req<VendorRecord>("/vendors", { method: "POST", body: JSON.stringify(body) }),
+    update:  (id: string, body: UpdateVendorPayload) =>
+                                                 req<VendorRecord>(`/vendors/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
+    archive: (id: string)                      => req<void>(`/vendors/${id}`, { method: "DELETE" }),
+};
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ─── Deliveries (Goods Receipts) ───────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export type DeliveryRecord = {
+    id: string;
+    grnNumber: string;
+    poRef: string;
+    vendorName: string;
+    receivedAt: string;
+    receivedBy: string;
+    itemCount: number;
+    status: "Pending" | "Pending Inspection" | "Accepted" | "Partially Accepted" | "Rejected" | "Cancelled";
+    notes?: string;
+    courierName?: string;
+    trackingNumber?: string;
+    archived?: boolean;
+};
+
+export type CreateDeliveryPayload = {
+    pOID: number;
+    grnNumber?: string;
+    expectedDate?: string;
+    courierName?: string;
+    trackingNumber?: string;
+    deliveryAddress?: string;
+    notes?: string;
+};
+
+export type UpdateDeliveryPayload = Partial<{
+    status: string;
+    notes: string;
+    courierName: string;
+    trackingNumber: string;
+}>;
+
+export const deliveriesApi = {
+    getAll:  ()                                  => req<DeliveryRecord[]>("/deliveries"),
+    getById: (id: string)                        => req<DeliveryRecord>(`/deliveries/${id}`),
+    create:  (body: CreateDeliveryPayload)       => req<DeliveryRecord>("/deliveries", { method: "POST", body: JSON.stringify(body) }),
+    update:  (id: string, body: UpdateDeliveryPayload) =>
+                                                   req<DeliveryRecord>(`/deliveries/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
+    archive: (id: string)                        => req<void>(`/deliveries/${id}`, { method: "DELETE" }),
+    getPOLookup: ()                              => req<{ id: number; label: string }[]>("/deliveries/po-lookup"),
+};
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ─── Compliance & Risk ─────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export type RiskAlert = {
+    id: string;
+    vendorName: string;
+    level: "Low" | "Medium" | "High";
+    signal: string;
+    detail: string;
+    raisedAt: string;
+};
+
+export type VendorRisk = {
+    id: string;
+    vendorName: string;
+    initials: string;
+    category: string;
+    riskClassification: "Low" | "Medium" | "High";
+    mlRiskScore: number;
+    onTimeDeliveryRate: number;
+    defectRate: number;
+    complianceViolations: number;
+};
+
+export type ComplianceDoc = {
+    id: string;
+    title: string;
+    documentNumber: string;
+    category: string;
+    status: string;
+    issuedDate?: string;
+    expiryDate?: string;
+    uploadedBy: string;
+    uploadedAt: string;
+    archived?: boolean;
+};
+
+export type CreateComplianceDocPayload = {
+    title: string;
+    documentNumber?: string;
+    categoryID: number;
+    filePath?: string;
+    issuedDate?: string;
+    expiryDate?: string;
+    relatedModule?: string;
+    relatedRecordID?: string;
+};
+
+export type UpdateComplianceDocPayload = Partial<{
+    title: string;
+    status: string;
+    expiryDate: string;
+}>;
+
+export const complianceApi = {
+    getRiskScores: ()                              => req<VendorRisk[]>("/compliance/risk-scores"),
+    getAlerts:     ()                              => req<RiskAlert[]>("/compliance/alerts"),
+    getDocuments:  ()                              => req<ComplianceDoc[]>("/compliance/documents"),
+    createDocument: (body: CreateComplianceDocPayload) => req<ComplianceDoc>("/compliance/documents", { method: "POST", body: JSON.stringify(body) }),
+    updateDocument: (id: string, body: UpdateComplianceDocPayload) =>
+                                                     req<ComplianceDoc>(`/compliance/documents/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
+    archiveDocument: (id: string)                  => req<void>(`/compliance/documents/${id}`, { method: "DELETE" }),
+    getCategories: ()                              => req<{ categoryID: number; categoryName: string; requiresExpiry: boolean }[]>("/compliance/categories"),
+};
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ─── Contracts ─────────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export type ContractRecord = {
+    id: string;
+    contractNumber: string;
+    vendorName: string;
+    vendorId: string;
+    contractType: string;
+    startDate: string;
+    endDate: string;
+    status: "Draft" | "Active" | "Expired" | "Terminated" | "Cancelled";
+    totalValue: number;
+    terms?: string;
+    createdBy: string;
+    archived?: boolean;
+};
+
+export type CreateContractPayload = {
+    contractNumber?: string;
+    vendorTenantID: number;
+    contractType?: string;
+    startDate: string;
+    endDate: string;
+    totalValue: number;
+    terms?: string;
+};
+
+export type UpdateContractPayload = Partial<{
+    status: string;
+    endDate: string;
+    totalValue: number;
+    terms: string;
+}>;
+
+export const contractsApi = {
+    getAll:  ()                                  => req<ContractRecord[]>("/contracts"),
+    getById: (id: string)                        => req<ContractRecord>(`/contracts/${id}`),
+    create:  (body: CreateContractPayload)       => req<ContractRecord>("/contracts", { method: "POST", body: JSON.stringify(body) }),
+    update:  (id: string, body: UpdateContractPayload) =>
+                                                   req<ContractRecord>(`/contracts/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
+    archive: (id: string)                        => req<void>(`/contracts/${id}`, { method: "DELETE" }),
+    getVendorLookup: ()                          => req<{ id: number; label: string }[]>("/contracts/vendor-lookup"),
+};
