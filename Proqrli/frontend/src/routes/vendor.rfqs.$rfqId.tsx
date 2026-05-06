@@ -7,6 +7,7 @@ import { AutoStatus } from "@/components/StatusPill";
 import { INCOMING_RFQS, formatCurrency, type IncomingRFQ } from "@/lib/mock-data";
 import { useVendor } from "@/lib/vendor-context";
 import { ArrowLeft, Send, Calendar, Clock, FileText, ShieldCheck, Trophy } from "lucide-react";
+import { NumberInput, Field } from "@/components/CrudDrawer";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/vendor/rfqs/$rfqId")({
@@ -105,11 +106,10 @@ function RFQDetail() {
                                                 {line.targetPrice ? formatCurrency(line.targetPrice) : "—"}
                                             </td>
                                             <td className="px-4 py-3 text-right">
-                                                <input
-                                                    type="number"
+                                                <NumberInput
                                                     value={lq.unitPrice}
                                                     disabled={!canRespond || rfq.status === "Awarded" || rfq.status === "Lost"}
-                                                    onChange={(e) => setLineQuotes((arr) => arr.map((it, idx) => idx === i ? { ...it, unitPrice: Number(e.target.value) } : it))}
+                                                    onChange={(val) => setLineQuotes((arr) => arr.map((it, idx) => idx === i ? { ...it, unitPrice: val } : it))}
                                                     className="h-8 w-24 rounded-sm border border-border bg-background px-2 text-right font-mono text-xs outline-none focus:border-foreground disabled:opacity-60"
                                                 />
                                             </td>
@@ -134,11 +134,11 @@ function RFQDetail() {
                         <div className="t-label mb-3">Quote terms</div>
                         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                             <Field label="Lead time (days)">
-                                <input type="number" value={leadTime} disabled={!canRespond} onChange={(e) => setLeadTime(Number(e.target.value))}
+                                <NumberInput value={leadTime} disabled={!canRespond} onChange={(val) => setLeadTime(val)}
                                     className="h-10 w-full rounded-sm border border-border bg-background px-3 font-mono text-sm outline-none focus:border-foreground disabled:opacity-60" />
                             </Field>
                             <Field label="Quote valid (days)">
-                                <input type="number" value={validity} disabled={!canRespond} onChange={(e) => setValidity(Number(e.target.value))}
+                                <NumberInput value={validity} disabled={!canRespond} onChange={(val) => setValidity(val)}
                                     className="h-10 w-full rounded-sm border border-border bg-background px-3 font-mono text-sm outline-none focus:border-foreground disabled:opacity-60" />
                             </Field>
                             <Field label="Payment terms">
@@ -219,11 +219,4 @@ function Meta({ icon, label, value }: { icon: React.ReactNode; label: string; va
     );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-    return (
-        <label className="block">
-            <span className="t-label mb-1.5 block">{label}</span>
-            {children}
-        </label>
-    );
-}
+

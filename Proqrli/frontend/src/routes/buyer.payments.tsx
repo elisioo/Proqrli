@@ -5,7 +5,7 @@ import { Pencil, Archive, Loader2 } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { BuyerPermissionGate } from "@/components/BuyerPermissionGate";
 import { AutoStatus } from "@/components/StatusPill";
-import { CrudDrawer, Field, inputCls, selectCls } from "@/components/CrudDrawer";
+import { CrudDrawer, Field, inputCls, selectCls, NumberInput } from "@/components/CrudDrawer";
 import { useApiCollection } from "@/lib/use-api-collection";
 import { paymentsApi, type BuyerPayment, type CreatePaymentPayload, type UpdatePaymentPayload } from "@/lib/api";
 import { formatBuyerCurrency } from "@/lib/buyer-mock-data";
@@ -192,9 +192,17 @@ function PaymentsPage() {
                             </select>
                         </Field>
                         <div className="grid grid-cols-2 gap-3">
-                            <Field label="Amount">
-                                <input type="number" step="0.01" className={inputCls} value={draft.amount}
-                                    onChange={(e) => setDraft({ ...draft, amount: Number(e.target.value) })} />
+                            <Field label="Amount paid">
+                                <NumberInput
+                                    step="0.01"
+                                    className={cn(touched.amount && draft.amount <= 0 && "border-rose-500 focus:border-rose-500")}
+                                    value={draft.amount}
+                                    placeholder="0.00"
+                                    onChange={(val) => {
+                                        setTouched(prev => ({ ...prev, amount: true }));
+                                        setDraft({ ...draft, amount: val });
+                                    }}
+                                />
                             </Field>
                             <Field label="Method">
                                 <select className={selectCls} value={draft.method}

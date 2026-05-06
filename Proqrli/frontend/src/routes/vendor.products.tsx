@@ -5,7 +5,7 @@ import { Plus, Search, Pencil, Archive, RotateCcw } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { AutoStatus } from "@/components/StatusPill";
 import { PermissionGate } from "@/components/PermissionGate";
-import { CrudDrawer, Field, inputCls, selectCls, textareaCls } from "@/components/CrudDrawer";
+import { CrudDrawer, Field, inputCls, selectCls, textareaCls, NumberInput, SelectOrCustom } from "@/components/CrudDrawer";
 import { useCollection } from "@/lib/use-collection";
 import { useVendor } from "@/lib/vendor-context";
 import {
@@ -269,15 +269,13 @@ function ProductsPage() {
 
                 <div className="grid grid-cols-2 gap-3">
                     <Field label="Category">
-                        <select
-                            className={selectCls}
+                        <SelectOrCustom
                             value={draft.category}
-                            onChange={(e) => setDraft({ ...draft, category: e.target.value })}
-                        >
-                            {PRODUCT_CATEGORIES.map((c) => (
-                                <option key={c} value={c}>{c}</option>
-                            ))}
-                        </select>
+                            options={PRODUCT_CATEGORIES}
+                            onChange={(val) => setDraft({ ...draft, category: val })}
+                            addLabel="+ Create new category..."
+                            placeholder="Type category..."
+                        />
                     </Field>
                     <Field label="Status">
                         <select
@@ -296,13 +294,7 @@ function ProductsPage() {
 
                 <div className="grid grid-cols-3 gap-3">
                     <Field label="Price">
-                        <input
-                            type="number"
-                            step="0.01"
-                            className={inputCls}
-                            value={draft.price}
-                            onChange={(e) => setDraft({ ...draft, price: Number(e.target.value) })}
-                        />
+                        <NumberInput step="0.01" value={draft.price} placeholder="0.00" onChange={(val) => setDraft({ ...draft, price: val ?? 0 })} />
                     </Field>
                     <Field label="UOM">
                         <input
@@ -312,12 +304,7 @@ function ProductsPage() {
                         />
                     </Field>
                     <Field label="Stock">
-                        <input
-                            type="number"
-                            className={inputCls}
-                            value={draft.stock}
-                            onChange={(e) => setDraft({ ...draft, stock: Number(e.target.value) })}
-                        />
+                        <NumberInput value={draft.stock} placeholder="0" onChange={(val) => setDraft({ ...draft, stock: val ?? 0 })} />
                     </Field>
                 </div>
 

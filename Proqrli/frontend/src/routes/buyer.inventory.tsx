@@ -10,7 +10,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { StatCard } from "@/components/StatCard";
 import { BuyerPermissionGate } from "@/components/BuyerPermissionGate";
 import { AutoStatus } from "@/components/StatusPill";
-import { CrudDrawer, Field, inputCls, selectCls, textareaCls } from "@/components/CrudDrawer";
+import { CrudDrawer, Field, inputCls, selectCls, textareaCls, NumberInput, SelectOrCustom } from "@/components/CrudDrawer";
 import { useApiCollection } from "@/lib/use-api-collection";
 import { inventoryApi, type InventoryItemDto } from "@/lib/api";
 import {
@@ -75,8 +75,6 @@ function InventoryPage() {
     const [reorder, setReorder] = React.useState<InvRow | null>(null);
     const [drawer, setDrawer] = React.useState<{ mode: "create" | "edit"; id?: string } | null>(null);
     const [draft, setDraft] = React.useState<Omit<InvRow, "id">>(EMPTY);
-    const [isNewUom, setIsNewUom] = React.useState(false);
-    const [isNewCategory, setIsNewCategory] = React.useState(false);
     const [confirmState, setConfirmState] = React.useState<{ title: string; desc: string; onConfirm: () => void } | null>(null);
 
     const allCategories = Array.from(new Set([
@@ -109,15 +107,11 @@ function InventoryPage() {
     const generateSKU = () => `PRD-${new Date().toISOString().slice(0, 10).replace(/-/g, "")}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
     const openCreate = () => { 
         setDraft({ ...EMPTY, sku: generateSKU() }); 
-        setIsNewUom(false);
-        setIsNewCategory(false);
         setDrawer({ mode: "create" }); 
     };
     const openEdit = (i: InvRow) => {
         const { id, ...rest } = i; void id;
         setDraft(rest); 
-        setIsNewUom(false);
-        setIsNewCategory(false);
         setDrawer({ mode: "edit", id: i.id });
     };
     const closeDrawer = () => setDrawer(null);
@@ -336,25 +330,13 @@ function InventoryPage() {
                             </div>
                         </div>
                     }>
-                        {isNewUom ? (
-                            <div className="flex items-center gap-2">
-                                <input className={inputCls} autoFocus value={draft.uom} placeholder="Type custom UOM..."
-                                    onChange={(e) => setDraft({ ...draft, uom: e.target.value })} />
-                                <button type="button" onClick={() => setIsNewUom(false)} className="text-xs font-semibold text-muted-foreground hover:text-foreground">Cancel</button>
-                            </div>
-                        ) : (
-                            <select className={selectCls} value={draft.uom} onChange={(e) => {
-                                if (e.target.value === "___NEW___") {
-                                    setIsNewUom(true);
-                                    setDraft({ ...draft, uom: "" });
-                                } else {
-                                    setDraft({ ...draft, uom: e.target.value });
-                                }
-                            }}>
-                                {allUoms.map((u) => <option key={u} value={u}>{u}</option>)}
-                                <option value="___NEW___">+ Add custom UOM...</option>
-                            </select>
-                        )}
+                        <SelectOrCustom
+                            value={draft.uom}
+                            options={allUoms}
+                            onChange={(val) => setDraft({ ...draft, uom: val })}
+                            addLabel="+ Add custom UOM..."
+                            placeholder="Type custom UOM..."
+                        />
                     </Field>
                 </div>
                 <Field label="Item name">
@@ -363,25 +345,13 @@ function InventoryPage() {
                 </Field>
                 <div className="grid grid-cols-2 gap-3">
                     <Field label="Category">
-                        {isNewCategory ? (
-                            <div className="flex items-center gap-2">
-                                <input className={inputCls} autoFocus value={draft.category} placeholder="Type new category..."
-                                    onChange={(e) => setDraft({ ...draft, category: e.target.value })} />
-                                <button type="button" onClick={() => setIsNewCategory(false)} className="text-xs font-semibold text-muted-foreground hover:text-foreground">Cancel</button>
-                            </div>
-                        ) : (
-                            <select className={selectCls} value={draft.category} onChange={(e) => {
-                                if (e.target.value === "___NEW___") {
-                                    setIsNewCategory(true);
-                                    setDraft({ ...draft, category: "" });
-                                } else {
-                                    setDraft({ ...draft, category: e.target.value });
-                                }
-                            }}>
-                                {allCategories.map((c) => <option key={c} value={c}>{c}</option>)}
-                                <option value="___NEW___">+ Create new category...</option>
-                            </select>
-                        )}
+                        <SelectOrCustom
+                            value={draft.category}
+                            options={allCategories}
+                            onChange={(val) => setDraft({ ...draft, category: val })}
+                            addLabel="+ Create new category..."
+                            placeholder="Type new category..."
+                        />
                     </Field>
                     <Field label="Location">
                         <input className={inputCls} value={draft.location}
@@ -391,22 +361,13 @@ function InventoryPage() {
                 </div>
                 <div className="grid grid-cols-3 gap-3">
                     <Field label="Current Stock">
-                        <input type="number" min="0" className={inputCls} value={draft.onHand === 0 ? "" : draft.onHand}
-                            placeholder="0"
-                            onKeyDown={(e) => { if (["-", "e", "E", "+"].includes(e.key)) e.preventDefault(); }}
-                            onChange={(e) => setDraft({ ...draft, onHand: Math.max(0, Number(e.target.value)) })} />
+                        <NumberInput value={draft.onHand} onChange={(val) => setDraft({ ...draft, onHand: val })} placeholder="0" />
                     </Field>
                     <Field label="On order">
-                        <input type="number" min="0" className={inputCls} value={draft.onOrder === 0 ? "" : draft.onOrder}
-                            placeholder="0"
-                            onKeyDown={(e) => { if (["-", "e", "E", "+"].includes(e.key)) e.preventDefault(); }}
-                            onChange={(e) => setDraft({ ...draft, onOrder: Math.max(0, Number(e.target.value)) })} />
+                        <NumberInput value={draft.onOrder} onChange={(val) => setDraft({ ...draft, onOrder: val })} placeholder="0" />
                     </Field>
                     <Field label="Unit cost">
-                        <input type="number" min="0" step="0.01" className={inputCls} value={draft.unitCost === 0 ? "" : draft.unitCost}
-                            placeholder="0.00"
-                            onKeyDown={(e) => { if (["-", "e", "E", "+"].includes(e.key)) e.preventDefault(); }}
-                            onChange={(e) => setDraft({ ...draft, unitCost: Math.max(0, Number(e.target.value)) })} />
+                        <NumberInput value={draft.unitCost} onChange={(val) => setDraft({ ...draft, unitCost: val })} placeholder="0.00" step="0.01" />
                     </Field>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
@@ -421,16 +382,10 @@ function InventoryPage() {
                             </div>
                         </div>
                     }>
-                        <input type="number" min="0" className={inputCls} value={draft.reorderPoint === 0 ? "" : draft.reorderPoint}
-                            placeholder="0"
-                            onKeyDown={(e) => { if (["-", "e", "E", "+"].includes(e.key)) e.preventDefault(); }}
-                            onChange={(e) => setDraft({ ...draft, reorderPoint: Math.max(0, Number(e.target.value)) })} />
+                        <NumberInput value={draft.reorderPoint} onChange={(val) => setDraft({ ...draft, reorderPoint: val })} placeholder="0" />
                     </Field>
                     <Field label="Reorder qty">
-                        <input type="number" min="0" className={inputCls} value={draft.reorderQty === 0 ? "" : draft.reorderQty}
-                            placeholder="0"
-                            onKeyDown={(e) => { if (["-", "e", "E", "+"].includes(e.key)) e.preventDefault(); }}
-                            onChange={(e) => setDraft({ ...draft, reorderQty: Math.max(0, Number(e.target.value)) })} />
+                        <NumberInput value={draft.reorderQty} onChange={(val) => setDraft({ ...draft, reorderQty: val })} placeholder="0" />
                     </Field>
                 </div>
                 <Field label="Preferred vendor">

@@ -21,6 +21,8 @@ import {
     Activity,
     AlertTriangle,
     CircleDot,
+    Menu,
+    X,
 } from "lucide-react";
 
 export const Route = createFileRoute("/")({
@@ -106,6 +108,7 @@ const ROLES = [
 function LandingPage() {
     const [scrolled, setScrolled] = useState(false);
     const [activeStep, setActiveStep] = useState(0);
+    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
     useEffect(() => {
         const onScroll = () => setScrolled(window.scrollY > 24);
@@ -151,8 +154,34 @@ function LandingPage() {
                             Get started
                         </button>
                     </Link>
+                    <button 
+                        className="flex h-10 w-10 items-center justify-center rounded-full border border-paper-dark bg-paper/70 hover:border-foreground md:hidden"
+                        onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                        aria-label="Toggle menu"
+                    >
+                        {mobileMenuOpen ? <X className="h-4 w-4 text-foreground" /> : <Menu className="h-4 w-4 text-foreground" />}
+                    </button>
                 </div>
             </nav>
+
+            {/* Mobile Nav Dropdown */}
+            {mobileMenuOpen && (
+                <div className="fixed inset-x-0 top-[72px] z-40 border-b border-paper-dark bg-paper/95 p-6 shadow-sm backdrop-blur md:hidden">
+                    <ul className="flex flex-col gap-4">
+                        <li><a href="#features" onClick={() => setMobileMenuOpen(false)} className="text-sm font-medium text-ink hover:text-foreground">Features</a></li>
+                        <li><a href="#how" onClick={() => setMobileMenuOpen(false)} className="text-sm font-medium text-ink hover:text-foreground">How it works</a></li>
+                        <li><a href="#whatsin" onClick={() => setMobileMenuOpen(false)} className="text-sm font-medium text-ink hover:text-foreground">What's in</a></li>
+                        <li><a href="#faq" onClick={() => setMobileMenuOpen(false)} className="text-sm font-medium text-ink hover:text-foreground">FAQ</a></li>
+                        <li><a href="#vendors" onClick={() => setMobileMenuOpen(false)} className="text-sm font-medium text-ink hover:text-foreground">Vendors</a></li>
+                        <hr className="my-2 border-paper-dark" />
+                        <li>
+                            <Link to="/login" onClick={() => setMobileMenuOpen(false)} className="text-sm font-medium text-ink hover:text-foreground">
+                                Log in
+                            </Link>
+                        </li>
+                    </ul>
+                </div>
+            )}
 
             {/* HERO — centered, à la ToDesktop */}
             <section className="relative overflow-hidden px-6 pb-20 pt-36 md:pb-24 md:pt-40">

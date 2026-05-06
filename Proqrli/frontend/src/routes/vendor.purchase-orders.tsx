@@ -5,7 +5,7 @@ import { Pencil, Archive, RotateCcw } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { AutoStatus } from "@/components/StatusPill";
 import { PermissionGate } from "@/components/PermissionGate";
-import { CrudDrawer, Field, inputCls, selectCls, textareaCls } from "@/components/CrudDrawer";
+import { CrudDrawer, Field, inputCls, selectCls, textareaCls, NumberInput } from "@/components/CrudDrawer";
 import { useCollection } from "@/lib/use-collection";
 import { useVendor } from "@/lib/vendor-context";
 import { PURCHASE_ORDERS, formatCurrency, type PurchaseOrder } from "@/lib/mock-data";
@@ -194,12 +194,10 @@ function POPage() {
                 </div>
                 <div className="grid grid-cols-3 gap-3">
                     <Field label="Items">
-                        <input type="number" className={inputCls} value={draft.itemCount}
-                            onChange={(e) => setDraft({ ...draft, itemCount: Number(e.target.value) })} />
+                        <NumberInput value={draft.itemCount} placeholder="0" onChange={(val) => setDraft({ ...draft, itemCount: val })} />
                     </Field>
                     <Field label="Total">
-                        <input type="number" step="0.01" className={inputCls} value={draft.total}
-                            onChange={(e) => setDraft({ ...draft, total: Number(e.target.value) })} />
+                        <NumberInput step="0.01" value={draft.total} placeholder="0.00" onChange={(val) => setDraft({ ...draft, total: val })} />
                     </Field>
                     <Field label="Terms">
                         <select className={selectCls} value={draft.paymentTerms}

@@ -1,13 +1,36 @@
 /* eslint-disable prettier/prettier */
 import { createFileRoute } from "@tanstack/react-router";
 import * as React from "react";
-import { Pencil, Archive, RotateCcw, Loader2 } from "lucide-react";
+import { Pencil, Archive, Loader2 } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { BuyerPermissionGate } from "@/components/BuyerPermissionGate";
 import { AutoStatus } from "@/components/StatusPill";
-import { CrudDrawer, Field, inputCls, selectCls, textareaCls } from "@/components/CrudDrawer";
+import {
+    CrudDrawer,
+    Field,
+    inputCls,
+    selectCls,
+    textareaCls,
+    NumberInput,
+    SelectOrCustom,
+} from "@/components/CrudDrawer";
+import {
+    AlertDialog,
+    AlertDialogContent,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogCancel,
+    AlertDialogAction,
+} from "@/components/ui/alert-dialog";
 import { useApiCollection } from "@/lib/use-api-collection";
-import { requisitionsApi, type Requisition, type CreateRequisitionPayload, type UpdateRequisitionPayload } from "@/lib/api";
+import {
+    requisitionsApi,
+    type Requisition,
+    type CreateRequisitionPayload,
+    type UpdateRequisitionPayload,
+} from "@/lib/api";
 import { formatBuyerCurrency } from "@/lib/buyer-mock-data";
 import { useBuyer } from "@/lib/buyer-context";
 import { cn } from "@/lib/utils";
@@ -20,18 +43,36 @@ export const Route = createFileRoute("/buyer/requisitions")({
     ),
 });
 
-const DEPTS = ["Maintenance", "Production", "EHS", "Engineering", "Facilities", "IT"];
+// ─── Constants ────────────────────────────────────────────────────────────────
+
+const DEFAULT_DEPTS = [
+    "Maintenance",
+    "Production",
+    "EHS",
+    "Engineering",
+    "Facilities",
+    "IT",
+];
+
+// Auto-generates a PR number in the format PR-YYYYMMDD-XXXX (like inventory SKU).
+function generatePRNumber(): string {
+    const datePart = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+    const rand = Math.random().toString(36).substring(2, 6).toUpperCase();
+    return `PR-${datePart}-${rand}`;
+}
 
 const EMPTY = {
     prNumber: "",
     title: "",
     requestedBy: "",
-    department: DEPTS[0],
+    department: DEFAULT_DEPTS[0],
     amount: 0,
-    itemCount: 1,
+    itemCount: 0,
     status: "Draft" as const,
     neededBy: new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10),
 };
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
 
 function RequisitionsPage() {
     const { hasPermission, user } = useBuyer();
@@ -39,19 +80,43 @@ function RequisitionsPage() {
     const canApprove = hasPermission("requisitions:approve");
 
     const store = useApiCollection<Requisition, CreateRequisitionPayload, UpdateRequisitionPayload>(requisitionsApi);
+
     const [view, setView] = React.useState<"active" | "cancelled">("active");
     const [drawer, setDrawer] = React.useState<{ mode: "create" | "edit"; id?: string } | null>(null);
     const [draft, setDraft] = React.useState(EMPTY);
     const [saving, setSaving] = React.useState(false);
 
+    // Confirmation modal state (archive, approve, reject, etc.)
+    const [confirmState, setConfirmState] = React.useState<{
+        title: string;
+        desc: string;
+        onConfirm: () => void;
+    } | null>(null);
+
+    // Collect all departments seen in existing records so they appear in the dropdown.
+    const allDepts = React.useMemo(() =>
+        Array.from(new Set([
+            ...DEFAULT_DEPTS,
+            ...store.items.map((r) => r.department).filter(Boolean),
+        ])),
+        [store.items],
+    );
+
     const active = store.items.filter((r) => r.status !== "Cancelled");
     const cancelled = store.items.filter((r) => r.status === "Cancelled");
     const list = view === "active" ? active : cancelled;
 
+    // ── Drawer open / close ────────────────────────────────────────────────
+
     const openCreate = () => {
-        setDraft({ ...EMPTY, requestedBy: user.name });
+        setDraft({
+            ...EMPTY,
+            prNumber: generatePRNumber(),   // auto-generate
+            requestedBy: user.name,
+        });
         setDrawer({ mode: "create" });
     };
+
     const openEdit = (r: Requisition) => {
         setDraft({
             prNumber: r.prNumber,
@@ -65,7 +130,10 @@ function RequisitionsPage() {
         });
         setDrawer({ mode: "edit", id: r.id });
     };
+
     const closeDrawer = () => setDrawer(null);
+
+    // ── Save ──────────────────────────────────────────────────────────────
 
     const handleSave = async () => {
         if (!drawer) return;
@@ -98,20 +166,40 @@ function RequisitionsPage() {
         }
     };
 
-    const handleArchive = async () => {
-        if (drawer?.id) {
-            await store.archive(drawer.id);
-            closeDrawer();
-        }
+    // ── Archive (with confirmation modal) ─────────────────────────────────
+
+    const handleArchive = () => {
+        if (!drawer?.id) return;
+        const target = store.items.find((r) => r.id === drawer.id);
+        setConfirmState({
+            title: "Cancel requisition?",
+            desc: `Are you sure you want to cancel "${target?.title ?? "this requisition"}"? This action cannot be undone.`,
+            onConfirm: async () => {
+                await store.archive(drawer.id!);
+                closeDrawer();
+            },
+        });
     };
 
-    const handleApprove = async (id: string) => {
-        await store.update(id, { status: "Approved" });
+    // ── Row-level approve / reject (with confirmation) ────────────────────
+
+    const handleApprove = (r: Requisition) => {
+        setConfirmState({
+            title: "Approve requisition?",
+            desc: `Approve "${r.title}" (${r.prNumber})? This will mark it ready for PO or RFQ conversion.`,
+            onConfirm: () => store.update(r.id, { status: "Approved" }),
+        });
     };
 
-    const handleReject = async (id: string) => {
-        await store.update(id, { status: "Rejected" });
+    const handleReject = (r: Requisition) => {
+        setConfirmState({
+            title: "Reject requisition?",
+            desc: `Reject "${r.title}" (${r.prNumber})? The requester will need to submit a new PR.`,
+            onConfirm: () => store.update(r.id, { status: "Rejected" }),
+        });
     };
+
+    // ─────────────────────────────────────────────────────────────────────────
 
     return (
         <div className="mx-auto flex max-w-7xl flex-col gap-6">
@@ -131,12 +219,14 @@ function RequisitionsPage() {
                 }
             />
 
+            {/* ── Loading ── */}
             {store.state === "loading" && (
                 <div className="flex items-center justify-center py-12 text-muted-foreground">
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading requisitions…
                 </div>
             )}
 
+            {/* ── Error ── */}
             {store.state === "error" && (
                 <div className="rounded-md border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
                     Failed to load: {store.error}
@@ -144,8 +234,10 @@ function RequisitionsPage() {
                 </div>
             )}
 
+            {/* ── Table ── */}
             {store.state === "idle" && (
                 <>
+                    {/* View tabs */}
                     <div className="flex gap-1 border-b border-border">
                         {(["active", "cancelled"] as const).map((v) => (
                             <button
@@ -153,7 +245,9 @@ function RequisitionsPage() {
                                 onClick={() => setView(v)}
                                 className={cn(
                                     "border-b-2 px-3 py-2 text-xs font-mono uppercase tracking-widest",
-                                    view === v ? "border-foreground text-foreground" : "border-transparent text-muted-foreground hover:text-foreground",
+                                    view === v
+                                        ? "border-foreground text-foreground"
+                                        : "border-transparent text-muted-foreground hover:text-foreground",
                                 )}
                             >
                                 {v} ({v === "active" ? active.length : cancelled.length})
@@ -184,7 +278,9 @@ function RequisitionsPage() {
                                         <td className="px-4 py-3 text-muted-foreground">{r.requestedBy}</td>
                                         <td className="px-4 py-3 text-muted-foreground">{r.department}</td>
                                         <td className="px-4 py-3">{r.itemCount}</td>
-                                        <td className="px-4 py-3 font-mono font-semibold">{formatBuyerCurrency(r.amount)}</td>
+                                        <td className="px-4 py-3 font-mono font-semibold">
+                                            {formatBuyerCurrency(r.amount)}
+                                        </td>
                                         <td className="px-4 py-3 text-muted-foreground">{r.neededBy}</td>
                                         <td className="px-4 py-3"><AutoStatus status={r.status} /></td>
                                         <td className="px-4 py-3">
@@ -196,13 +292,13 @@ function RequisitionsPage() {
                                                         {r.status === "Pending Approval" && canApprove && (
                                                             <>
                                                                 <button
-                                                                    onClick={() => handleApprove(r.id)}
+                                                                    onClick={() => handleApprove(r)}
                                                                     className="rounded-sm bg-foreground px-2 py-1 text-[10px] font-semibold text-background"
                                                                 >
                                                                     Approve
                                                                 </button>
                                                                 <button
-                                                                    onClick={() => handleReject(r.id)}
+                                                                    onClick={() => handleReject(r)}
                                                                     className="rounded-sm border border-border px-2 py-1 text-[10px] font-semibold"
                                                                 >
                                                                     Reject
@@ -216,7 +312,13 @@ function RequisitionsPage() {
                                                             <Pencil className="h-3 w-3" />
                                                         </button>
                                                         <button
-                                                            onClick={() => store.archive(r.id)}
+                                                            onClick={() =>
+                                                                setConfirmState({
+                                                                    title: "Cancel requisition?",
+                                                                    desc: `Are you sure you want to cancel "${r.title}"?`,
+                                                                    onConfirm: () => store.archive(r.id),
+                                                                })
+                                                            }
                                                             className="inline-flex h-7 items-center gap-1 rounded-sm border border-rose-200 bg-rose-50 px-2 text-[10px] font-semibold text-rose-700 hover:bg-rose-100"
                                                         >
                                                             <Archive className="h-3 w-3" />
@@ -240,6 +342,7 @@ function RequisitionsPage() {
                 </>
             )}
 
+            {/* ── Drawer ── */}
             <CrudDrawer
                 open={drawer !== null}
                 mode={drawer?.mode ?? null}
@@ -251,14 +354,22 @@ function RequisitionsPage() {
                 canSave={draft.title.trim() !== "" && draft.requestedBy.trim() !== "" && !saving}
                 saveLabel={saving ? "Saving…" : undefined}
             >
+                {/* PR Number — read-only, auto-generated */}
                 <div className="grid grid-cols-2 gap-3">
-                    <Field label="PR number" hint="Auto-generated if left blank">
-                        <input className={inputCls} value={draft.prNumber} placeholder="Auto"
-                            onChange={(e) => setDraft({ ...draft, prNumber: e.target.value })} />
+                    <Field label="PR number" hint="Auto-generated — cannot be changed">
+                        <input
+                            className={cn(inputCls, "cursor-not-allowed bg-muted opacity-70")}
+                            value={draft.prNumber}
+                            disabled
+                            readOnly
+                        />
                     </Field>
                     <Field label="Status">
-                        <select className={selectCls} value={draft.status}
-                            onChange={(e) => setDraft({ ...draft, status: e.target.value as typeof draft.status })}>
+                        <select
+                            className={selectCls}
+                            value={draft.status}
+                            onChange={(e) => setDraft({ ...draft, status: e.target.value as typeof draft.status })}
+                        >
                             <option>Draft</option>
                             <option>Pending Approval</option>
                             <option>Approved</option>
@@ -268,41 +379,93 @@ function RequisitionsPage() {
                         </select>
                     </Field>
                 </div>
+
                 <Field label="Title">
-                    <input className={inputCls} value={draft.title}
+                    <input
+                        className={inputCls}
+                        value={draft.title}
                         onChange={(e) => setDraft({ ...draft, title: e.target.value })}
-                        placeholder="e.g. Q3 bearings restock — Bay 4" />
+                        placeholder="Enter the title"
+                    />
                 </Field>
+
                 <div className="grid grid-cols-2 gap-3">
                     <Field label="Requested by">
-                        <input className={inputCls} value={draft.requestedBy}
-                            onChange={(e) => setDraft({ ...draft, requestedBy: e.target.value })} />
+                        <input
+                            className={inputCls}
+                            value={draft.requestedBy}
+                            onChange={(e) => setDraft({ ...draft, requestedBy: e.target.value })}
+                        />
                     </Field>
+                    {/* Department — supports "Other" free-text entry */}
                     <Field label="Department">
-                        <select className={selectCls} value={draft.department}
-                            onChange={(e) => setDraft({ ...draft, department: e.target.value })}>
-                            {DEPTS.map((d) => <option key={d}>{d}</option>)}
-                        </select>
+                        <SelectOrCustom
+                            value={draft.department}
+                            options={allDepts}
+                            onChange={(val) => setDraft({ ...draft, department: val })}
+                            addLabel="+ Other department…"
+                            placeholder="Type department name…"
+                        />
                     </Field>
                 </div>
+
                 <div className="grid grid-cols-3 gap-3">
                     <Field label="Items">
-                        <input type="number" className={inputCls} value={draft.itemCount}
-                            onChange={(e) => setDraft({ ...draft, itemCount: Number(e.target.value) })} />
+                        <NumberInput
+                            value={draft.itemCount}
+                            onChange={(val) => setDraft({ ...draft, itemCount: val })}
+                            placeholder="0"
+                        />
                     </Field>
                     <Field label="Amount">
-                        <input type="number" step="0.01" className={inputCls} value={draft.amount}
-                            onChange={(e) => setDraft({ ...draft, amount: Number(e.target.value) })} />
+                        <NumberInput
+                            value={draft.amount}
+                            onChange={(val) => setDraft({ ...draft, amount: val })}
+                            placeholder="0.00"
+                            step={0.01}
+                        />
                     </Field>
                     <Field label="Needed by">
-                        <input type="date" className={inputCls} value={draft.neededBy}
-                            onChange={(e) => setDraft({ ...draft, neededBy: e.target.value })} />
+                        <input
+                            type="date"
+                            className={inputCls}
+                            value={draft.neededBy}
+                            onChange={(e) => setDraft({ ...draft, neededBy: e.target.value })}
+                        />
                     </Field>
                 </div>
+
                 <Field label="Justification">
-                    <textarea className={textareaCls} placeholder="Why this is needed and any vendor preferences." />
+                    <textarea
+                        className={textareaCls}
+                        placeholder="Why this is needed and any vendor preferences."
+                    />
                 </Field>
             </CrudDrawer>
+
+            {/* ── Confirmation AlertDialog ── */}
+            <AlertDialog
+                open={!!confirmState}
+                onOpenChange={(o) => { if (!o) setConfirmState(null); }}
+            >
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>{confirmState?.title}</AlertDialogTitle>
+                        <AlertDialogDescription>{confirmState?.desc}</AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={() => {
+                                confirmState?.onConfirm();
+                                setConfirmState(null);
+                            }}
+                        >
+                            Confirm
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }

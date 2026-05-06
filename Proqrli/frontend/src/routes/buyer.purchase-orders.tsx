@@ -5,7 +5,7 @@ import { Pencil, Archive, Loader2, RotateCcw } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { BuyerPermissionGate } from "@/components/BuyerPermissionGate";
 import { AutoStatus } from "@/components/StatusPill";
-import { CrudDrawer, Field, inputCls, selectCls } from "@/components/CrudDrawer";
+import { CrudDrawer, Field, inputCls, selectCls, NumberInput } from "@/components/CrudDrawer";
 import { useApiCollection } from "@/lib/use-api-collection";
 import { purchaseOrdersApi, type PurchaseOrder, type CreatePurchaseOrderPayload, type UpdatePurchaseOrderPayload } from "@/lib/api";
 import {
@@ -325,14 +325,16 @@ function BuyerPOPage() {
 
                 <div className="grid grid-cols-3 gap-3">
                     <Field label="Total amount">
-                        <input type="number" min="0" step="0.01" className={cn(inputCls, touched.total && draft.total <= 0 && "border-rose-500 focus:border-rose-500")} value={draft.total === 0 ? "" : draft.total}
+                        <NumberInput
+                            step="0.01"
+                            className={cn(touched.total && draft.total <= 0 && "border-rose-500 focus:border-rose-500")}
+                            value={draft.total}
                             placeholder="0.00"
-                            onKeyDown={(e) => { if (e.key === "-") e.preventDefault(); }}
-                            onBlur={() => setTouched(prev => ({ ...prev, total: true }))}
-                            onChange={(e) => {
+                            onChange={(val) => {
                                 setTouched(prev => ({ ...prev, total: true }));
-                                setDraft({ ...draft, total: Math.max(0, Number(e.target.value)) });
-                            }} />
+                                setDraft({ ...draft, total: val });
+                            }}
+                        />
                         {touched.total && draft.total <= 0 && <p className="mt-1 text-xs text-rose-500">Total must be greater than 0</p>}
                     </Field>
                     <Field label="Payment terms">

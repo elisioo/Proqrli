@@ -13,6 +13,7 @@ import {
     SheetDescription,
 } from "@/components/ui/sheet";
 import { Archive, X } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export type CrudDrawerMode = "create" | "edit" | null;
 
@@ -98,7 +99,7 @@ export function CrudDrawer({
     );
 }
 
-// Reusable labeled field wrappers — keep look consistent across forms.
+// ─── Labeled field wrapper ────────────────────────────────────────────────────
 export function Field({
     label,
     hint,
@@ -117,6 +118,118 @@ export function Field({
     );
 }
 
+// ─── NumberInput ──────────────────────────────────────────────────────────────
+// Reusable number input with:
+//   • Blank when value is 0 (shows placeholder instead)
+//   • Blocks negative input (no minus, e, E, + keys)
+//   • min defaults to 0; override via prop
+//   • Accepts an optional `step` for decimals (e.g. step="0.01")
+export function NumberInput({
+    value,
+    onChange,
+    placeholder = "0",
+    min = 0,
+    step,
+    className,
+    disabled,
+}: {
+    value: number;
+    onChange: (val: number) => void;
+    placeholder?: string;
+    min?: number;
+    step?: string | number;
+    className?: string;
+    disabled?: boolean;
+}) {
+    return (
+        <input
+            type="number"
+            min={min}
+            step={step}
+            disabled={disabled}
+            value={value === 0 ? "" : value}
+            placeholder={placeholder}
+            className={cn(inputCls, disabled && "cursor-not-allowed bg-muted opacity-70", className)}
+            onKeyDown={(e) => {
+                if (["-", "e", "E", "+"].includes(e.key)) e.preventDefault();
+            }}
+            onChange={(e) => {
+                const raw = Number(e.target.value);
+                onChange(isNaN(raw) ? min : Math.max(min, raw));
+            }}
+        />
+    );
+}
+
+// ─── SelectOrCustom ───────────────────────────────────────────────────────────
+// A dropdown that appends a sentinel "___OTHER___" option. When selected,
+// it swaps to a free-text input so the user can type a custom value.
+// Used for Department, UOM, Category etc.
+export function SelectOrCustom({
+    value,
+    options,
+    onChange,
+    addLabel = "+ Add custom…",
+    placeholder = "Type a value…",
+    className,
+}: {
+    value: string;
+    options: string[];
+    onChange: (val: string) => void;
+    addLabel?: string;
+    placeholder?: string;
+    className?: string;
+}) {
+    // Track whether we're in "custom typing" mode.
+    const isCustom = value !== "" && !options.includes(value);
+    const [customMode, setCustomMode] = React.useState(isCustom);
+
+    // Keep customMode in sync if parent resets value (e.g. openCreate resets draft).
+    React.useEffect(() => {
+        if (options.includes(value) || value === "") setCustomMode(false);
+    }, [value, options]);
+
+    if (customMode) {
+        return (
+            <div className="flex items-center gap-2">
+                <input
+                    autoFocus
+                    className={cn(inputCls, className)}
+                    value={value}
+                    placeholder={placeholder}
+                    onChange={(e) => onChange(e.target.value)}
+                />
+                <button
+                    type="button"
+                    onClick={() => { setCustomMode(false); onChange(options[0] ?? ""); }}
+                    className="shrink-0 text-xs font-semibold text-muted-foreground hover:text-foreground"
+                >
+                    Cancel
+                </button>
+            </div>
+        );
+    }
+
+    return (
+        <select
+            className={cn(selectCls, className)}
+            value={options.includes(value) ? value : ""}
+            onChange={(e) => {
+                if (e.target.value === "___OTHER___") {
+                    setCustomMode(true);
+                    onChange("");
+                } else {
+                    onChange(e.target.value);
+                }
+            }}
+        >
+            {options.map((o) => <option key={o} value={o}>{o}</option>)}
+            <option value="___OTHER___">{addLabel}</option>
+        </select>
+    );
+}
+
+// ─── Base class strings ───────────────────────────────────────────────────────
 export const inputCls =
     "h-10 w-full rounded-sm border border-border bg-background px-3 text-sm outline-none focus:border-foreground";
 export const selectCls = inputCls;

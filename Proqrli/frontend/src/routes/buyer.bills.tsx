@@ -6,7 +6,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { BuyerPermissionGate } from "@/components/BuyerPermissionGate";
 import { AutoStatus } from "@/components/StatusPill";
 import { StatCard } from "@/components/StatCard";
-import { CrudDrawer, Field, inputCls, selectCls } from "@/components/CrudDrawer";
+import { CrudDrawer, Field, inputCls, selectCls, NumberInput } from "@/components/CrudDrawer";
 import { useApiCollection } from "@/lib/use-api-collection";
 import { billsApi, type VendorBill, type CreateVendorBillPayload, type UpdateVendorBillPayload } from "@/lib/api";
 import {
@@ -324,12 +324,12 @@ function BillsPage() {
                         </Field>
                         <div className="grid grid-cols-2 gap-3">
                             <Field label="Sub-total">
-                                <input type="number" min="0" step="0.01" className={cn(inputCls, touched.subTotal && draft.subTotal <= 0 && "border-rose-500 focus:border-rose-500")} value={draft.subTotal === 0 ? "" : draft.subTotal}
+                                <NumberInput
+                                    step="0.01"
+                                    className={cn(touched.subTotal && draft.subTotal <= 0 && "border-rose-500 focus:border-rose-500")}
+                                    value={draft.subTotal}
                                     placeholder="0.00"
-                                    onKeyDown={(e) => { if (e.key === "-") e.preventDefault(); }}
-                                    onBlur={() => setTouched(prev => ({ ...prev, subTotal: true }))}
-                                    onChange={(e) => {
-                                        const val = Math.max(0, Number(e.target.value));
+                                    onChange={(val) => {
                                         setTouched(prev => ({ ...prev, subTotal: true }));
                                         const updates: any = { subTotal: val };
                                         if (taxRate !== null && val > 0) {
@@ -349,10 +349,7 @@ function BillsPage() {
                                     )}
                                 </div>
                             }>
-                                <input type="number" min="0" step="0.01" className={inputCls} value={draft.taxAmount === 0 ? "" : draft.taxAmount}
-                                    placeholder="0.00"
-                                    onKeyDown={(e) => { if (e.key === "-") e.preventDefault(); }}
-                                    onChange={(e) => setDraft({ ...draft, taxAmount: Math.max(0, Number(e.target.value)) })} />
+                                <NumberInput step="0.01" value={draft.taxAmount} placeholder="0.00" onChange={(val) => setDraft({ ...draft, taxAmount: val })} />
                             </Field>
                         </div>
                         <Field label="Due date">
@@ -370,14 +367,16 @@ function BillsPage() {
                                 </select>
                             </Field>
                             <Field label="Amount">
-                             <input type="number" min="0" step="0.01" className={cn(inputCls, touched.amount && draft.amount <= 0 && "border-rose-500 focus:border-rose-500")} value={draft.amount === 0 ? "" : draft.amount}
+                                <NumberInput
+                                    step="0.01"
+                                    className={cn(touched.amount && draft.amount <= 0 && "border-rose-500 focus:border-rose-500")}
+                                    value={draft.amount}
                                     placeholder="0.00"
-                                    onKeyDown={(e) => { if (e.key === "-") e.preventDefault(); }}
-                                    onBlur={() => setTouched(prev => ({ ...prev, amount: true }))}
-                                    onChange={(e) => {
+                                    onChange={(val) => {
                                         setTouched(prev => ({ ...prev, amount: true }));
-                                        setDraft({ ...draft, amount: Math.max(0, Number(e.target.value)) });
-                                    }} />
+                                        setDraft({ ...draft, amount: val });
+                                    }}
+                                />
                                 {touched.amount && draft.amount <= 0 && <p className="mt-1 text-xs text-rose-500">Amount must be greater than 0</p>}
                             </Field>
                         </div>

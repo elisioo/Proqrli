@@ -4,7 +4,7 @@ import * as React from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { PermissionGate } from "@/components/PermissionGate";
 import { AutoStatus } from "@/components/StatusPill";
-import { CrudDrawer, Field, inputCls, textareaCls } from "@/components/CrudDrawer";
+import { CrudDrawer, Field, inputCls, textareaCls, NumberInput } from "@/components/CrudDrawer";
 import { useCollection } from "@/lib/use-collection";
 import { INCOMING_RFQS, formatCurrency, type IncomingRFQ } from "@/lib/mock-data";
 import { useVendor } from "@/lib/vendor-context";
@@ -270,12 +270,10 @@ function RFQInboxPage() {
                         </div>
                         <div className="grid grid-cols-2 gap-3">
                             <Field label="Total quoted (USD)">
-                                <input type="number" step="0.01" className={inputCls} value={quoteDraft.total}
-                                    onChange={(e) => setQuoteDraft({ ...quoteDraft, total: Number(e.target.value) })} />
+                                <NumberInput step="0.01" value={quoteDraft.total} placeholder="0.00" onChange={(val) => setQuoteDraft({ ...quoteDraft, total: val })} />
                             </Field>
                             <Field label="Lead time (days)">
-                                <input type="number" className={inputCls} value={quoteDraft.leadTimeDays}
-                                    onChange={(e) => setQuoteDraft({ ...quoteDraft, leadTimeDays: Number(e.target.value) })} />
+                                <NumberInput value={quoteDraft.leadTimeDays} placeholder="0" onChange={(val) => setQuoteDraft({ ...quoteDraft, leadTimeDays: val })} />
                             </Field>
                         </div>
                         <Field label="Valid until">
