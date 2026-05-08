@@ -78,7 +78,7 @@ function InventoryPage() {
         ...store.items.map(i => i.category).filter(Boolean),
         draft.category
     ].filter(Boolean)));
-    
+
     const allUoms = Array.from(new Set([
         ...UOM_OPTIONS,
         ...store.items.map(i => i.uom).filter(Boolean),
@@ -101,13 +101,13 @@ function InventoryPage() {
     const stockValue = liveEnriched.reduce((s, i) => s + i.onHand * i.unitCost, 0);
 
     const generateSKU = () => `PRD-${new Date().toISOString().slice(0, 10).replace(/-/g, "")}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
-    const openCreate = () => { 
-        setDraft({ ...EMPTY, sku: generateSKU() }); 
-        setDrawer({ mode: "create" }); 
+    const openCreate = () => {
+        setDraft({ ...EMPTY, sku: generateSKU() });
+        setDrawer({ mode: "create" });
     };
     const openEdit = (i: InvRow) => {
         const { id, ...rest } = i; void id;
-        setDraft(rest); 
+        setDraft(rest);
         setDrawer({ mode: "edit", id: i.id });
     };
     const closeDrawer = () => setDrawer(null);
@@ -117,12 +117,12 @@ function InventoryPage() {
         else if (drawer.id) store.update(drawer.id, draft);
         closeDrawer();
     };
-    const handleArchive = () => { 
-        if (drawer?.id) { 
+    const handleArchive = () => {
+        if (drawer?.id) {
             const itemToArchive = store.items.find(x => x.id === drawer.id);
-            if (itemToArchive) store.update(drawer.id, { ...itemToArchive, archived: true }); 
-            closeDrawer(); 
-        } 
+            if (itemToArchive) store.update(drawer.id, { ...itemToArchive, archived: true });
+            closeDrawer();
+        }
     };
 
     return (

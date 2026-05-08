@@ -351,7 +351,7 @@ export const VENDOR_BILLS: VendorBill[] = [
   { id: "vb1", billNumber: "INV-NS-001124", vendorName: "Northstar Hydraulics", poRef: "PO-PMC-008405", amount: 3680, status: "Approved", receivedAt: "2026-04-22", dueAt: "2026-05-22" },
   { id: "vb2", billNumber: "INV-ES-002201", vendorName: "Eastern Steel Mills", poRef: "PO-PMC-008410", amount: 5472, status: "Pending", receivedAt: "2026-04-22", dueAt: "2026-06-06" },
   { id: "vb3", billNumber: "INV-BN-005512", vendorName: "Bolt & Nut Co.", poRef: "PO-PMC-008401", amount: 1680, status: "Paid", receivedAt: "2026-04-12", dueAt: "2026-04-12" },
-  { id: "vb4", billNumber: "INV-SG-009941", vendorName: "SafeGear PH", poRef: "PO-PMC-008398", amount:1080, status: "Paid", receivedAt: "2026-04-08", dueAt: "2026-05-08" },
+  { id: "vb4", billNumber: "INV-SG-009941", vendorName: "SafeGear PH", poRef: "PO-PMC-008398", amount: 1080, status: "Paid", receivedAt: "2026-04-08", dueAt: "2026-05-08" },
   { id: "vb5", billNumber: "INV-VC-006621", vendorName: "Vertex Chemicals", poRef: "PO-PMC-008419", amount: 2290, status: "Scheduled", receivedAt: "2026-04-23", dueAt: "2026-05-23" },
   { id: "vb6", billNumber: "INV-AC-008412", vendorName: "Acme Industrial Supply", poRef: "PO-PMC-008412", amount: 971878, status: "Pending", receivedAt: "2026-04-22", dueAt: "2026-05-22" },
   { id: "vb7", billNumber: "INV-ES-001990", vendorName: "Eastern Steel Mills", poRef: "PO-PMC-008390", amount: 864200, status: "Overdue", receivedAt: "2026-03-12", dueAt: "2026-04-11" },
@@ -411,20 +411,28 @@ export type BuyerConversation = {
 };
 
 export const BUYER_CONVERSATIONS: BuyerConversation[] = [
-  { id: "bcv1", vendorName: "Acme Industrial Supply", initials: "AI", preview: "Confirming PO-PMC-008412 — ships Apr 26.", unread: 1, lastAt: "11:02", pinned: true, messages: [
-    { from: "buyer", text: "Hi, can you split the M12 bolts into two pallets?", at: "10:24" },
-    { from: "vendor", text: "Yes — 2 pallets, separate carriers. Confirming PO-PMC-008412 — ships Apr 26.", at: "11:02" },
-  ]},
-  { id: "bcv2", vendorName: "Northstar Hydraulics", initials: "NH", preview: "GRN received — anything pending?", unread: 0, lastAt: "Yesterday", messages: [
-    { from: "vendor", text: "GRN received — anything pending?", at: "Yesterday 16:40" },
-  ]},
-  { id: "bcv3", vendorName: "Eastern Steel Mills", initials: "ES", preview: "Back-order ETA on the 12 missing sheets?", unread: 2, lastAt: "Mon", messages: [
-    { from: "buyer", text: "Back-order ETA on the 12 missing sheets?", at: "Mon 09:30" },
-    { from: "vendor", text: "Mill rolling schedule confirmed for May 4-5. Ship by May 7.", at: "Mon 14:11" },
-  ]},
-  { id: "bcv4", vendorName: "Vertex Chemicals", initials: "VC", preview: "MSDS attached for the new degreaser SKU.", unread: 0, lastAt: "Apr 19", messages: [
-    { from: "vendor", text: "MSDS attached for the new degreaser SKU.", at: "Apr 19 11:00" },
-  ]},
+  {
+    id: "bcv1", vendorName: "Acme Industrial Supply", initials: "AI", preview: "Confirming PO-PMC-008412 — ships Apr 26.", unread: 1, lastAt: "11:02", pinned: true, messages: [
+      { from: "buyer", text: "Hi, can you split the M12 bolts into two pallets?", at: "10:24" },
+      { from: "vendor", text: "Yes — 2 pallets, separate carriers. Confirming PO-PMC-008412 — ships Apr 26.", at: "11:02" },
+    ]
+  },
+  {
+    id: "bcv2", vendorName: "Northstar Hydraulics", initials: "NH", preview: "GRN received — anything pending?", unread: 0, lastAt: "Yesterday", messages: [
+      { from: "vendor", text: "GRN received — anything pending?", at: "Yesterday 16:40" },
+    ]
+  },
+  {
+    id: "bcv3", vendorName: "Eastern Steel Mills", initials: "ES", preview: "Back-order ETA on the 12 missing sheets?", unread: 2, lastAt: "Mon", messages: [
+      { from: "buyer", text: "Back-order ETA on the 12 missing sheets?", at: "Mon 09:30" },
+      { from: "vendor", text: "Mill rolling schedule confirmed for May 4-5. Ship by May 7.", at: "Mon 14:11" },
+    ]
+  },
+  {
+    id: "bcv4", vendorName: "Vertex Chemicals", initials: "VC", preview: "MSDS attached for the new degreaser SKU.", unread: 0, lastAt: "Apr 19", messages: [
+      { from: "vendor", text: "MSDS attached for the new degreaser SKU.", at: "Apr 19 11:00" },
+    ]
+  },
 ];
 
 // ─── Risk alerts (cross-vendor, ML-driven) ───
@@ -445,7 +453,7 @@ export const RISK_ALERTS: RiskAlert[] = [
 ];
 
 export function formatBuyerCurrency(n: number) {
-    return new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP", minimumFractionDigits: 2, maximumFractionDigits: 2, }).format(n);
+  return new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP", minimumFractionDigits: 2, maximumFractionDigits: 2, }).format(n);
 }
 
 // RFQ line items (specs the vendor will quote against)

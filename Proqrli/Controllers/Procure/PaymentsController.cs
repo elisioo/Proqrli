@@ -116,9 +116,26 @@ namespace ProqrLi.Controllers
 
             if (payment == null) return NotFound();
 
+            bool newlyPaid = dto.Status != null && dto.Status == "Paid" && payment.Status != "Paid";
+
             if (dto.Status       != null) payment.Status = dto.Status;
             if (dto.ScheduledFor != null && DateTime.TryParse(dto.ScheduledFor, out var sf))
                 payment.PaymentDate = sf;
+
+            if (newlyPaid && payment.Invoice != null)
+            {
+                // ERP Ready: Auto-update invoice status
+                var otherPaymentsTotal = await _db.PaymentTenants
+                    .Where(p => p.InvoiceID == payment.InvoiceID && p.Status == "Paid" && p.PaymentID != id)
+                    .SumAsync(p => p.AmountPaid);
+
+                var totalPaid = otherPaymentsTotal + payment.AmountPaid;
+
+                if (totalPaid >= payment.Invoice.TotalAmount)
+                {
+                    payment.Invoice.Status = "Paid";
+                }
+            }
 
             await _db.SaveChangesAsync();
             return Ok(ToDto(payment));

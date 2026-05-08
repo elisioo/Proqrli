@@ -10,11 +10,12 @@ namespace ProqrLi.Data
     {
         public static void Seed(ApplicationDbContext context)
         {
-            // Only seed if there are no vendor tenants yet.
-            if (!context.Tenants.Any(t => t.TenantType == "Vendor"))
-            {
-                var random = new Random();
+            var random = new Random();
+            bool hasVendors = context.Tenants.Any(t => t.TenantType == "Vendor");
 
+            // ── Phase 1: Vendor base data (only once) ───────────────────────
+            if (!hasVendors)
+            {
                 var industries = new[] { 
                     "IT Hardware", "Software Services", "Office Supplies", 
                     "Logistics", "Marketing", "Consulting", "Manufacturing", 
@@ -116,6 +117,97 @@ namespace ProqrLi.Data
                 
                 context.TenantUsers.AddRange(users);
                 context.SaveChanges();
+            }
+
+            // ── Phase 2: Marketplace data (runs independently) ───────────────
+            if (!context.ProductCategories.Any())
+            {
+                var productCategories = new List<ProductCategory>
+                {
+                    new() { CategoryName = "Bearings", Description = "Ball, roller, and sleeve bearings" },
+                    new() { CategoryName = "Hydraulics", Description = "Pumps, cylinders, valves, hoses" },
+                    new() { CategoryName = "Chemicals", Description = "Industrial solvents, lubricants, adhesives" },
+                    new() { CategoryName = "Fasteners", Description = "Bolts, nuts, washers, screws, rivets" },
+                    new() { CategoryName = "Pneumatics", Description = "Compressors, actuators, fittings" },
+                    new() { CategoryName = "Electrical", Description = "Cables, switches, motors, PLCs" },
+                    new() { CategoryName = "Tools", Description = "Hand tools, power tools, measuring instruments" },
+                };
+                context.ProductCategories.AddRange(productCategories);
+                context.SaveChanges();
+            }
+
+            if (!context.ProductListings.Any())
+            {
+                var existingVendors = context.Tenants.Where(t => t.TenantType == "Vendor").ToList();
+                var existingCategories = context.ProductCategories.ToList();
+                if (existingVendors.Any() && existingCategories.Any())
+                {
+                    var productNames = new[] {
+                        "Deep Groove Ball Bearing", "Angular Contact Bearing", "Cylindrical Roller Bearing",
+                        "Hydraulic Gear Pump", "Hydraulic Cylinder 100mm", "Directional Control Valve",
+                        "Industrial Degreaser 5L", "Synthetic Hydraulic Oil 20L", "Threadlocker Adhesive 50ml",
+                        "Hex Bolt M12×50 (Grade 8.8)", "Stainless Steel Nylock Nut M12", "Flat Washer DIN 125 M12",
+                        "Pneumatic Cylinder 32mm Bore", "Solenoid Valve 5/2 Way", "PU Air Hose 8mm×10m",
+                        "VFD 3-Phase 5.5kW", "Limit Switch Metal Body", "Stepper Motor NEMA 23",
+                        "Digital Caliper 150mm", "Cordless Impact Driver 18V", "Torque Wrench 1/2\" 20-100Nm"
+                    };
+                    var productUoms = new[] { "pc", "pc", "pc", "pc", "pc", "pc", "pail", "pail", "tube", "kg", "pc", "pc", "pc", "pc", "roll", "pc", "pc", "pc", "pc", "pc", "pc" };
+
+                    var productListings = new List<ProductListing>();
+                    for (int i = 0; i < productNames.Length; i++)
+                    {
+                        var vendor = existingVendors[random.Next(existingVendors.Count)];
+                        var category = existingCategories[i % existingCategories.Count];
+                        productListings.Add(new ProductListing
+                        {
+                            VendorTenantID = vendor.TenantID,
+                            CategoryID = category.CategoryID,
+                            ProductName = productNames[i],
+                            SKU = $"SKU-{1000 + i:D4}",
+                            Description = $"High-quality {productNames[i].ToLower()} from {vendor.CompanyName}.",
+                            BasePrice = (decimal)(random.Next(50, 5000) + random.NextDouble()),
+                            UnitOfMeasure = productUoms[i],
+                            MinOrderQty = random.Next(1, 10),
+                            StockQuantity = random.Next(0, 500),
+                            Status = "Active",
+                            AverageRating = (decimal)(3.0 + random.NextDouble() * 2.0),
+                            TotalSold = random.Next(0, 1000),
+                        });
+                    }
+                    context.ProductListings.AddRange(productListings);
+                    context.SaveChanges();
+
+                    var productImages = productListings.Select(p => new ProductImage
+                    {
+                        ProductID = p.ProductID,
+                        ImagePath = $"/assets/products/{p.SKU.ToLower()}.png",
+                        IsPrimary = true,
+                        SortOrder = 1,
+                    }).ToList();
+                    context.ProductImages.AddRange(productImages);
+                    context.SaveChanges();
+                }
+            }
+
+            if (!context.VendorStoreProfiles.Any())
+            {
+                var existingVendors = context.Tenants.Where(t => t.TenantType == "Vendor").Take(20).ToList();
+                var existingCategories = context.ProductCategories.ToList();
+                if (existingVendors.Any())
+                {
+                    var storeProfiles = existingVendors.Select((v, i) => new VendorStoreProfile
+                    {
+                        VendorTenantID = v.TenantID,
+                        StoreName = v.CompanyName,
+                        StoreSlug = v.CompanyName.Replace(" ", "-").Replace(".", "").ToLower(),
+                        StoreDescription = $"Authorized supplier of {existingCategories[i % existingCategories.Count].CategoryName}.",
+                        OverallRating = (decimal)(3.5 + random.NextDouble() * 1.5),
+                        IsVerified = true,
+                        IsActive = true,
+                    }).ToList();
+                    context.VendorStoreProfiles.AddRange(storeProfiles);
+                    context.SaveChanges();
+                }
             }
         }
     }

@@ -451,13 +451,7 @@ function ReceiptsPage() {
                             </Field>
                         </div>
 
-                        <Field label="Items received">
-                            <NumberInput
-                                value={draft.itemsReceived}
-                                onChange={(val) => setDraft({ ...draft, itemsReceived: val })}
-                                placeholder="0"
-                            />
-                        </Field>
+
 
                         <Field label="Delivery address">
                             <input

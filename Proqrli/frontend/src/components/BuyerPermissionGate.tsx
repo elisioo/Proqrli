@@ -21,7 +21,7 @@ export function BuyerPermissionGate({ permission, children, silent }: Props) {
       </div>
       <h3 className="font-display text-xl font-bold">Access restricted</h3>
       <p className="mt-2 max-w-sm text-sm text-muted-foreground">
-        Your role <span className="font-semibold text-foreground">{role.replace("buyer_", "")}</span> doesn't have access to this section.
+        Your role <span className="font-semibold text-foreground">{(role ?? "unknown").replace("buyer_", "")}</span> doesn't have access to this section.
         Ask the Owner to grant you the right permission.
       </p>
       <p className="mt-4 font-mono text-[11px] uppercase tracking-widest text-muted-foreground">

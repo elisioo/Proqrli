@@ -63,7 +63,7 @@ function QuotationsPage() {
     const [activeRfqId, setActiveRfqId] = React.useState<string | null>(null);
     const [activeDetail, setActiveDetail] = React.useState<RfqDetailDto | null>(null);
     const [isLoadingDetail, setIsLoadingDetail] = React.useState(false);
-    
+
     const [quoteFilter, setQuoteFilter] = React.useState<QuoteFilter>("all");
     const [confirmAward, setConfirmAward] = React.useState<{
         rfqId: string; responseId: string; vendorName: string; total: number;
@@ -87,7 +87,7 @@ function QuotationsPage() {
             const res = await rfqsApi.getAll(page, pageSize, debouncedQuery, "All");
             setRfqs(res.data);
             setTotalItems(res.total);
-            
+
             // Auto-select the first one if nothing is selected and we have results
             if (!activeRfqId && res.data.length > 0) {
                 setActiveRfqId(res.data[0].id);
@@ -119,7 +119,7 @@ function QuotationsPage() {
             .finally(() => {
                 if (isMounted) setIsLoadingDetail(false);
             });
-        
+
         return () => { isMounted = false; };
     }, [activeRfqId]);
 
@@ -153,14 +153,14 @@ function QuotationsPage() {
             const res = await rfqsApi.awardQuote(confirmAward.rfqId, confirmAward.responseId);
             alert(`Quotation awarded! Purchase Order ${res.poNumber} has been generated.`);
             setConfirmAward(null);
-            
+
             // Refetch details to show awarded status
             const newDetail = await rfqsApi.getDetail(confirmAward.rfqId);
             setActiveDetail(newDetail);
-            
+
             // Optionally update sidebar status
             fetchSidebar();
-            
+
         } catch (err) {
             console.error("Failed to award quote:", err);
             alert("Failed to award quote. Please try again.");
@@ -248,7 +248,7 @@ function QuotationsPage() {
                             </ul>
                         )}
                     </div>
-                    
+
                     {/* Sidebar Pagination */}
                     {totalItems > pageSize && (
                         <div className="border-t border-border p-2 shrink-0 flex items-center justify-between bg-card">

@@ -571,3 +571,28 @@ export const rfqsApi = {
     awardQuote: (id: string, responseId: string) => req<{ poId: string, poNumber: string }>(`/rfqs/${id}/award/${responseId}`, { method: "POST" }),
 };
 
+export type MarketplaceProduct = {
+    id: string;
+    vendorId: string;
+    vendorName: string;
+    sku: string;
+    name: string;
+    category: string;
+    price: number;
+    uom: string;
+    inStock: boolean;
+    stock?: number;
+    reorderPoint?: number;
+    rating: number;
+    image?: string;
+    leadTimeDays: number;
+    vendorAccredited?: boolean;
+    minOrder?: number;
+    description?: string;
+};
+
+export const marketplaceApi = {
+    getProducts: () => req<MarketplaceProduct[]>("/marketplace/products"),
+    getCategories: () => req<string[]>("/marketplace/categories"),
+};
+

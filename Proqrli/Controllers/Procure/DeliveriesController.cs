@@ -142,13 +142,29 @@ namespace ProqrLi.Controllers.Procure
             _db.Deliveries.Add(delivery);
             await _db.SaveChangesAsync();
 
+            // ERP Ready: Auto-generate DeliveryItems from POItems
+            var poItems = await _db.POItems.Where(pi => pi.POID == dto.POID).ToListAsync();
+            foreach (var item in poItems)
+            {
+                _db.DeliveryItems.Add(new DeliveryItem
+                {
+                    DeliveryID = delivery.DeliveryID,
+                    POItemID = item.POItemID,
+                    QuantityOrdered = item.Quantity,
+                    QuantityDelivered = item.Quantity, // Assume full delivery for simplified flow
+                    QuantityAccepted = 0,
+                    QuantityRejected = 0
+                });
+            }
+            await _db.SaveChangesAsync();
+
             var saved = await _db.Deliveries
                 .Include(d => d.PurchaseOrder)
                     .ThenInclude(p => p!.VendorTenant)
                 .Include(d => d.ReceivedBy)
                 .FirstAsync(d => d.DeliveryID == delivery.DeliveryID);
 
-            return CreatedAtAction(nameof(GetById), new { id = delivery.DeliveryID }, ToDto(saved, 0));
+            return CreatedAtAction(nameof(GetById), new { id = delivery.DeliveryID }, ToDto(saved, poItems.Count));
         }
 
         // PATCH /api/deliveries/5
@@ -167,9 +183,56 @@ namespace ProqrLi.Controllers.Procure
             if (dto.CourierName    != null) d.CourierName     = dto.CourierName;
             if (dto.TrackingNumber != null) d.TrackingNumber  = dto.TrackingNumber;
 
-            // If status changed to "Accepted" or similar, stamp ActualDate
-            if (dto.Status != null && (dto.Status == "Accepted" || dto.Status == "Partially Accepted"))
-                d.ActualDate ??= DateTime.UtcNow;
+            // ERP Ready: Auto-update inventory when Accepted
+            if (dto.Status != null && (dto.Status == "Accepted" || dto.Status == "Partially Accepted") && d.ActualDate == null)
+            {
+                d.ActualDate = DateTime.UtcNow;
+
+                var items = await _db.DeliveryItems
+                    .Include(di => di.POItem)
+                    .Where(di => di.DeliveryID == id)
+                    .ToListAsync();
+
+                var defaultWarehouse = await _db.Warehouses.FirstOrDefaultAsync(w => w.TenantID == d.TenantID);
+
+                foreach (var di in items)
+                {
+                    // For the simplified flow, accept the full delivered amount
+                    di.QuantityAccepted = di.QuantityDelivered;
+
+                    if (defaultWarehouse != null && di.POItem != null)
+                    {
+                        var inventory = await _db.Inventories
+                            .FirstOrDefaultAsync(inv => inv.ItemID == di.POItem.ItemID && inv.WarehouseID == defaultWarehouse.WarehouseID);
+
+                        if (inventory == null)
+                        {
+                            inventory = new Inventory
+                            {
+                                TenantID = d.TenantID,
+                                ItemID = di.POItem.ItemID,
+                                WarehouseID = defaultWarehouse.WarehouseID,
+                                QuantityOnHand = 0
+                            };
+                            _db.Inventories.Add(inventory);
+                        }
+
+                        inventory.QuantityOnHand += di.QuantityAccepted;
+                        inventory.LastUpdated = DateTime.UtcNow;
+
+                        _db.StockMovements.Add(new StockMovement
+                        {
+                            InventoryID = inventory.InventoryID,
+                            UserID = d.ReceivedByID ?? d.PurchaseOrder?.CreatedByUserID ?? 1,
+                            MovementType = "IN",
+                            Quantity = di.QuantityAccepted,
+                            ReferenceType = "GRN",
+                            ReferenceID = d.DeliveryNumber,
+                            MovedAt = DateTime.UtcNow
+                        });
+                    }
+                }
+            }
 
             await _db.SaveChangesAsync();
             var count = await _db.DeliveryItems.CountAsync(di => di.DeliveryID == id);
