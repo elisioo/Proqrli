@@ -10,6 +10,7 @@ import { useApiCollection } from "@/lib/use-api-collection";
 import { paymentsApi, type BuyerPayment, type CreatePaymentPayload, type UpdatePaymentPayload } from "@/lib/api";
 import { formatBuyerCurrency } from "@/lib/buyer-mock-data";
 import { useBuyer } from "@/lib/buyer-context";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/buyer/payments")({
     component: () => (
@@ -40,6 +41,7 @@ function PaymentsPage() {
     const [draft, setDraft] = React.useState(EMPTY);
     const [saving, setSaving] = React.useState(false);
     const [invoiceLookup, setInvoiceLookup] = React.useState<{ id: number; label: string }[]>([]);
+    const [touched, setTouched] = React.useState<Record<string, boolean>>({});
 
     React.useEffect(() => {
         paymentsApi.getInvoiceLookup().then(setInvoiceLookup).catch(console.error);

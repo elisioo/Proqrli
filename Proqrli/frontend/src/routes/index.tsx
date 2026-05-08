@@ -1,5 +1,6 @@
 /* eslint-disable prettier/prettier */
 import { createFileRoute, Link } from "@tanstack/react-router";
+import * as React from "react";
 import { useEffect, useState } from "react";
 import logo from "../assets/logos/logo.png";
 import {
@@ -120,7 +121,7 @@ function LandingPage() {
 
     return (
         <div className="min-h-screen bg-paper text-foreground">
-            {/* NAV — pill style inspired by ToDesktop */}
+         
             <nav
                 className={`fixed inset-x-0 top-0 z-50 flex items-center justify-between px-6 py-4 transition-all md:px-10 ${scrolled
                         ? "bg-paper/85 backdrop-blur-md shadow-[0_2px_24px_rgba(24,23,20,0.06)]"

@@ -153,7 +153,7 @@ export function BuyerTopbar() {
                   <div className="text-sm font-semibold">{user.name}</div>
                   <div className="text-[11px] text-muted-foreground">{user.email}</div>
                   <div className="mt-1 inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
-                    {BUYER_ROLE_LABELS[role]} · Live session
+                    {BUYER_ROLE_LABELS[role]}
                   </div>
                 </div>
                 <DropdownMenuSeparator />

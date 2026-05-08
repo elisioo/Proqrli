@@ -11,8 +11,15 @@ namespace ProqrLi.Controllers
     public class InvoicesController : ControllerBase
     {
         private readonly ApplicationDbContext _db;
+        private readonly IConfiguration _config;
+        private readonly IHttpClientFactory _httpClientFactory;
 
-        public InvoicesController(ApplicationDbContext db) => _db = db;
+        public InvoicesController(ApplicationDbContext db, IConfiguration config, IHttpClientFactory httpClientFactory)
+        {
+            _db = db;
+            _config = config;
+            _httpClientFactory = httpClientFactory;
+        }
 
         private static VendorBillDto ToDto(Invoice inv)
         {
@@ -155,6 +162,53 @@ namespace ProqrLi.Controllers
             await _db.SaveChangesAsync();
 
             return NoContent();
+        }
+
+        // GET /api/invoices/tax-rate?country=US
+        [HttpGet("tax-rate")]
+        public async Task<IActionResult> GetTaxRate([FromQuery] string country)
+        {
+            if (string.IsNullOrWhiteSpace(country))
+                country = "US"; // Default fallback
+
+            var apiKey = _config["TaxApi:ApiKey"];
+            
+            // If key is missing or is the default placeholder, return a mock response
+            if (string.IsNullOrWhiteSpace(apiKey) || apiKey == "YOUR_TAX_API_KEY_HERE")
+            {
+                return Ok(new { 
+                    success = true, 
+                    standard_rate = new { rate = 0.12 } // 12% default VAT/Tax fallback
+                });
+            }
+
+            var client = _httpClientFactory.CreateClient();
+            client.DefaultRequestHeaders.Add("apikey", apiKey);
+
+            try 
+            {
+                var response = await client.GetAsync($"https://api.apilayer.com/tax_data/tax_rates?country={country}");
+                var content = await response.Content.ReadAsStringAsync();
+
+                if (response.IsSuccessStatusCode)
+                {
+                    return Content(content, "application/json");
+                }
+
+                // If external API fails, return the 12% fallback instead of an error
+                return Ok(new { 
+                    success = true, 
+                    standard_rate = new { rate = 0.12 } 
+                });
+            }
+            catch (Exception ex)
+            {
+                // Fallback on exception too
+                return Ok(new { 
+                    success = true, 
+                    standard_rate = new { rate = 0.12 } 
+                });
+            }
         }
     }
 }

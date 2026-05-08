@@ -145,21 +145,13 @@ namespace ProqrLi.Controllers.Procure
                 .FirstOrDefaultAsync();
             if (buyerTenantId == 0) buyerTenantId = 1;
 
-            // Find or create the vendor tenant
+            // Find the vendor tenant by ID or CompanyName
             var vendorTenant = await _db.Tenants
                 .FirstOrDefaultAsync(t => t.TenantType == "Vendor" && t.CompanyName == dto.CompanyName);
 
             if (vendorTenant == null)
             {
-                vendorTenant = new Tenant
-                {
-                    TenantType  = "Vendor",
-                    CompanyName = dto.CompanyName,
-                    Industry    = dto.Category,
-                    Status      = "Active",
-                };
-                _db.Tenants.Add(vendorTenant);
-                await _db.SaveChangesAsync();
+                return BadRequest("Vendor not found. Buyers cannot create new vendor accounts manually.");
             }
 
             var link = new AccreditationLink
@@ -225,6 +217,64 @@ namespace ProqrLi.Controllers.Procure
             await _db.SaveChangesAsync();
 
             return NoContent();
+        }
+        // GET /api/vendors/marketplace (discoverable vendors)
+        [HttpGet("marketplace")]
+        public async Task<IActionResult> GetMarketplaceVendors([FromQuery] int page = 1, [FromQuery] int pageSize = 10, [FromQuery] string search = "", [FromQuery] string category = "")
+        {
+            var buyerTenantId = await _db.Tenants
+                .Where(t => t.TenantType == "Buyer")
+                .Select(t => t.TenantID)
+                .FirstOrDefaultAsync();
+            
+            if (buyerTenantId == 0) buyerTenantId = 1;
+
+            var linkedVendorList = await _db.AccreditationLinks
+                .Where(a => a.BuyerTenantID == buyerTenantId)
+                .Select(a => a.VendorTenantID)
+                .ToListAsync();
+            var linkedVendorIds = linkedVendorList.ToHashSet();
+
+            var query = _db.Tenants
+                .Where(t => t.TenantType == "Vendor" && !linkedVendorIds.Contains(t.TenantID));
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                query = query.Where(t => t.CompanyName.Contains(search) || (t.Industry != null && t.Industry.Contains(search)));
+            }
+            if (!string.IsNullOrWhiteSpace(category) && category != "All")
+            {
+                query = query.Where(t => t.Industry == category);
+            }
+
+            var totalCount = await query.CountAsync();
+            var unlinkedVendors = await query
+                .OrderBy(t => t.CompanyName)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            var colors = new[] { "bg-sky-700", "bg-teal-700", "bg-violet-700", "bg-amber-700", "bg-rose-700", "bg-emerald-700", "bg-zinc-700", "bg-indigo-700" };
+
+            var dtos = unlinkedVendors.Select((t, i) => new 
+            {
+                Id = t.TenantID.ToString(),
+                CompanyName = t.CompanyName,
+                Initials = GetInitials(t.CompanyName),
+                AvatarColor = colors[i % colors.Length],
+                Category = string.IsNullOrWhiteSpace(t.Industry) ? "Uncategorized" : t.Industry,
+                Location = "Philippines",
+                Description = "Platform registered vendor ready for connection.",
+                Tags = new[] { "General" },
+                Rating = 0.0m,
+                ReviewCount = 0,
+                OnTimeRate = 0,
+                Verified = t.Status == "Active",
+                YearsActive = 1,
+                MinOrderValue = 0
+            }).ToList();
+
+            return Ok(new { data = dtos, total = totalCount, page, pageSize });
         }
     }
 }

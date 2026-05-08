@@ -38,6 +38,9 @@ namespace ProqrLi.Data
         public DbSet<PRApproval> PRApprovals { get; set; }
         public DbSet<PurchaseOrder> PurchaseOrders { get; set; }
         public DbSet<POItem> POItems { get; set; }
+        public DbSet<RequestForQuotation> RequestForQuotations { get; set; }
+        public DbSet<RfqVendorInvitation> RfqVendorInvitations { get; set; }
+        public DbSet<RfqResponse> RfqResponses { get; set; }
 
         // ── Module 3: Supplier Evaluation
         public DbSet<EvaluationCriteria> EvaluationCriterias { get; set; }
@@ -214,11 +217,16 @@ namespace ProqrLi.Data
                 .HasForeignKey(p => p.ApproverUserID)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // PurchaseOrder — paths: Tenant→PR→PO  AND  Tenant→TenantUser→PO
             modelBuilder.Entity<PurchaseOrder>()
                 .HasOne(p => p.CreatedByUser)
                 .WithMany()
                 .HasForeignKey(p => p.CreatedByUserID)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<RequestForQuotation>()
+                .HasOne(r => r.CreatedByUser)
+                .WithMany()
+                .HasForeignKey(r => r.CreatedByUserID)
                 .OnDelete(DeleteBehavior.Restrict);
 
             // ════════════════════════════════════════════════════════════════════
@@ -247,6 +255,18 @@ namespace ProqrLi.Data
                 .HasOne(p => p.VendorTenant)
                 .WithMany()
                 .HasForeignKey(p => p.VendorTenantID)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<RfqVendorInvitation>()
+                .HasOne(i => i.VendorTenant)
+                .WithMany()
+                .HasForeignKey(i => i.VendorTenantID)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<RfqResponse>()
+                .HasOne(r => r.VendorTenant)
+                .WithMany()
+                .HasForeignKey(r => r.VendorTenantID)
                 .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<Contract>()

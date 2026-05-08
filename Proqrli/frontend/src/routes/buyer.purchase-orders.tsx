@@ -8,6 +8,9 @@ import { AutoStatus } from "@/components/StatusPill";
 import { CrudDrawer, Field, inputCls, selectCls, NumberInput } from "@/components/CrudDrawer";
 import { useApiCollection } from "@/lib/use-api-collection";
 import { purchaseOrdersApi, type PurchaseOrder, type CreatePurchaseOrderPayload, type UpdatePurchaseOrderPayload } from "@/lib/api";
+import { formatBuyerCurrency } from "@/lib/buyer-mock-data";
+import { useBuyer } from "@/lib/buyer-context";
+import { cn } from "@/lib/utils";
 import {
     AlertDialog,
     AlertDialogContent,
@@ -18,9 +21,6 @@ import {
     AlertDialogCancel,
     AlertDialogAction,
 } from "@/components/ui/alert-dialog";
-import { formatBuyerCurrency } from "@/lib/buyer-mock-data";
-import { useBuyer } from "@/lib/buyer-context";
-import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/buyer/purchase-orders")({
     component: () => (
@@ -100,7 +100,7 @@ function BuyerPOPage() {
             if (drawer.mode === "create") {
                 await store.create({
                     poNumber: draft.poNumber || undefined,
-                    pRID: draft.pRID ? draft.pRID : undefined,
+                    pRID: draft.pRID ? draft.pRID : 0,
                     vendorTenantID: draft.vendorTenantID,
                     total: draft.total,
                     expectedDelivery: draft.expectedDelivery,
@@ -115,9 +115,10 @@ function BuyerPOPage() {
                 });
             }
             closeDrawer();
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error("Save failed:", err);
-            setSubmitError(err?.message || "An error occurred while saving.");
+            const msg = err instanceof Error ? err.message : "An error occurred while saving.";
+            setSubmitError(msg);
         } finally {
             setSaving(false);
         }

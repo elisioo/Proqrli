@@ -13,6 +13,9 @@ import { AutoStatus } from "@/components/StatusPill";
 import { CrudDrawer, Field, inputCls, selectCls, textareaCls, NumberInput, SelectOrCustom } from "@/components/CrudDrawer";
 import { useApiCollection } from "@/lib/use-api-collection";
 import { inventoryApi, type InventoryItemDto } from "@/lib/api";
+import { formatBuyerCurrency, BUYER_VENDORS, getStockState } from "@/lib/buyer-mock-data";
+import { useBuyer } from "@/lib/buyer-context";
+import { cn } from "@/lib/utils";
 import {
     AlertDialog,
     AlertDialogContent,
@@ -23,13 +26,6 @@ import {
     AlertDialogCancel,
     AlertDialogAction,
 } from "@/components/ui/alert-dialog";
-import {
-    BUYER_VENDORS,
-    getStockState,
-    formatBuyerCurrency,
-} from "@/lib/buyer-mock-data";
-import { useBuyer } from "@/lib/buyer-context";
-import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/buyer/inventory")({
     component: () => (

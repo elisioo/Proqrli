@@ -52,377 +52,385 @@ import { Route as AdminSystemRouteImport } from './routes/admin.system'
 import { Route as AdminSettingsRouteImport } from './routes/admin.settings'
 import { Route as AdminModulesRouteImport } from './routes/admin.modules'
 import { Route as AdminAuditRouteImport } from './routes/admin.audit'
+import { Route as BuyerRfqsIndexRouteImport } from './routes/buyer.rfqs.index'
 import { Route as VendorRfqsRfqIdRouteImport } from './routes/vendor.rfqs.$rfqId'
 import { Route as BuyerRfqsRfqIdRouteImport } from './routes/buyer.rfqs.$rfqId'
 
 const VendorRoute = VendorRouteImport.update({
-    id: '/vendor',
-    path: '/vendor',
-    getParentRoute: () => rootRouteImport,
+  id: '/vendor',
+  path: '/vendor',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const RegisterRoute = RegisterRouteImport.update({
-    id: '/register',
-    path: '/register',
-    getParentRoute: () => rootRouteImport,
+  id: '/register',
+  path: '/register',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const OnboardingRoute = OnboardingRouteImport.update({
-    id: '/onboarding',
-    path: '/onboarding',
-    getParentRoute: () => rootRouteImport,
+  id: '/onboarding',
+  path: '/onboarding',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
-    id: '/login',
-    path: '/login',
-    getParentRoute: () => rootRouteImport,
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const BuyerRoute = BuyerRouteImport.update({
-    id: '/buyer',
-    path: '/buyer',
-    getParentRoute: () => rootRouteImport,
+  id: '/buyer',
+  path: '/buyer',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AdminRoute = AdminRouteImport.update({
-    id: '/admin',
-    path: '/admin',
-    getParentRoute: () => rootRouteImport,
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
-    id: '/',
-    path: '/',
-    getParentRoute: () => rootRouteImport,
+  id: '/',
+  path: '/',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const VendorIndexRoute = VendorIndexRouteImport.update({
-    id: '/',
-    path: '/',
-    getParentRoute: () => VendorRoute,
+  id: '/',
+  path: '/',
+  getParentRoute: () => VendorRoute,
 } as any)
 const BuyerIndexRoute = BuyerIndexRouteImport.update({
-    id: '/',
-    path: '/',
-    getParentRoute: () => BuyerRoute,
+  id: '/',
+  path: '/',
+  getParentRoute: () => BuyerRoute,
 } as any)
 const AdminIndexRoute = AdminIndexRouteImport.update({
-    id: '/',
-    path: '/',
-    getParentRoute: () => AdminRoute,
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminRoute,
 } as any)
 const VendorStorefrontRoute = VendorStorefrontRouteImport.update({
-    id: '/storefront',
-    path: '/storefront',
-    getParentRoute: () => VendorRoute,
+  id: '/storefront',
+  path: '/storefront',
+  getParentRoute: () => VendorRoute,
 } as any)
 const VendorSettingsRoute = VendorSettingsRouteImport.update({
-    id: '/settings',
-    path: '/settings',
-    getParentRoute: () => VendorRoute,
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => VendorRoute,
 } as any)
 const VendorRfqsRoute = VendorRfqsRouteImport.update({
-    id: '/rfqs',
-    path: '/rfqs',
-    getParentRoute: () => VendorRoute,
+  id: '/rfqs',
+  path: '/rfqs',
+  getParentRoute: () => VendorRoute,
 } as any)
 const VendorReviewsRoute = VendorReviewsRouteImport.update({
-    id: '/reviews',
-    path: '/reviews',
-    getParentRoute: () => VendorRoute,
+  id: '/reviews',
+  path: '/reviews',
+  getParentRoute: () => VendorRoute,
 } as any)
 const VendorPurchaseOrdersRoute = VendorPurchaseOrdersRouteImport.update({
-    id: '/purchase-orders',
-    path: '/purchase-orders',
-    getParentRoute: () => VendorRoute,
+  id: '/purchase-orders',
+  path: '/purchase-orders',
+  getParentRoute: () => VendorRoute,
 } as any)
 const VendorProductsRoute = VendorProductsRouteImport.update({
-    id: '/products',
-    path: '/products',
-    getParentRoute: () => VendorRoute,
+  id: '/products',
+  path: '/products',
+  getParentRoute: () => VendorRoute,
 } as any)
 const VendorPayoutsRoute = VendorPayoutsRouteImport.update({
-    id: '/payouts',
-    path: '/payouts',
-    getParentRoute: () => VendorRoute,
+  id: '/payouts',
+  path: '/payouts',
+  getParentRoute: () => VendorRoute,
 } as any)
 const VendorOrdersRoute = VendorOrdersRouteImport.update({
-    id: '/orders',
-    path: '/orders',
-    getParentRoute: () => VendorRoute,
+  id: '/orders',
+  path: '/orders',
+  getParentRoute: () => VendorRoute,
 } as any)
 const VendorMessagesRoute = VendorMessagesRouteImport.update({
-    id: '/messages',
-    path: '/messages',
-    getParentRoute: () => VendorRoute,
+  id: '/messages',
+  path: '/messages',
+  getParentRoute: () => VendorRoute,
 } as any)
 const VendorInvoicesRoute = VendorInvoicesRouteImport.update({
-    id: '/invoices',
-    path: '/invoices',
-    getParentRoute: () => VendorRoute,
+  id: '/invoices',
+  path: '/invoices',
+  getParentRoute: () => VendorRoute,
 } as any)
 const VendorDeliveriesRoute = VendorDeliveriesRouteImport.update({
-    id: '/deliveries',
-    path: '/deliveries',
-    getParentRoute: () => VendorRoute,
+  id: '/deliveries',
+  path: '/deliveries',
+  getParentRoute: () => VendorRoute,
 } as any)
 const VendorComplianceRoute = VendorComplianceRouteImport.update({
-    id: '/compliance',
-    path: '/compliance',
-    getParentRoute: () => VendorRoute,
+  id: '/compliance',
+  path: '/compliance',
+  getParentRoute: () => VendorRoute,
 } as any)
 const VendorBuyersRoute = VendorBuyersRouteImport.update({
-    id: '/buyers',
-    path: '/buyers',
-    getParentRoute: () => VendorRoute,
+  id: '/buyers',
+  path: '/buyers',
+  getParentRoute: () => VendorRoute,
 } as any)
 const BuyerVendorsRoute = BuyerVendorsRouteImport.update({
-    id: '/vendors',
-    path: '/vendors',
-    getParentRoute: () => BuyerRoute,
+  id: '/vendors',
+  path: '/vendors',
+  getParentRoute: () => BuyerRoute,
 } as any)
 const BuyerSettingsRoute = BuyerSettingsRouteImport.update({
-    id: '/settings',
-    path: '/settings',
-    getParentRoute: () => BuyerRoute,
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => BuyerRoute,
 } as any)
 const BuyerRiskRoute = BuyerRiskRouteImport.update({
-    id: '/risk',
-    path: '/risk',
-    getParentRoute: () => BuyerRoute,
+  id: '/risk',
+  path: '/risk',
+  getParentRoute: () => BuyerRoute,
 } as any)
 const BuyerRfqsRoute = BuyerRfqsRouteImport.update({
-    id: '/rfqs',
-    path: '/rfqs',
-    getParentRoute: () => BuyerRoute,
+  id: '/rfqs',
+  path: '/rfqs',
+  getParentRoute: () => BuyerRoute,
 } as any)
 const BuyerRequisitionsRoute = BuyerRequisitionsRouteImport.update({
-    id: '/requisitions',
-    path: '/requisitions',
-    getParentRoute: () => BuyerRoute,
+  id: '/requisitions',
+  path: '/requisitions',
+  getParentRoute: () => BuyerRoute,
 } as any)
 const BuyerReceiptsRoute = BuyerReceiptsRouteImport.update({
-    id: '/receipts',
-    path: '/receipts',
-    getParentRoute: () => BuyerRoute,
+  id: '/receipts',
+  path: '/receipts',
+  getParentRoute: () => BuyerRoute,
 } as any)
 const BuyerQuotationsRoute = BuyerQuotationsRouteImport.update({
-    id: '/quotations',
-    path: '/quotations',
-    getParentRoute: () => BuyerRoute,
+  id: '/quotations',
+  path: '/quotations',
+  getParentRoute: () => BuyerRoute,
 } as any)
 const BuyerPurchaseOrdersRoute = BuyerPurchaseOrdersRouteImport.update({
-    id: '/purchase-orders',
-    path: '/purchase-orders',
-    getParentRoute: () => BuyerRoute,
+  id: '/purchase-orders',
+  path: '/purchase-orders',
+  getParentRoute: () => BuyerRoute,
 } as any)
 const BuyerPaymentsRoute = BuyerPaymentsRouteImport.update({
-    id: '/payments',
-    path: '/payments',
-    getParentRoute: () => BuyerRoute,
+  id: '/payments',
+  path: '/payments',
+  getParentRoute: () => BuyerRoute,
 } as any)
 const BuyerMessagesRoute = BuyerMessagesRouteImport.update({
-    id: '/messages',
-    path: '/messages',
-    getParentRoute: () => BuyerRoute,
+  id: '/messages',
+  path: '/messages',
+  getParentRoute: () => BuyerRoute,
 } as any)
 const BuyerMarketplaceRoute = BuyerMarketplaceRouteImport.update({
-    id: '/marketplace',
-    path: '/marketplace',
-    getParentRoute: () => BuyerRoute,
+  id: '/marketplace',
+  path: '/marketplace',
+  getParentRoute: () => BuyerRoute,
 } as any)
 const BuyerInventoryRoute = BuyerInventoryRouteImport.update({
-    id: '/inventory',
-    path: '/inventory',
-    getParentRoute: () => BuyerRoute,
+  id: '/inventory',
+  path: '/inventory',
+  getParentRoute: () => BuyerRoute,
 } as any)
 const BuyerBillsRoute = BuyerBillsRouteImport.update({
-    id: '/bills',
-    path: '/bills',
-    getParentRoute: () => BuyerRoute,
+  id: '/bills',
+  path: '/bills',
+  getParentRoute: () => BuyerRoute,
 } as any)
 const AdminVendorsRoute = AdminVendorsRouteImport.update({
-    id: '/vendors',
-    path: '/vendors',
-    getParentRoute: () => AdminRoute,
+  id: '/vendors',
+  path: '/vendors',
+  getParentRoute: () => AdminRoute,
 } as any)
 const AdminUsersRoute = AdminUsersRouteImport.update({
-    id: '/users',
-    path: '/users',
-    getParentRoute: () => AdminRoute,
+  id: '/users',
+  path: '/users',
+  getParentRoute: () => AdminRoute,
 } as any)
 const AdminTenantsRoute = AdminTenantsRouteImport.update({
-    id: '/tenants',
-    path: '/tenants',
-    getParentRoute: () => AdminRoute,
+  id: '/tenants',
+  path: '/tenants',
+  getParentRoute: () => AdminRoute,
 } as any)
 const AdminSystemRoute = AdminSystemRouteImport.update({
-    id: '/system',
-    path: '/system',
-    getParentRoute: () => AdminRoute,
+  id: '/system',
+  path: '/system',
+  getParentRoute: () => AdminRoute,
 } as any)
 const AdminSettingsRoute = AdminSettingsRouteImport.update({
-    id: '/settings',
-    path: '/settings',
-    getParentRoute: () => AdminRoute,
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AdminRoute,
 } as any)
 const AdminModulesRoute = AdminModulesRouteImport.update({
-    id: '/modules',
-    path: '/modules',
-    getParentRoute: () => AdminRoute,
+  id: '/modules',
+  path: '/modules',
+  getParentRoute: () => AdminRoute,
 } as any)
 const AdminAuditRoute = AdminAuditRouteImport.update({
-    id: '/audit',
-    path: '/audit',
-    getParentRoute: () => AdminRoute,
+  id: '/audit',
+  path: '/audit',
+  getParentRoute: () => AdminRoute,
+} as any)
+const BuyerRfqsIndexRoute = BuyerRfqsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => BuyerRfqsRoute,
 } as any)
 const VendorRfqsRfqIdRoute = VendorRfqsRfqIdRouteImport.update({
-    id: '/$rfqId',
-    path: '/$rfqId',
-    getParentRoute: () => VendorRfqsRoute,
+  id: '/$rfqId',
+  path: '/$rfqId',
+  getParentRoute: () => VendorRfqsRoute,
 } as any)
 const BuyerRfqsRfqIdRoute = BuyerRfqsRfqIdRouteImport.update({
-    id: '/$rfqId',
-    path: '/$rfqId',
-    getParentRoute: () => BuyerRfqsRoute,
+  id: '/$rfqId',
+  path: '/$rfqId',
+  getParentRoute: () => BuyerRfqsRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
-    '/': typeof IndexRoute
-    '/admin': typeof AdminRouteWithChildren
-    '/buyer': typeof BuyerRouteWithChildren
-    '/login': typeof LoginRoute
-    '/onboarding': typeof OnboardingRoute
-    '/register': typeof RegisterRoute
-    '/vendor': typeof VendorRouteWithChildren
-    '/admin/audit': typeof AdminAuditRoute
-    '/admin/modules': typeof AdminModulesRoute
-    '/admin/settings': typeof AdminSettingsRoute
-    '/admin/system': typeof AdminSystemRoute
-    '/admin/tenants': typeof AdminTenantsRoute
-    '/admin/users': typeof AdminUsersRoute
-    '/admin/vendors': typeof AdminVendorsRoute
-    '/buyer/bills': typeof BuyerBillsRoute
-    '/buyer/inventory': typeof BuyerInventoryRoute
-    '/buyer/marketplace': typeof BuyerMarketplaceRoute
-    '/buyer/messages': typeof BuyerMessagesRoute
-    '/buyer/payments': typeof BuyerPaymentsRoute
-    '/buyer/purchase-orders': typeof BuyerPurchaseOrdersRoute
-    '/buyer/quotations': typeof BuyerQuotationsRoute
-    '/buyer/receipts': typeof BuyerReceiptsRoute
-    '/buyer/requisitions': typeof BuyerRequisitionsRoute
-    '/buyer/rfqs': typeof BuyerRfqsRouteWithChildren
-    '/buyer/risk': typeof BuyerRiskRoute
-    '/buyer/settings': typeof BuyerSettingsRoute
-    '/buyer/vendors': typeof BuyerVendorsRoute
-    '/vendor/buyers': typeof VendorBuyersRoute
-    '/vendor/compliance': typeof VendorComplianceRoute
-    '/vendor/deliveries': typeof VendorDeliveriesRoute
-    '/vendor/invoices': typeof VendorInvoicesRoute
-    '/vendor/messages': typeof VendorMessagesRoute
-    '/vendor/orders': typeof VendorOrdersRoute
-    '/vendor/payouts': typeof VendorPayoutsRoute
-    '/vendor/products': typeof VendorProductsRoute
-    '/vendor/purchase-orders': typeof VendorPurchaseOrdersRoute
-    '/vendor/reviews': typeof VendorReviewsRoute
-    '/vendor/rfqs': typeof VendorRfqsRouteWithChildren
-    '/vendor/settings': typeof VendorSettingsRoute
-    '/vendor/storefront': typeof VendorStorefrontRoute
-    '/admin/': typeof AdminIndexRoute
-    '/buyer/': typeof BuyerIndexRoute
-    '/vendor/': typeof VendorIndexRoute
-    '/buyer/rfqs/$rfqId': typeof BuyerRfqsRfqIdRoute
-    '/vendor/rfqs/$rfqId': typeof VendorRfqsRfqIdRoute
+  '/': typeof IndexRoute
+  '/admin': typeof AdminRouteWithChildren
+  '/buyer': typeof BuyerRouteWithChildren
+  '/login': typeof LoginRoute
+  '/onboarding': typeof OnboardingRoute
+  '/register': typeof RegisterRoute
+  '/vendor': typeof VendorRouteWithChildren
+  '/admin/audit': typeof AdminAuditRoute
+  '/admin/modules': typeof AdminModulesRoute
+  '/admin/settings': typeof AdminSettingsRoute
+  '/admin/system': typeof AdminSystemRoute
+  '/admin/tenants': typeof AdminTenantsRoute
+  '/admin/users': typeof AdminUsersRoute
+  '/admin/vendors': typeof AdminVendorsRoute
+  '/buyer/bills': typeof BuyerBillsRoute
+  '/buyer/inventory': typeof BuyerInventoryRoute
+  '/buyer/marketplace': typeof BuyerMarketplaceRoute
+  '/buyer/messages': typeof BuyerMessagesRoute
+  '/buyer/payments': typeof BuyerPaymentsRoute
+  '/buyer/purchase-orders': typeof BuyerPurchaseOrdersRoute
+  '/buyer/quotations': typeof BuyerQuotationsRoute
+  '/buyer/receipts': typeof BuyerReceiptsRoute
+  '/buyer/requisitions': typeof BuyerRequisitionsRoute
+  '/buyer/rfqs': typeof BuyerRfqsRouteWithChildren
+  '/buyer/risk': typeof BuyerRiskRoute
+  '/buyer/settings': typeof BuyerSettingsRoute
+  '/buyer/vendors': typeof BuyerVendorsRoute
+  '/vendor/buyers': typeof VendorBuyersRoute
+  '/vendor/compliance': typeof VendorComplianceRoute
+  '/vendor/deliveries': typeof VendorDeliveriesRoute
+  '/vendor/invoices': typeof VendorInvoicesRoute
+  '/vendor/messages': typeof VendorMessagesRoute
+  '/vendor/orders': typeof VendorOrdersRoute
+  '/vendor/payouts': typeof VendorPayoutsRoute
+  '/vendor/products': typeof VendorProductsRoute
+  '/vendor/purchase-orders': typeof VendorPurchaseOrdersRoute
+  '/vendor/reviews': typeof VendorReviewsRoute
+  '/vendor/rfqs': typeof VendorRfqsRouteWithChildren
+  '/vendor/settings': typeof VendorSettingsRoute
+  '/vendor/storefront': typeof VendorStorefrontRoute
+  '/admin/': typeof AdminIndexRoute
+  '/buyer/': typeof BuyerIndexRoute
+  '/vendor/': typeof VendorIndexRoute
+  '/buyer/rfqs/$rfqId': typeof BuyerRfqsRfqIdRoute
+  '/vendor/rfqs/$rfqId': typeof VendorRfqsRfqIdRoute
+  '/buyer/rfqs/': typeof BuyerRfqsIndexRoute
 }
 export interface FileRoutesByTo {
-    '/': typeof IndexRoute
-    '/login': typeof LoginRoute
-    '/onboarding': typeof OnboardingRoute
-    '/register': typeof RegisterRoute
-    '/admin/audit': typeof AdminAuditRoute
-    '/admin/modules': typeof AdminModulesRoute
-    '/admin/settings': typeof AdminSettingsRoute
-    '/admin/system': typeof AdminSystemRoute
-    '/admin/tenants': typeof AdminTenantsRoute
-    '/admin/users': typeof AdminUsersRoute
-    '/admin/vendors': typeof AdminVendorsRoute
-    '/buyer/bills': typeof BuyerBillsRoute
-    '/buyer/inventory': typeof BuyerInventoryRoute
-    '/buyer/marketplace': typeof BuyerMarketplaceRoute
-    '/buyer/messages': typeof BuyerMessagesRoute
-    '/buyer/payments': typeof BuyerPaymentsRoute
-    '/buyer/purchase-orders': typeof BuyerPurchaseOrdersRoute
-    '/buyer/quotations': typeof BuyerQuotationsRoute
-    '/buyer/receipts': typeof BuyerReceiptsRoute
-    '/buyer/requisitions': typeof BuyerRequisitionsRoute
-    '/buyer/rfqs': typeof BuyerRfqsRouteWithChildren
-    '/buyer/risk': typeof BuyerRiskRoute
-    '/buyer/settings': typeof BuyerSettingsRoute
-    '/buyer/vendors': typeof BuyerVendorsRoute
-    '/vendor/buyers': typeof VendorBuyersRoute
-    '/vendor/compliance': typeof VendorComplianceRoute
-    '/vendor/deliveries': typeof VendorDeliveriesRoute
-    '/vendor/invoices': typeof VendorInvoicesRoute
-    '/vendor/messages': typeof VendorMessagesRoute
-    '/vendor/orders': typeof VendorOrdersRoute
-    '/vendor/payouts': typeof VendorPayoutsRoute
-    '/vendor/products': typeof VendorProductsRoute
-    '/vendor/purchase-orders': typeof VendorPurchaseOrdersRoute
-    '/vendor/reviews': typeof VendorReviewsRoute
-    '/vendor/rfqs': typeof VendorRfqsRouteWithChildren
-    '/vendor/settings': typeof VendorSettingsRoute
-    '/vendor/storefront': typeof VendorStorefrontRoute
-    '/admin': typeof AdminIndexRoute
-    '/buyer': typeof BuyerIndexRoute
-    '/vendor': typeof VendorIndexRoute
-    '/buyer/rfqs/$rfqId': typeof BuyerRfqsRfqIdRoute
-    '/vendor/rfqs/$rfqId': typeof VendorRfqsRfqIdRoute
+  '/': typeof IndexRoute
+  '/login': typeof LoginRoute
+  '/onboarding': typeof OnboardingRoute
+  '/register': typeof RegisterRoute
+  '/admin/audit': typeof AdminAuditRoute
+  '/admin/modules': typeof AdminModulesRoute
+  '/admin/settings': typeof AdminSettingsRoute
+  '/admin/system': typeof AdminSystemRoute
+  '/admin/tenants': typeof AdminTenantsRoute
+  '/admin/users': typeof AdminUsersRoute
+  '/admin/vendors': typeof AdminVendorsRoute
+  '/buyer/bills': typeof BuyerBillsRoute
+  '/buyer/inventory': typeof BuyerInventoryRoute
+  '/buyer/marketplace': typeof BuyerMarketplaceRoute
+  '/buyer/messages': typeof BuyerMessagesRoute
+  '/buyer/payments': typeof BuyerPaymentsRoute
+  '/buyer/purchase-orders': typeof BuyerPurchaseOrdersRoute
+  '/buyer/quotations': typeof BuyerQuotationsRoute
+  '/buyer/receipts': typeof BuyerReceiptsRoute
+  '/buyer/requisitions': typeof BuyerRequisitionsRoute
+  '/buyer/risk': typeof BuyerRiskRoute
+  '/buyer/settings': typeof BuyerSettingsRoute
+  '/buyer/vendors': typeof BuyerVendorsRoute
+  '/vendor/buyers': typeof VendorBuyersRoute
+  '/vendor/compliance': typeof VendorComplianceRoute
+  '/vendor/deliveries': typeof VendorDeliveriesRoute
+  '/vendor/invoices': typeof VendorInvoicesRoute
+  '/vendor/messages': typeof VendorMessagesRoute
+  '/vendor/orders': typeof VendorOrdersRoute
+  '/vendor/payouts': typeof VendorPayoutsRoute
+  '/vendor/products': typeof VendorProductsRoute
+  '/vendor/purchase-orders': typeof VendorPurchaseOrdersRoute
+  '/vendor/reviews': typeof VendorReviewsRoute
+  '/vendor/rfqs': typeof VendorRfqsRouteWithChildren
+  '/vendor/settings': typeof VendorSettingsRoute
+  '/vendor/storefront': typeof VendorStorefrontRoute
+  '/admin': typeof AdminIndexRoute
+  '/buyer': typeof BuyerIndexRoute
+  '/vendor': typeof VendorIndexRoute
+  '/buyer/rfqs/$rfqId': typeof BuyerRfqsRfqIdRoute
+  '/vendor/rfqs/$rfqId': typeof VendorRfqsRfqIdRoute
+  '/buyer/rfqs': typeof BuyerRfqsIndexRoute
 }
 export interface FileRoutesById {
-    __root__: typeof rootRouteImport
-    '/': typeof IndexRoute
-    '/admin': typeof AdminRouteWithChildren
-    '/buyer': typeof BuyerRouteWithChildren
-    '/login': typeof LoginRoute
-    '/onboarding': typeof OnboardingRoute
-    '/register': typeof RegisterRoute
-    '/vendor': typeof VendorRouteWithChildren
-    '/admin/audit': typeof AdminAuditRoute
-    '/admin/modules': typeof AdminModulesRoute
-    '/admin/settings': typeof AdminSettingsRoute
-    '/admin/system': typeof AdminSystemRoute
-    '/admin/tenants': typeof AdminTenantsRoute
-    '/admin/users': typeof AdminUsersRoute
-    '/admin/vendors': typeof AdminVendorsRoute
-    '/buyer/bills': typeof BuyerBillsRoute
-    '/buyer/inventory': typeof BuyerInventoryRoute
-    '/buyer/marketplace': typeof BuyerMarketplaceRoute
-    '/buyer/messages': typeof BuyerMessagesRoute
-    '/buyer/payments': typeof BuyerPaymentsRoute
-    '/buyer/purchase-orders': typeof BuyerPurchaseOrdersRoute
-    '/buyer/quotations': typeof BuyerQuotationsRoute
-    '/buyer/receipts': typeof BuyerReceiptsRoute
-    '/buyer/requisitions': typeof BuyerRequisitionsRoute
-    '/buyer/rfqs': typeof BuyerRfqsRouteWithChildren
-    '/buyer/risk': typeof BuyerRiskRoute
-    '/buyer/settings': typeof BuyerSettingsRoute
-    '/buyer/vendors': typeof BuyerVendorsRoute
-    '/vendor/buyers': typeof VendorBuyersRoute
-    '/vendor/compliance': typeof VendorComplianceRoute
-    '/vendor/deliveries': typeof VendorDeliveriesRoute
-    '/vendor/invoices': typeof VendorInvoicesRoute
-    '/vendor/messages': typeof VendorMessagesRoute
-    '/vendor/orders': typeof VendorOrdersRoute
-    '/vendor/payouts': typeof VendorPayoutsRoute
-    '/vendor/products': typeof VendorProductsRoute
-    '/vendor/purchase-orders': typeof VendorPurchaseOrdersRoute
-    '/vendor/reviews': typeof VendorReviewsRoute
-    '/vendor/rfqs': typeof VendorRfqsRouteWithChildren
-    '/vendor/settings': typeof VendorSettingsRoute
-    '/vendor/storefront': typeof VendorStorefrontRoute
-    '/admin/': typeof AdminIndexRoute
-    '/buyer/': typeof BuyerIndexRoute
-    '/vendor/': typeof VendorIndexRoute
-    '/buyer/rfqs/$rfqId': typeof BuyerRfqsRfqIdRoute
-    '/vendor/rfqs/$rfqId': typeof VendorRfqsRfqIdRoute
+  __root__: typeof rootRouteImport
+  '/': typeof IndexRoute
+  '/admin': typeof AdminRouteWithChildren
+  '/buyer': typeof BuyerRouteWithChildren
+  '/login': typeof LoginRoute
+  '/onboarding': typeof OnboardingRoute
+  '/register': typeof RegisterRoute
+  '/vendor': typeof VendorRouteWithChildren
+  '/admin/audit': typeof AdminAuditRoute
+  '/admin/modules': typeof AdminModulesRoute
+  '/admin/settings': typeof AdminSettingsRoute
+  '/admin/system': typeof AdminSystemRoute
+  '/admin/tenants': typeof AdminTenantsRoute
+  '/admin/users': typeof AdminUsersRoute
+  '/admin/vendors': typeof AdminVendorsRoute
+  '/buyer/bills': typeof BuyerBillsRoute
+  '/buyer/inventory': typeof BuyerInventoryRoute
+  '/buyer/marketplace': typeof BuyerMarketplaceRoute
+  '/buyer/messages': typeof BuyerMessagesRoute
+  '/buyer/payments': typeof BuyerPaymentsRoute
+  '/buyer/purchase-orders': typeof BuyerPurchaseOrdersRoute
+  '/buyer/quotations': typeof BuyerQuotationsRoute
+  '/buyer/receipts': typeof BuyerReceiptsRoute
+  '/buyer/requisitions': typeof BuyerRequisitionsRoute
+  '/buyer/rfqs': typeof BuyerRfqsRouteWithChildren
+  '/buyer/risk': typeof BuyerRiskRoute
+  '/buyer/settings': typeof BuyerSettingsRoute
+  '/buyer/vendors': typeof BuyerVendorsRoute
+  '/vendor/buyers': typeof VendorBuyersRoute
+  '/vendor/compliance': typeof VendorComplianceRoute
+  '/vendor/deliveries': typeof VendorDeliveriesRoute
+  '/vendor/invoices': typeof VendorInvoicesRoute
+  '/vendor/messages': typeof VendorMessagesRoute
+  '/vendor/orders': typeof VendorOrdersRoute
+  '/vendor/payouts': typeof VendorPayoutsRoute
+  '/vendor/products': typeof VendorProductsRoute
+  '/vendor/purchase-orders': typeof VendorPurchaseOrdersRoute
+  '/vendor/reviews': typeof VendorReviewsRoute
+  '/vendor/rfqs': typeof VendorRfqsRouteWithChildren
+  '/vendor/settings': typeof VendorSettingsRoute
+  '/vendor/storefront': typeof VendorStorefrontRoute
+  '/admin/': typeof AdminIndexRoute
+  '/buyer/': typeof BuyerIndexRoute
+  '/vendor/': typeof VendorIndexRoute
+  '/buyer/rfqs/$rfqId': typeof BuyerRfqsRfqIdRoute
+  '/vendor/rfqs/$rfqId': typeof VendorRfqsRfqIdRoute
+  '/buyer/rfqs/': typeof BuyerRfqsIndexRoute
 }
 export interface FileRouteTypes {
-    fileRoutesByFullPath: FileRoutesByFullPath
-    fullPaths:
+  fileRoutesByFullPath: FileRoutesByFullPath
+  fullPaths:
     | '/'
     | '/admin'
     | '/buyer'
@@ -468,8 +476,9 @@ export interface FileRouteTypes {
     | '/vendor/'
     | '/buyer/rfqs/$rfqId'
     | '/vendor/rfqs/$rfqId'
-    fileRoutesByTo: FileRoutesByTo
-    to:
+    | '/buyer/rfqs/'
+  fileRoutesByTo: FileRoutesByTo
+  to:
     | '/'
     | '/login'
     | '/onboarding'
@@ -490,7 +499,6 @@ export interface FileRouteTypes {
     | '/buyer/quotations'
     | '/buyer/receipts'
     | '/buyer/requisitions'
-    | '/buyer/rfqs'
     | '/buyer/risk'
     | '/buyer/settings'
     | '/buyer/vendors'
@@ -512,7 +520,8 @@ export interface FileRouteTypes {
     | '/vendor'
     | '/buyer/rfqs/$rfqId'
     | '/vendor/rfqs/$rfqId'
-    id:
+    | '/buyer/rfqs'
+  id:
     | '__root__'
     | '/'
     | '/admin'
@@ -559,477 +568,478 @@ export interface FileRouteTypes {
     | '/vendor/'
     | '/buyer/rfqs/$rfqId'
     | '/vendor/rfqs/$rfqId'
-    fileRoutesById: FileRoutesById
+    | '/buyer/rfqs/'
+  fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-    IndexRoute: typeof IndexRoute
-    AdminRoute: typeof AdminRouteWithChildren
-    BuyerRoute: typeof BuyerRouteWithChildren
-    LoginRoute: typeof LoginRoute
-    OnboardingRoute: typeof OnboardingRoute
-    RegisterRoute: typeof RegisterRoute
-    VendorRoute: typeof VendorRouteWithChildren
+  IndexRoute: typeof IndexRoute
+  AdminRoute: typeof AdminRouteWithChildren
+  BuyerRoute: typeof BuyerRouteWithChildren
+  LoginRoute: typeof LoginRoute
+  OnboardingRoute: typeof OnboardingRoute
+  RegisterRoute: typeof RegisterRoute
+  VendorRoute: typeof VendorRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
-    interface FileRoutesByPath {
-        '/vendor': {
-            id: '/vendor'
-            path: '/vendor'
-            fullPath: '/vendor'
-            preLoaderRoute: typeof VendorRouteImport
-            parentRoute: typeof rootRouteImport
-        }
-        '/register': {
-            id: '/register'
-            path: '/register'
-            fullPath: '/register'
-            preLoaderRoute: typeof RegisterRouteImport
-            parentRoute: typeof rootRouteImport
-        }
-        '/onboarding': {
-            id: '/onboarding'
-            path: '/onboarding'
-            fullPath: '/onboarding'
-            preLoaderRoute: typeof OnboardingRouteImport
-            parentRoute: typeof rootRouteImport
-        }
-        '/login': {
-            id: '/login'
-            path: '/login'
-            fullPath: '/login'
-            preLoaderRoute: typeof LoginRouteImport
-            parentRoute: typeof rootRouteImport
-        }
-        '/buyer': {
-            id: '/buyer'
-            path: '/buyer'
-            fullPath: '/buyer'
-            preLoaderRoute: typeof BuyerRouteImport
-            parentRoute: typeof rootRouteImport
-        }
-        '/admin': {
-            id: '/admin'
-            path: '/admin'
-            fullPath: '/admin'
-            preLoaderRoute: typeof AdminRouteImport
-            parentRoute: typeof rootRouteImport
-        }
-        '/': {
-            id: '/'
-            path: '/'
-            fullPath: '/'
-            preLoaderRoute: typeof IndexRouteImport
-            parentRoute: typeof rootRouteImport
-        }
-        '/vendor/': {
-            id: '/vendor/'
-            path: '/'
-            fullPath: '/vendor/'
-            preLoaderRoute: typeof VendorIndexRouteImport
-            parentRoute: typeof VendorRoute
-        }
-        '/buyer/': {
-            id: '/buyer/'
-            path: '/'
-            fullPath: '/buyer/'
-            preLoaderRoute: typeof BuyerIndexRouteImport
-            parentRoute: typeof BuyerRoute
-        }
-        '/admin/': {
-            id: '/admin/'
-            path: '/'
-            fullPath: '/admin/'
-            preLoaderRoute: typeof AdminIndexRouteImport
-            parentRoute: typeof AdminRoute
-        }
-        '/vendor/storefront': {
-            id: '/vendor/storefront'
-            path: '/storefront'
-            fullPath: '/vendor/storefront'
-            preLoaderRoute: typeof VendorStorefrontRouteImport
-            parentRoute: typeof VendorRoute
-        }
-        '/vendor/settings': {
-            id: '/vendor/settings'
-            path: '/settings'
-            fullPath: '/vendor/settings'
-            preLoaderRoute: typeof VendorSettingsRouteImport
-            parentRoute: typeof VendorRoute
-        }
-        '/vendor/rfqs': {
-            id: '/vendor/rfqs'
-            path: '/rfqs'
-            fullPath: '/vendor/rfqs'
-            preLoaderRoute: typeof VendorRfqsRouteImport
-            parentRoute: typeof VendorRoute
-        }
-        '/vendor/reviews': {
-            id: '/vendor/reviews'
-            path: '/reviews'
-            fullPath: '/vendor/reviews'
-            preLoaderRoute: typeof VendorReviewsRouteImport
-            parentRoute: typeof VendorRoute
-        }
-        '/vendor/purchase-orders': {
-            id: '/vendor/purchase-orders'
-            path: '/purchase-orders'
-            fullPath: '/vendor/purchase-orders'
-            preLoaderRoute: typeof VendorPurchaseOrdersRouteImport
-            parentRoute: typeof VendorRoute
-        }
-        '/vendor/products': {
-            id: '/vendor/products'
-            path: '/products'
-            fullPath: '/vendor/products'
-            preLoaderRoute: typeof VendorProductsRouteImport
-            parentRoute: typeof VendorRoute
-        }
-        '/vendor/payouts': {
-            id: '/vendor/payouts'
-            path: '/payouts'
-            fullPath: '/vendor/payouts'
-            preLoaderRoute: typeof VendorPayoutsRouteImport
-            parentRoute: typeof VendorRoute
-        }
-        '/vendor/orders': {
-            id: '/vendor/orders'
-            path: '/orders'
-            fullPath: '/vendor/orders'
-            preLoaderRoute: typeof VendorOrdersRouteImport
-            parentRoute: typeof VendorRoute
-        }
-        '/vendor/messages': {
-            id: '/vendor/messages'
-            path: '/messages'
-            fullPath: '/vendor/messages'
-            preLoaderRoute: typeof VendorMessagesRouteImport
-            parentRoute: typeof VendorRoute
-        }
-        '/vendor/invoices': {
-            id: '/vendor/invoices'
-            path: '/invoices'
-            fullPath: '/vendor/invoices'
-            preLoaderRoute: typeof VendorInvoicesRouteImport
-            parentRoute: typeof VendorRoute
-        }
-        '/vendor/deliveries': {
-            id: '/vendor/deliveries'
-            path: '/deliveries'
-            fullPath: '/vendor/deliveries'
-            preLoaderRoute: typeof VendorDeliveriesRouteImport
-            parentRoute: typeof VendorRoute
-        }
-        '/vendor/compliance': {
-            id: '/vendor/compliance'
-            path: '/compliance'
-            fullPath: '/vendor/compliance'
-            preLoaderRoute: typeof VendorComplianceRouteImport
-            parentRoute: typeof VendorRoute
-        }
-        '/vendor/buyers': {
-            id: '/vendor/buyers'
-            path: '/buyers'
-            fullPath: '/vendor/buyers'
-            preLoaderRoute: typeof VendorBuyersRouteImport
-            parentRoute: typeof VendorRoute
-        }
-        '/buyer/vendors': {
-            id: '/buyer/vendors'
-            path: '/vendors'
-            fullPath: '/buyer/vendors'
-            preLoaderRoute: typeof BuyerVendorsRouteImport
-            parentRoute: typeof BuyerRoute
-        }
-        '/buyer/settings': {
-            id: '/buyer/settings'
-            path: '/settings'
-            fullPath: '/buyer/settings'
-            preLoaderRoute: typeof BuyerSettingsRouteImport
-            parentRoute: typeof BuyerRoute
-        }
-        '/buyer/risk': {
-            id: '/buyer/risk'
-            path: '/risk'
-            fullPath: '/buyer/risk'
-            preLoaderRoute: typeof BuyerRiskRouteImport
-            parentRoute: typeof BuyerRoute
-        }
-        '/buyer/rfqs': {
-            id: '/buyer/rfqs'
-            path: '/rfqs'
-            fullPath: '/buyer/rfqs'
-            preLoaderRoute: typeof BuyerRfqsRouteImport
-            parentRoute: typeof BuyerRoute
-        }
-        '/buyer/requisitions': {
-            id: '/buyer/requisitions'
-            path: '/requisitions'
-            fullPath: '/buyer/requisitions'
-            preLoaderRoute: typeof BuyerRequisitionsRouteImport
-            parentRoute: typeof BuyerRoute
-        }
-        '/buyer/receipts': {
-            id: '/buyer/receipts'
-            path: '/receipts'
-            fullPath: '/buyer/receipts'
-            preLoaderRoute: typeof BuyerReceiptsRouteImport
-            parentRoute: typeof BuyerRoute
-        }
-        '/buyer/quotations': {
-            id: '/buyer/quotations'
-            path: '/quotations'
-            fullPath: '/buyer/quotations'
-            preLoaderRoute: typeof BuyerQuotationsRouteImport
-            parentRoute: typeof BuyerRoute
-        }
-        '/buyer/purchase-orders': {
-            id: '/buyer/purchase-orders'
-            path: '/purchase-orders'
-            fullPath: '/buyer/purchase-orders'
-            preLoaderRoute: typeof BuyerPurchaseOrdersRouteImport
-            parentRoute: typeof BuyerRoute
-        }
-        '/buyer/payments': {
-            id: '/buyer/payments'
-            path: '/payments'
-            fullPath: '/buyer/payments'
-            preLoaderRoute: typeof BuyerPaymentsRouteImport
-            parentRoute: typeof BuyerRoute
-        }
-        '/buyer/messages': {
-            id: '/buyer/messages'
-            path: '/messages'
-            fullPath: '/buyer/messages'
-            preLoaderRoute: typeof BuyerMessagesRouteImport
-            parentRoute: typeof BuyerRoute
-        }
-        '/buyer/marketplace': {
-            id: '/buyer/marketplace'
-            path: '/marketplace'
-            fullPath: '/buyer/marketplace'
-            preLoaderRoute: typeof BuyerMarketplaceRouteImport
-            parentRoute: typeof BuyerRoute
-        }
-        '/buyer/inventory': {
-            id: '/buyer/inventory'
-            path: '/inventory'
-            fullPath: '/buyer/inventory'
-            preLoaderRoute: typeof BuyerInventoryRouteImport
-            parentRoute: typeof BuyerRoute
-        }
-        '/buyer/bills': {
-            id: '/buyer/bills'
-            path: '/bills'
-            fullPath: '/buyer/bills'
-            preLoaderRoute: typeof BuyerBillsRouteImport
-            parentRoute: typeof BuyerRoute
-        }
-        '/admin/vendors': {
-            id: '/admin/vendors'
-            path: '/vendors'
-            fullPath: '/admin/vendors'
-            preLoaderRoute: typeof AdminVendorsRouteImport
-            parentRoute: typeof AdminRoute
-        }
-        '/admin/users': {
-            id: '/admin/users'
-            path: '/users'
-            fullPath: '/admin/users'
-            preLoaderRoute: typeof AdminUsersRouteImport
-            parentRoute: typeof AdminRoute
-        }
-        '/admin/tenants': {
-            id: '/admin/tenants'
-            path: '/tenants'
-            fullPath: '/admin/tenants'
-            preLoaderRoute: typeof AdminTenantsRouteImport
-            parentRoute: typeof AdminRoute
-        }
-        '/admin/system': {
-            id: '/admin/system'
-            path: '/system'
-            fullPath: '/admin/system'
-            preLoaderRoute: typeof AdminSystemRouteImport
-            parentRoute: typeof AdminRoute
-        }
-        '/admin/settings': {
-            id: '/admin/settings'
-            path: '/settings'
-            fullPath: '/admin/settings'
-            preLoaderRoute: typeof AdminSettingsRouteImport
-            parentRoute: typeof AdminRoute
-        }
-        '/admin/modules': {
-            id: '/admin/modules'
-            path: '/modules'
-            fullPath: '/admin/modules'
-            preLoaderRoute: typeof AdminModulesRouteImport
-            parentRoute: typeof AdminRoute
-        }
-        '/admin/audit': {
-            id: '/admin/audit'
-            path: '/audit'
-            fullPath: '/admin/audit'
-            preLoaderRoute: typeof AdminAuditRouteImport
-            parentRoute: typeof AdminRoute
-        }
-        '/vendor/rfqs/$rfqId': {
-            id: '/vendor/rfqs/$rfqId'
-            path: '/$rfqId'
-            fullPath: '/vendor/rfqs/$rfqId'
-            preLoaderRoute: typeof VendorRfqsRfqIdRouteImport
-            parentRoute: typeof VendorRfqsRoute
-        }
-        '/buyer/rfqs/$rfqId': {
-            id: '/buyer/rfqs/$rfqId'
-            path: '/$rfqId'
-            fullPath: '/buyer/rfqs/$rfqId'
-            preLoaderRoute: typeof BuyerRfqsRfqIdRouteImport
-            parentRoute: typeof BuyerRfqsRoute
-        }
+  interface FileRoutesByPath {
+    '/vendor': {
+      id: '/vendor'
+      path: '/vendor'
+      fullPath: '/vendor'
+      preLoaderRoute: typeof VendorRouteImport
+      parentRoute: typeof rootRouteImport
     }
+    '/register': {
+      id: '/register'
+      path: '/register'
+      fullPath: '/register'
+      preLoaderRoute: typeof RegisterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/onboarding': {
+      id: '/onboarding'
+      path: '/onboarding'
+      fullPath: '/onboarding'
+      preLoaderRoute: typeof OnboardingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/buyer': {
+      id: '/buyer'
+      path: '/buyer'
+      fullPath: '/buyer'
+      preLoaderRoute: typeof BuyerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/vendor/': {
+      id: '/vendor/'
+      path: '/'
+      fullPath: '/vendor/'
+      preLoaderRoute: typeof VendorIndexRouteImport
+      parentRoute: typeof VendorRoute
+    }
+    '/buyer/': {
+      id: '/buyer/'
+      path: '/'
+      fullPath: '/buyer/'
+      preLoaderRoute: typeof BuyerIndexRouteImport
+      parentRoute: typeof BuyerRoute
+    }
+    '/admin/': {
+      id: '/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/vendor/storefront': {
+      id: '/vendor/storefront'
+      path: '/storefront'
+      fullPath: '/vendor/storefront'
+      preLoaderRoute: typeof VendorStorefrontRouteImport
+      parentRoute: typeof VendorRoute
+    }
+    '/vendor/settings': {
+      id: '/vendor/settings'
+      path: '/settings'
+      fullPath: '/vendor/settings'
+      preLoaderRoute: typeof VendorSettingsRouteImport
+      parentRoute: typeof VendorRoute
+    }
+    '/vendor/rfqs': {
+      id: '/vendor/rfqs'
+      path: '/rfqs'
+      fullPath: '/vendor/rfqs'
+      preLoaderRoute: typeof VendorRfqsRouteImport
+      parentRoute: typeof VendorRoute
+    }
+    '/vendor/reviews': {
+      id: '/vendor/reviews'
+      path: '/reviews'
+      fullPath: '/vendor/reviews'
+      preLoaderRoute: typeof VendorReviewsRouteImport
+      parentRoute: typeof VendorRoute
+    }
+    '/vendor/purchase-orders': {
+      id: '/vendor/purchase-orders'
+      path: '/purchase-orders'
+      fullPath: '/vendor/purchase-orders'
+      preLoaderRoute: typeof VendorPurchaseOrdersRouteImport
+      parentRoute: typeof VendorRoute
+    }
+    '/vendor/products': {
+      id: '/vendor/products'
+      path: '/products'
+      fullPath: '/vendor/products'
+      preLoaderRoute: typeof VendorProductsRouteImport
+      parentRoute: typeof VendorRoute
+    }
+    '/vendor/payouts': {
+      id: '/vendor/payouts'
+      path: '/payouts'
+      fullPath: '/vendor/payouts'
+      preLoaderRoute: typeof VendorPayoutsRouteImport
+      parentRoute: typeof VendorRoute
+    }
+    '/vendor/orders': {
+      id: '/vendor/orders'
+      path: '/orders'
+      fullPath: '/vendor/orders'
+      preLoaderRoute: typeof VendorOrdersRouteImport
+      parentRoute: typeof VendorRoute
+    }
+    '/vendor/messages': {
+      id: '/vendor/messages'
+      path: '/messages'
+      fullPath: '/vendor/messages'
+      preLoaderRoute: typeof VendorMessagesRouteImport
+      parentRoute: typeof VendorRoute
+    }
+    '/vendor/invoices': {
+      id: '/vendor/invoices'
+      path: '/invoices'
+      fullPath: '/vendor/invoices'
+      preLoaderRoute: typeof VendorInvoicesRouteImport
+      parentRoute: typeof VendorRoute
+    }
+    '/vendor/deliveries': {
+      id: '/vendor/deliveries'
+      path: '/deliveries'
+      fullPath: '/vendor/deliveries'
+      preLoaderRoute: typeof VendorDeliveriesRouteImport
+      parentRoute: typeof VendorRoute
+    }
+    '/vendor/compliance': {
+      id: '/vendor/compliance'
+      path: '/compliance'
+      fullPath: '/vendor/compliance'
+      preLoaderRoute: typeof VendorComplianceRouteImport
+      parentRoute: typeof VendorRoute
+    }
+    '/vendor/buyers': {
+      id: '/vendor/buyers'
+      path: '/buyers'
+      fullPath: '/vendor/buyers'
+      preLoaderRoute: typeof VendorBuyersRouteImport
+      parentRoute: typeof VendorRoute
+    }
+    '/buyer/vendors': {
+      id: '/buyer/vendors'
+      path: '/vendors'
+      fullPath: '/buyer/vendors'
+      preLoaderRoute: typeof BuyerVendorsRouteImport
+      parentRoute: typeof BuyerRoute
+    }
+    '/buyer/settings': {
+      id: '/buyer/settings'
+      path: '/settings'
+      fullPath: '/buyer/settings'
+      preLoaderRoute: typeof BuyerSettingsRouteImport
+      parentRoute: typeof BuyerRoute
+    }
+    '/buyer/risk': {
+      id: '/buyer/risk'
+      path: '/risk'
+      fullPath: '/buyer/risk'
+      preLoaderRoute: typeof BuyerRiskRouteImport
+      parentRoute: typeof BuyerRoute
+    }
+    '/buyer/rfqs': {
+      id: '/buyer/rfqs'
+      path: '/rfqs'
+      fullPath: '/buyer/rfqs'
+      preLoaderRoute: typeof BuyerRfqsRouteImport
+      parentRoute: typeof BuyerRoute
+    }
+    '/buyer/requisitions': {
+      id: '/buyer/requisitions'
+      path: '/requisitions'
+      fullPath: '/buyer/requisitions'
+      preLoaderRoute: typeof BuyerRequisitionsRouteImport
+      parentRoute: typeof BuyerRoute
+    }
+    '/buyer/receipts': {
+      id: '/buyer/receipts'
+      path: '/receipts'
+      fullPath: '/buyer/receipts'
+      preLoaderRoute: typeof BuyerReceiptsRouteImport
+      parentRoute: typeof BuyerRoute
+    }
+    '/buyer/quotations': {
+      id: '/buyer/quotations'
+      path: '/quotations'
+      fullPath: '/buyer/quotations'
+      preLoaderRoute: typeof BuyerQuotationsRouteImport
+      parentRoute: typeof BuyerRoute
+    }
+    '/buyer/purchase-orders': {
+      id: '/buyer/purchase-orders'
+      path: '/purchase-orders'
+      fullPath: '/buyer/purchase-orders'
+      preLoaderRoute: typeof BuyerPurchaseOrdersRouteImport
+      parentRoute: typeof BuyerRoute
+    }
+    '/buyer/payments': {
+      id: '/buyer/payments'
+      path: '/payments'
+      fullPath: '/buyer/payments'
+      preLoaderRoute: typeof BuyerPaymentsRouteImport
+      parentRoute: typeof BuyerRoute
+    }
+    '/buyer/messages': {
+      id: '/buyer/messages'
+      path: '/messages'
+      fullPath: '/buyer/messages'
+      preLoaderRoute: typeof BuyerMessagesRouteImport
+      parentRoute: typeof BuyerRoute
+    }
+    '/buyer/marketplace': {
+      id: '/buyer/marketplace'
+      path: '/marketplace'
+      fullPath: '/buyer/marketplace'
+      preLoaderRoute: typeof BuyerMarketplaceRouteImport
+      parentRoute: typeof BuyerRoute
+    }
+    '/buyer/inventory': {
+      id: '/buyer/inventory'
+      path: '/inventory'
+      fullPath: '/buyer/inventory'
+      preLoaderRoute: typeof BuyerInventoryRouteImport
+      parentRoute: typeof BuyerRoute
+    }
+    '/buyer/bills': {
+      id: '/buyer/bills'
+      path: '/bills'
+      fullPath: '/buyer/bills'
+      preLoaderRoute: typeof BuyerBillsRouteImport
+      parentRoute: typeof BuyerRoute
+    }
+    '/admin/vendors': {
+      id: '/admin/vendors'
+      path: '/vendors'
+      fullPath: '/admin/vendors'
+      preLoaderRoute: typeof AdminVendorsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/users': {
+      id: '/admin/users'
+      path: '/users'
+      fullPath: '/admin/users'
+      preLoaderRoute: typeof AdminUsersRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/tenants': {
+      id: '/admin/tenants'
+      path: '/tenants'
+      fullPath: '/admin/tenants'
+      preLoaderRoute: typeof AdminTenantsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/system': {
+      id: '/admin/system'
+      path: '/system'
+      fullPath: '/admin/system'
+      preLoaderRoute: typeof AdminSystemRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/settings': {
+      id: '/admin/settings'
+      path: '/settings'
+      fullPath: '/admin/settings'
+      preLoaderRoute: typeof AdminSettingsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/modules': {
+      id: '/admin/modules'
+      path: '/modules'
+      fullPath: '/admin/modules'
+      preLoaderRoute: typeof AdminModulesRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/audit': {
+      id: '/admin/audit'
+      path: '/audit'
+      fullPath: '/admin/audit'
+      preLoaderRoute: typeof AdminAuditRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/buyer/rfqs/': {
+      id: '/buyer/rfqs/'
+      path: '/'
+      fullPath: '/buyer/rfqs/'
+      preLoaderRoute: typeof BuyerRfqsIndexRouteImport
+      parentRoute: typeof BuyerRfqsRoute
+    }
+    '/vendor/rfqs/$rfqId': {
+      id: '/vendor/rfqs/$rfqId'
+      path: '/$rfqId'
+      fullPath: '/vendor/rfqs/$rfqId'
+      preLoaderRoute: typeof VendorRfqsRfqIdRouteImport
+      parentRoute: typeof VendorRfqsRoute
+    }
+    '/buyer/rfqs/$rfqId': {
+      id: '/buyer/rfqs/$rfqId'
+      path: '/$rfqId'
+      fullPath: '/buyer/rfqs/$rfqId'
+      preLoaderRoute: typeof BuyerRfqsRfqIdRouteImport
+      parentRoute: typeof BuyerRfqsRoute
+    }
+  }
 }
 
 interface AdminRouteChildren {
-    AdminAuditRoute: typeof AdminAuditRoute
-    AdminModulesRoute: typeof AdminModulesRoute
-    AdminSettingsRoute: typeof AdminSettingsRoute
-    AdminSystemRoute: typeof AdminSystemRoute
-    AdminTenantsRoute: typeof AdminTenantsRoute
-    AdminUsersRoute: typeof AdminUsersRoute
-    AdminVendorsRoute: typeof AdminVendorsRoute
-    AdminIndexRoute: typeof AdminIndexRoute
+  AdminAuditRoute: typeof AdminAuditRoute
+  AdminModulesRoute: typeof AdminModulesRoute
+  AdminSettingsRoute: typeof AdminSettingsRoute
+  AdminSystemRoute: typeof AdminSystemRoute
+  AdminTenantsRoute: typeof AdminTenantsRoute
+  AdminUsersRoute: typeof AdminUsersRoute
+  AdminVendorsRoute: typeof AdminVendorsRoute
+  AdminIndexRoute: typeof AdminIndexRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
-    AdminAuditRoute: AdminAuditRoute,
-    AdminModulesRoute: AdminModulesRoute,
-    AdminSettingsRoute: AdminSettingsRoute,
-    AdminSystemRoute: AdminSystemRoute,
-    AdminTenantsRoute: AdminTenantsRoute,
-    AdminUsersRoute: AdminUsersRoute,
-    AdminVendorsRoute: AdminVendorsRoute,
-    AdminIndexRoute: AdminIndexRoute,
+  AdminAuditRoute: AdminAuditRoute,
+  AdminModulesRoute: AdminModulesRoute,
+  AdminSettingsRoute: AdminSettingsRoute,
+  AdminSystemRoute: AdminSystemRoute,
+  AdminTenantsRoute: AdminTenantsRoute,
+  AdminUsersRoute: AdminUsersRoute,
+  AdminVendorsRoute: AdminVendorsRoute,
+  AdminIndexRoute: AdminIndexRoute,
 }
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
 interface BuyerRfqsRouteChildren {
-    BuyerRfqsRfqIdRoute: typeof BuyerRfqsRfqIdRoute
+  BuyerRfqsRfqIdRoute: typeof BuyerRfqsRfqIdRoute
+  BuyerRfqsIndexRoute: typeof BuyerRfqsIndexRoute
 }
 
 const BuyerRfqsRouteChildren: BuyerRfqsRouteChildren = {
-    BuyerRfqsRfqIdRoute: BuyerRfqsRfqIdRoute,
+  BuyerRfqsRfqIdRoute: BuyerRfqsRfqIdRoute,
+  BuyerRfqsIndexRoute: BuyerRfqsIndexRoute,
 }
 
 const BuyerRfqsRouteWithChildren = BuyerRfqsRoute._addFileChildren(
-    BuyerRfqsRouteChildren,
+  BuyerRfqsRouteChildren,
 )
 
 interface BuyerRouteChildren {
-    BuyerBillsRoute: typeof BuyerBillsRoute
-    BuyerInventoryRoute: typeof BuyerInventoryRoute
-    BuyerMarketplaceRoute: typeof BuyerMarketplaceRoute
-    BuyerMessagesRoute: typeof BuyerMessagesRoute
-    BuyerPaymentsRoute: typeof BuyerPaymentsRoute
-    BuyerPurchaseOrdersRoute: typeof BuyerPurchaseOrdersRoute
-    BuyerQuotationsRoute: typeof BuyerQuotationsRoute
-    BuyerReceiptsRoute: typeof BuyerReceiptsRoute
-    BuyerRequisitionsRoute: typeof BuyerRequisitionsRoute
-    BuyerRfqsRoute: typeof BuyerRfqsRouteWithChildren
-    BuyerRiskRoute: typeof BuyerRiskRoute
-    BuyerSettingsRoute: typeof BuyerSettingsRoute
-    BuyerVendorsRoute: typeof BuyerVendorsRoute
-    BuyerIndexRoute: typeof BuyerIndexRoute
+  BuyerBillsRoute: typeof BuyerBillsRoute
+  BuyerInventoryRoute: typeof BuyerInventoryRoute
+  BuyerMarketplaceRoute: typeof BuyerMarketplaceRoute
+  BuyerMessagesRoute: typeof BuyerMessagesRoute
+  BuyerPaymentsRoute: typeof BuyerPaymentsRoute
+  BuyerPurchaseOrdersRoute: typeof BuyerPurchaseOrdersRoute
+  BuyerQuotationsRoute: typeof BuyerQuotationsRoute
+  BuyerReceiptsRoute: typeof BuyerReceiptsRoute
+  BuyerRequisitionsRoute: typeof BuyerRequisitionsRoute
+  BuyerRfqsRoute: typeof BuyerRfqsRouteWithChildren
+  BuyerRiskRoute: typeof BuyerRiskRoute
+  BuyerSettingsRoute: typeof BuyerSettingsRoute
+  BuyerVendorsRoute: typeof BuyerVendorsRoute
+  BuyerIndexRoute: typeof BuyerIndexRoute
 }
 
 const BuyerRouteChildren: BuyerRouteChildren = {
-    BuyerBillsRoute: BuyerBillsRoute,
-    BuyerInventoryRoute: BuyerInventoryRoute,
-    BuyerMarketplaceRoute: BuyerMarketplaceRoute,
-    BuyerMessagesRoute: BuyerMessagesRoute,
-    BuyerPaymentsRoute: BuyerPaymentsRoute,
-    BuyerPurchaseOrdersRoute: BuyerPurchaseOrdersRoute,
-    BuyerQuotationsRoute: BuyerQuotationsRoute,
-    BuyerReceiptsRoute: BuyerReceiptsRoute,
-    BuyerRequisitionsRoute: BuyerRequisitionsRoute,
-    BuyerRfqsRoute: BuyerRfqsRouteWithChildren,
-    BuyerRiskRoute: BuyerRiskRoute,
-    BuyerSettingsRoute: BuyerSettingsRoute,
-    BuyerVendorsRoute: BuyerVendorsRoute,
-    BuyerIndexRoute: BuyerIndexRoute,
+  BuyerBillsRoute: BuyerBillsRoute,
+  BuyerInventoryRoute: BuyerInventoryRoute,
+  BuyerMarketplaceRoute: BuyerMarketplaceRoute,
+  BuyerMessagesRoute: BuyerMessagesRoute,
+  BuyerPaymentsRoute: BuyerPaymentsRoute,
+  BuyerPurchaseOrdersRoute: BuyerPurchaseOrdersRoute,
+  BuyerQuotationsRoute: BuyerQuotationsRoute,
+  BuyerReceiptsRoute: BuyerReceiptsRoute,
+  BuyerRequisitionsRoute: BuyerRequisitionsRoute,
+  BuyerRfqsRoute: BuyerRfqsRouteWithChildren,
+  BuyerRiskRoute: BuyerRiskRoute,
+  BuyerSettingsRoute: BuyerSettingsRoute,
+  BuyerVendorsRoute: BuyerVendorsRoute,
+  BuyerIndexRoute: BuyerIndexRoute,
 }
 
 const BuyerRouteWithChildren = BuyerRoute._addFileChildren(BuyerRouteChildren)
 
 interface VendorRfqsRouteChildren {
-    VendorRfqsRfqIdRoute: typeof VendorRfqsRfqIdRoute
+  VendorRfqsRfqIdRoute: typeof VendorRfqsRfqIdRoute
 }
 
 const VendorRfqsRouteChildren: VendorRfqsRouteChildren = {
-    VendorRfqsRfqIdRoute: VendorRfqsRfqIdRoute,
+  VendorRfqsRfqIdRoute: VendorRfqsRfqIdRoute,
 }
 
 const VendorRfqsRouteWithChildren = VendorRfqsRoute._addFileChildren(
-    VendorRfqsRouteChildren,
+  VendorRfqsRouteChildren,
 )
 
 interface VendorRouteChildren {
-    VendorBuyersRoute: typeof VendorBuyersRoute
-    VendorComplianceRoute: typeof VendorComplianceRoute
-    VendorDeliveriesRoute: typeof VendorDeliveriesRoute
-    VendorInvoicesRoute: typeof VendorInvoicesRoute
-    VendorMessagesRoute: typeof VendorMessagesRoute
-    VendorOrdersRoute: typeof VendorOrdersRoute
-    VendorPayoutsRoute: typeof VendorPayoutsRoute
-    VendorProductsRoute: typeof VendorProductsRoute
-    VendorPurchaseOrdersRoute: typeof VendorPurchaseOrdersRoute
-    VendorReviewsRoute: typeof VendorReviewsRoute
-    VendorRfqsRoute: typeof VendorRfqsRouteWithChildren
-    VendorSettingsRoute: typeof VendorSettingsRoute
-    VendorStorefrontRoute: typeof VendorStorefrontRoute
-    VendorIndexRoute: typeof VendorIndexRoute
+  VendorBuyersRoute: typeof VendorBuyersRoute
+  VendorComplianceRoute: typeof VendorComplianceRoute
+  VendorDeliveriesRoute: typeof VendorDeliveriesRoute
+  VendorInvoicesRoute: typeof VendorInvoicesRoute
+  VendorMessagesRoute: typeof VendorMessagesRoute
+  VendorOrdersRoute: typeof VendorOrdersRoute
+  VendorPayoutsRoute: typeof VendorPayoutsRoute
+  VendorProductsRoute: typeof VendorProductsRoute
+  VendorPurchaseOrdersRoute: typeof VendorPurchaseOrdersRoute
+  VendorReviewsRoute: typeof VendorReviewsRoute
+  VendorRfqsRoute: typeof VendorRfqsRouteWithChildren
+  VendorSettingsRoute: typeof VendorSettingsRoute
+  VendorStorefrontRoute: typeof VendorStorefrontRoute
+  VendorIndexRoute: typeof VendorIndexRoute
 }
 
 const VendorRouteChildren: VendorRouteChildren = {
-    VendorBuyersRoute: VendorBuyersRoute,
-    VendorComplianceRoute: VendorComplianceRoute,
-    VendorDeliveriesRoute: VendorDeliveriesRoute,
-    VendorInvoicesRoute: VendorInvoicesRoute,
-    VendorMessagesRoute: VendorMessagesRoute,
-    VendorOrdersRoute: VendorOrdersRoute,
-    VendorPayoutsRoute: VendorPayoutsRoute,
-    VendorProductsRoute: VendorProductsRoute,
-    VendorPurchaseOrdersRoute: VendorPurchaseOrdersRoute,
-    VendorReviewsRoute: VendorReviewsRoute,
-    VendorRfqsRoute: VendorRfqsRouteWithChildren,
-    VendorSettingsRoute: VendorSettingsRoute,
-    VendorStorefrontRoute: VendorStorefrontRoute,
-    VendorIndexRoute: VendorIndexRoute,
+  VendorBuyersRoute: VendorBuyersRoute,
+  VendorComplianceRoute: VendorComplianceRoute,
+  VendorDeliveriesRoute: VendorDeliveriesRoute,
+  VendorInvoicesRoute: VendorInvoicesRoute,
+  VendorMessagesRoute: VendorMessagesRoute,
+  VendorOrdersRoute: VendorOrdersRoute,
+  VendorPayoutsRoute: VendorPayoutsRoute,
+  VendorProductsRoute: VendorProductsRoute,
+  VendorPurchaseOrdersRoute: VendorPurchaseOrdersRoute,
+  VendorReviewsRoute: VendorReviewsRoute,
+  VendorRfqsRoute: VendorRfqsRouteWithChildren,
+  VendorSettingsRoute: VendorSettingsRoute,
+  VendorStorefrontRoute: VendorStorefrontRoute,
+  VendorIndexRoute: VendorIndexRoute,
 }
 
 const VendorRouteWithChildren =
-    VendorRoute._addFileChildren(VendorRouteChildren)
+  VendorRoute._addFileChildren(VendorRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
-    IndexRoute: IndexRoute,
-    AdminRoute: AdminRouteWithChildren,
-    BuyerRoute: BuyerRouteWithChildren,
-    LoginRoute: LoginRoute,
-    OnboardingRoute: OnboardingRoute,
-    RegisterRoute: RegisterRoute,
-    VendorRoute: VendorRouteWithChildren,
+  IndexRoute: IndexRoute,
+  AdminRoute: AdminRouteWithChildren,
+  BuyerRoute: BuyerRouteWithChildren,
+  LoginRoute: LoginRoute,
+  OnboardingRoute: OnboardingRoute,
+  RegisterRoute: RegisterRoute,
+  VendorRoute: VendorRouteWithChildren,
 }
 export const routeTree = rootRouteImport
-    ._addFileChildren(rootRouteChildren)
-    ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-    interface Register {
-        ssr: true
-        router: Awaited<ReturnType<typeof getRouter>>
-    }
-}
+  ._addFileChildren(rootRouteChildren)
+  ._addFileTypes<FileRouteTypes>()

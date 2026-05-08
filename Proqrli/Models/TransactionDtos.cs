@@ -135,4 +135,85 @@ namespace ProqrLi.DTOs
         public string? Status      { get; set; }
         public string? ScheduledFor{ get; set; }
     }
+
+    // ─── Request For Quotation ─────────────────────────────────────────────────
+    public class RfqDto
+    {
+        public string Id { get; set; } = "";
+        public string RfqNumber { get; set; } = "";
+        public string Title { get; set; } = "";
+        public string Category { get; set; } = "";
+        public string PrRef { get; set; } = "";
+        public int ResponsesReceived { get; set; }
+        public int InvitedVendors { get; set; }
+        public string ClosesAt { get; set; } = "";
+        public string Status { get; set; } = "";
+        public string LinkedPrId { get; set; } = "";
+        public string Notes { get; set; } = "";
+        public string SourcingRoute { get; set; } = "rfq";
+    }
+
+    public class CreateRfqDto
+    {
+        public string Title { get; set; } = "";
+        public string Category { get; set; } = "";
+        public string ClosesAt { get; set; } = "";
+        public string Notes { get; set; } = "";
+        public string LinkedPrId { get; set; } = "";
+        public string? SourcingRoute { get; set; }
+    }
+
+    public class UpdateRfqDto
+    {
+        public string? Title { get; set; }
+        public string? Category { get; set; }
+        public string? ClosesAt { get; set; }
+        public string? Notes { get; set; }
+        public string? SourcingRoute { get; set; }
+        public string? Status { get; set; }
+    }
+
+    public class RfqLineDto
+    {
+        public string Id { get; set; } = "";
+        public string Sku { get; set; } = "";
+        public string Description { get; set; } = "";
+        public decimal Qty { get; set; }
+        public string Uom { get; set; } = "";
+        public decimal TargetPrice { get; set; }
+        public string Notes { get; set; } = "";
+    }
+
+    public class RfqInvitationDto
+    {
+        public string Id { get; set; } = "";
+        public string VendorId { get; set; } = "";
+        public string VendorName { get; set; } = "";
+        public string VendorStatus { get; set; } = "";
+        public string InvitedAt { get; set; } = "";
+    }
+
+    public class RfqQuoteDto
+    {
+        public string Id { get; set; } = "";
+        public string VendorId { get; set; } = "";
+        public string VendorName { get; set; } = "";
+        public decimal Total { get; set; }
+        public int Rank { get; set; }
+        public string Status { get; set; } = "";
+        public string SubmittedAt { get; set; } = "";
+    }
+
+    public class RfqDetailDto
+    {
+        public RfqDto Rfq { get; set; } = new();
+        public List<RfqLineDto> Lines { get; set; } = new();
+        public List<RfqInvitationDto> Invitations { get; set; } = new();
+        public List<RfqQuoteDto> Quotes { get; set; } = new();
+    }
+
+    public class InviteVendorsDto
+    {
+        public List<int> VendorIds { get; set; } = new();
+    }
 }

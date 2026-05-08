@@ -1,27 +1,23 @@
 /* eslint-disable prettier/prettier */
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { createFileRoute, Link, notFound, useRouter } from "@tanstack/react-router";
 import * as React from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { BuyerPermissionGate } from "@/components/BuyerPermissionGate";
 import { AutoStatus } from "@/components/StatusPill";
-import {
-    RFQS,
-    RFQ_LINES,
-    RFQ_INVITATIONS,
-    RFQ_THREADS,
-    QUOTATIONS,
-    formatBuyerCurrency,
-    type RFQ,
-} from "@/lib/buyer-mock-data";
+import { formatBuyerCurrency } from "@/lib/buyer-mock-data";
 import { useBuyer } from "@/lib/buyer-context";
-import { ArrowLeft, Send, Award, Calendar, Clock, FileText, Users } from "lucide-react";
+import { ArrowLeft, Send, Award, Calendar, Clock, FileText, Users, X, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { rfqsApi, vendorsApi } from "@/lib/api";
+import { useApiCollection } from "@/lib/use-api-collection";
 
 export const Route = createFileRoute("/buyer/rfqs/$rfqId")({
-    loader: ({ params }) => {
-        const rfq = RFQS.find((r) => r.id === params.rfqId);
-        if (!rfq) throw notFound();
-        return rfq;
+    loader: async ({ params }) => {
+        try {
+            return await rfqsApi.getDetail(params.rfqId);
+        } catch {
+            throw notFound();
+        }
     },
     component: () => (
         <BuyerPermissionGate permission="rfq:view">
@@ -37,31 +33,74 @@ export const Route = createFileRoute("/buyer/rfqs/$rfqId")({
 });
 
 function BuyerRFQDetail() {
-    const rfq = Route.useLoaderData() as RFQ;
+    const detail = Route.useLoaderData();
+    const router = useRouter();
+    const { rfq, lines, invitations, quotes } = detail;
     const { hasPermission } = useBuyer();
     const canChat = hasPermission("messages:send");
 
-    const lines = RFQ_LINES.filter((l) => l.rfqRef === rfq.rfqNumber);
-    const invitations = RFQ_INVITATIONS.filter((i) => i.rfqRef === rfq.rfqNumber);
-    const quotes = QUOTATIONS.filter((q) => q.rfqRef === rfq.rfqNumber);
+    const [activeVendorId, setActiveVendorId] = React.useState<string>(invitations[0]?.vendorId ?? "");
 
-    const [activeVendorId, setActiveVendorId] = React.useState<string>(invitations[0]?.vendorId);
-
-    const activeThread = RFQ_THREADS.find((t) => t.rfqRef === rfq.rfqNumber && t.vendorId === activeVendorId);
     const activeInvite = invitations.find((i) => i.vendorId === activeVendorId);
     const activeQuote = quotes.find((q) => q.vendorId === activeVendorId);
 
     const [draft, setDraft] = React.useState("");
-    const [messages, setMessages] = React.useState(activeThread?.messages ?? []);
+    const [messages, setMessages] = React.useState<{ from: string, text: string, at: string }[]>([]);
 
-    React.useEffect(() => {
-        setMessages(activeThread?.messages ?? []);
-    }, [activeVendorId, activeThread]);
+    const [inviteModalOpen, setInviteModalOpen] = React.useState(false);
+    const [isInviting, setIsInviting] = React.useState(false);
+    const [isAwarding, setIsAwarding] = React.useState(false);
+    
+    // Fetch accredited vendors
+    const vendorsStore = useApiCollection(vendorsApi);
+    const accreditedVendors = vendorsStore.items.filter(v => v.status === "Accredited");
+    
+    // Set of selected vendor IDs to invite
+    const [selectedVendors, setSelectedVendors] = React.useState<Set<number>>(new Set());
 
     const send = () => {
         if (!draft.trim()) return;
         setMessages((m) => [...m, { from: "buyer", text: draft, at: "Now" }]);
         setDraft("");
+    };
+
+    const handleInvite = async () => {
+        if (selectedVendors.size === 0) return;
+        setIsInviting(true);
+        try {
+            await rfqsApi.inviteVendors(rfq.id, Array.from(selectedVendors));
+            setInviteModalOpen(false);
+            setSelectedVendors(new Set());
+            router.invalidate(); // Refetch loader to get fresh data!
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setIsInviting(false);
+        }
+    };
+
+    const handleAward = async () => {
+        if (!activeQuote) return;
+        if (!confirm(`Are you sure you want to award this RFQ to ${activeQuote.vendorName} for ${formatBuyerCurrency(activeQuote.total)}? This will generate a Purchase Order.`)) return;
+        
+        setIsAwarding(true);
+        try {
+            const res = await rfqsApi.awardQuote(rfq.id, activeQuote.id);
+            alert(`RFQ awarded! Purchase Order ${res.poNumber} has been generated.`);
+            router.navigate({ to: "/buyer/purchase-orders" }); // Or to the specific PO if we have a detail page
+        } catch (err) {
+            console.error(err);
+            alert("Failed to award RFQ: " + err);
+        } finally {
+            setIsAwarding(false);
+        }
+    };
+
+    const toggleVendor = (id: number) => {
+        const newSet = new Set(selectedVendors);
+        if (newSet.has(id)) newSet.delete(id);
+        else newSet.add(id);
+        setSelectedVendors(newSet);
     };
 
     return (
@@ -78,7 +117,7 @@ function BuyerRFQDetail() {
             />
 
             <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-                <Meta icon={<Calendar className="h-3 w-3" />} label="Created" value={rfq.createdAt} />
+                <Meta icon={<Calendar className="h-3 w-3" />} label="Created" value="Today" />
                 <Meta icon={<Clock className="h-3 w-3" />} label="Closes" value={rfq.closesAt} />
                 <Meta icon={<Users className="h-3 w-3" />} label="Invited" value={`${rfq.invitedVendors}`} />
                 <Meta icon={<FileText className="h-3 w-3" />} label="Responses" value={`${rfq.responsesReceived} / ${rfq.invitedVendors}`} />
@@ -86,7 +125,10 @@ function BuyerRFQDetail() {
 
             {/* Line items */}
             <section className="overflow-hidden rounded-md border border-border bg-card">
-                <div className="border-b border-border bg-muted px-5 py-3 t-label">Requested items</div>
+                <div className="border-b border-border bg-muted px-5 py-3 t-label flex items-center justify-between">
+                    <span>Requested items</span>
+                    <span className="font-mono text-xs">{lines.length} items</span>
+                </div>
                 <table className="w-full text-sm">
                     <thead className="text-left font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
                         <tr>
@@ -99,9 +141,9 @@ function BuyerRFQDetail() {
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
-                        {lines.map((l) => (
+                        {lines.length > 0 ? lines.map((l) => (
                             <tr key={l.id}>
-                                <td className="px-4 py-3 font-mono text-xs">{l.sku ?? "—"}</td>
+                                <td className="px-4 py-3 font-mono text-xs">{l.sku || "—"}</td>
                                 <td className="px-4 py-3">
                                     <div className="font-medium">{l.description}</div>
                                     {l.notes && <div className="mt-0.5 text-[11px] text-muted-foreground">{l.notes}</div>}
@@ -113,7 +155,13 @@ function BuyerRFQDetail() {
                                     {l.targetPrice ? formatBuyerCurrency(l.targetPrice * l.qty) : "—"}
                                 </td>
                             </tr>
-                        ))}
+                        )) : (
+                            <tr>
+                                <td colSpan={6} className="px-4 py-8 text-center text-sm text-muted-foreground">
+                                    No items linked from the Purchase Requisition.
+                                </td>
+                            </tr>
+                        )}
                     </tbody>
                 </table>
             </section>
@@ -121,42 +169,58 @@ function BuyerRFQDetail() {
             {/* Invited vendors + chat */}
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-[340px_1fr]">
                 <aside className="overflow-hidden rounded-md border border-border bg-card">
-                    <div className="border-b border-border bg-muted px-4 py-3 t-label">Invited vendors</div>
-                    <ul className="divide-y divide-border">
-                        {invitations.map((inv) => {
-                            const q = quotes.find((qq) => qq.vendorId === inv.vendorId);
-                            const isActive = inv.vendorId === activeVendorId;
-                            return (
-                                <li key={inv.id}>
-                                    <button
-                                        onClick={() => setActiveVendorId(inv.vendorId)}
-                                        className={cn("w-full px-4 py-3 text-left transition-colors hover:bg-muted/60", isActive && "bg-muted")}
-                                    >
-                                        <div className="flex items-start justify-between gap-2">
-                                            <div className="min-w-0">
-                                                <div className="truncate text-sm font-semibold">{inv.vendorName}</div>
-                                                <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-                                                    Invited {inv.invitedAt}
+                    <div className="border-b border-border bg-muted px-4 py-3 t-label flex items-center justify-between">
+                        <span>Invited vendors</span>
+                        {rfq.status !== "Cancelled" && rfq.status !== "Awarded" && (
+                            <button 
+                                onClick={() => setInviteModalOpen(true)}
+                                className="text-foreground hover:underline font-semibold"
+                            >
+                                Manage
+                            </button>
+                        )}
+                    </div>
+                    {invitations.length === 0 ? (
+                        <div className="px-4 py-8 text-center text-sm text-muted-foreground">
+                            No vendors invited yet.
+                        </div>
+                    ) : (
+                        <ul className="divide-y divide-border">
+                            {invitations.map((inv) => {
+                                const q = quotes.find((qq) => qq.vendorId === inv.vendorId);
+                                const isActive = inv.vendorId === activeVendorId;
+                                return (
+                                    <li key={inv.id}>
+                                        <button
+                                            onClick={() => setActiveVendorId(inv.vendorId)}
+                                            className={cn("w-full px-4 py-3 text-left transition-colors hover:bg-muted/60", isActive && "bg-muted")}
+                                        >
+                                            <div className="flex items-start justify-between gap-2">
+                                                <div className="min-w-0">
+                                                    <div className="truncate text-sm font-semibold">{inv.vendorName}</div>
+                                                    <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                                                        Invited {inv.invitedAt}
+                                                    </div>
                                                 </div>
+                                                <AutoStatus status={inv.vendorStatus} />
                                             </div>
-                                            <AutoStatus status={inv.vendorStatus} />
-                                        </div>
-                                        {q && (
-                                            <div className="mt-2 flex items-center justify-between">
-                                                <div className="font-mono text-sm font-bold">{formatBuyerCurrency(q.total)}</div>
-                                                <span className={cn(
-                                                    "inline-flex h-5 items-center rounded-full px-2 font-mono text-[10px] font-bold",
-                                                    q.rank === 1 ? "bg-foreground text-background" : "border border-border",
-                                                )}>
-                                                    Rank #{q.rank}
-                                                </span>
-                                            </div>
-                                        )}
-                                    </button>
-                                </li>
-                            );
-                        })}
-                    </ul>
+                                            {q && (
+                                                <div className="mt-2 flex items-center justify-between">
+                                                    <div className="font-mono text-sm font-bold">{formatBuyerCurrency(q.total)}</div>
+                                                    <span className={cn(
+                                                        "inline-flex h-5 items-center rounded-full px-2 font-mono text-[10px] font-bold",
+                                                        q.rank === 1 ? "bg-foreground text-background" : "border border-border",
+                                                    )}>
+                                                        Rank #{q.rank}
+                                                    </span>
+                                                </div>
+                                            )}
+                                        </button>
+                                    </li>
+                                );
+                            })}
+                        </ul>
+                    )}
                 </aside>
 
                 <section className="flex flex-col overflow-hidden rounded-md border border-border bg-card" style={{ height: "calc(100vh - 240px)", minHeight: 500 }}>
@@ -172,9 +236,14 @@ function BuyerRFQDetail() {
                                         <div className="text-[11px] text-muted-foreground">Private thread · only you and this vendor</div>
                                     </div>
                                 </div>
-                                {activeQuote && hasPermission("quotations:award") && activeQuote.status !== "Awarded" && (
-                                    <button className="inline-flex h-9 items-center gap-1 rounded-sm bg-foreground px-3 text-xs font-semibold text-background hover:opacity-85">
-                                        <Award className="h-3 w-3" /> Award · {formatBuyerCurrency(activeQuote.total)}
+                                {activeQuote && hasPermission("quotations:award") && rfq.status !== "Awarded" && rfq.status !== "Cancelled" && (
+                                    <button 
+                                        onClick={handleAward}
+                                        disabled={isAwarding}
+                                        className="inline-flex h-9 items-center gap-1 rounded-sm bg-foreground px-3 text-xs font-semibold text-background hover:opacity-85 disabled:opacity-50"
+                                    >
+                                        {isAwarding ? <Loader2 className="h-3 w-3 animate-spin" /> : <Award className="h-3 w-3" />}
+                                        Award · {formatBuyerCurrency(activeQuote.total)}
                                     </button>
                                 )}
                             </div>
@@ -210,6 +279,77 @@ function BuyerRFQDetail() {
                     )}
                 </section>
             </div>
+
+            {/* Invite Modal */}
+            {inviteModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+                    <div className="w-full max-w-lg rounded-md border border-border bg-card p-6 shadow-xl flex flex-col max-h-[85vh]">
+                        <div className="flex items-center justify-between mb-4">
+                            <h2 className="text-lg font-bold">Invite Vendors</h2>
+                            <button onClick={() => setInviteModalOpen(false)} className="rounded-sm p-1 hover:bg-muted">
+                                <X className="h-5 w-5" />
+                            </button>
+                        </div>
+                        
+                        <p className="text-sm text-muted-foreground mb-4">
+                            Select accredited vendors to invite to this Request for Quotation.
+                        </p>
+
+                        <div className="flex-1 overflow-y-auto min-h-0 border rounded-md divide-y divide-border mb-4">
+                            {accreditedVendors.length === 0 ? (
+                                <div className="p-8 text-center text-sm text-muted-foreground">
+                                    No accredited vendors available.
+                                </div>
+                            ) : (
+                                accreditedVendors.map(vendor => {
+                                    const vId = parseInt(vendor.id, 10);
+                                    const isInvitedAlready = invitations.some(i => i.vendorId === vendor.id);
+                                    const isSelected = selectedVendors.has(vId);
+
+                                    return (
+                                        <div key={vendor.id} 
+                                            className={cn("flex items-center gap-3 p-3", isInvitedAlready ? "opacity-50 bg-muted/50" : "hover:bg-muted/30 cursor-pointer")}
+                                            onClick={() => !isInvitedAlready && toggleVendor(vId)}
+                                        >
+                                            <input 
+                                                type="checkbox" 
+                                                className="h-4 w-4 rounded-sm border-border text-foreground focus:ring-foreground cursor-pointer"
+                                                checked={isSelected || isInvitedAlready}
+                                                disabled={isInvitedAlready}
+                                                readOnly
+                                            />
+                                            <div className="flex-1 min-w-0">
+                                                <div className="font-semibold text-sm truncate flex items-center gap-2">
+                                                    {vendor.companyName}
+                                                    {isInvitedAlready && <span className="text-[10px] font-mono bg-border px-1.5 py-0.5 rounded-sm">INVITED</span>}
+                                                </div>
+                                                <div className="text-xs text-muted-foreground truncate">{vendor.category} · Rating: {vendor.rating}/5.0</div>
+                                            </div>
+                                        </div>
+                                    )
+                                })
+                            )}
+                        </div>
+
+                        <div className="flex justify-end gap-3 mt-auto pt-2">
+                            <button
+                                onClick={() => setInviteModalOpen(false)}
+                                className="rounded-sm px-4 py-2 text-sm font-semibold border border-border hover:bg-muted"
+                                disabled={isInviting}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleInvite}
+                                disabled={selectedVendors.size === 0 || isInviting}
+                                className="rounded-sm bg-foreground px-4 py-2 text-sm font-semibold text-background hover:opacity-85 disabled:opacity-50 flex items-center gap-2"
+                            >
+                                {isInviting ? <><Loader2 className="h-4 w-4 animate-spin" /> Inviting...</> : `Send Invites (${selectedVendors.size})`}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

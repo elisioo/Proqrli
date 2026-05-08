@@ -66,15 +66,23 @@ function BillsPage() {
         if (taxRate !== null) return;
         setTaxLoading(true);
         try {
-            const ipRes = await fetch("https://ipapi.co/json/");
-            const ipData = await ipRes.json();
-            const code = ipData.country_code;
-            setDetectedCountry(ipData.country_name);
+            // 1. Try to detect country from IP (with timeout)
+            let code = "US";
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 3000);
+                const ipRes = await fetch("https://ipapi.co/json/", { signal: controller.signal });
+                clearTimeout(timeoutId);
+                const ipData = await ipRes.json();
+                code = ipData.country_code || "US";
+                setDetectedCountry(ipData.country_name || "United States");
+            } catch (e) {
+                console.warn("IP detection failed, falling back to US", e);
+                setDetectedCountry("United States (default)");
+            }
 
-            const taxRes = await fetch(`https://api.apilayer.com/tax_data/tax_rates?country=${code}`, {
-                headers: { "apikey": "X73vLSYJgGQIfL6UKaLnsG3jAk7MprV8" }
-            });
-            const taxData = await taxRes.json();
+            // 2. Fetch tax rate from our backend
+            const taxData = await billsApi.getTaxRate(code);
             if (taxData.success && taxData.standard_rate) {
                 const fetchedRate = taxData.standard_rate.rate;
                 setTaxRate(fetchedRate);
@@ -89,6 +97,7 @@ function BillsPage() {
             }
         } catch (err) {
             console.error("Tax API Error:", err);
+            // Even if API fails, we could set a generic 12% fallback here too if we wanted
         } finally {
             setTaxLoading(false);
         }
@@ -151,9 +160,10 @@ function BillsPage() {
                 });
             }
             closeDrawer();
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error("Save failed:", err);
-            setSubmitError(err?.message || "An error occurred while saving.");
+            const msg = err instanceof Error ? err.message : "An error occurred while saving.";
+            setSubmitError(msg);
         } finally {
             setSaving(false);
         }
@@ -331,7 +341,7 @@ function BillsPage() {
                                     placeholder="0.00"
                                     onChange={(val) => {
                                         setTouched(prev => ({ ...prev, subTotal: true }));
-                                        const updates: any = { subTotal: val };
+                                        const updates: Partial<typeof draft> = { subTotal: val };
                                         if (taxRate !== null && val > 0) {
                                             updates.taxAmount = Number((val * taxRate).toFixed(2));
                                         }
