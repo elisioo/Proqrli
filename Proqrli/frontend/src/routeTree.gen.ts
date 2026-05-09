@@ -33,6 +33,7 @@ import { Route as VendorDeliveriesRouteImport } from './routes/vendor.deliveries
 import { Route as VendorComplianceRouteImport } from './routes/vendor.compliance'
 import { Route as VendorBuyersRouteImport } from './routes/vendor.buyers'
 import { Route as BuyerVendorsRouteImport } from './routes/buyer.vendors'
+import { Route as BuyerTeamRouteImport } from './routes/buyer.team'
 import { Route as BuyerSettingsRouteImport } from './routes/buyer.settings'
 import { Route as BuyerRiskRouteImport } from './routes/buyer.risk'
 import { Route as BuyerRfqsRouteImport } from './routes/buyer.rfqs'
@@ -41,6 +42,7 @@ import { Route as BuyerReceiptsRouteImport } from './routes/buyer.receipts'
 import { Route as BuyerQuotationsRouteImport } from './routes/buyer.quotations'
 import { Route as BuyerPurchaseOrdersRouteImport } from './routes/buyer.purchase-orders'
 import { Route as BuyerPaymentsRouteImport } from './routes/buyer.payments'
+import { Route as BuyerNotificationsRouteImport } from './routes/buyer.notifications'
 import { Route as BuyerMessagesRouteImport } from './routes/buyer.messages'
 import { Route as BuyerMarketplaceRouteImport } from './routes/buyer.marketplace'
 import { Route as BuyerInventoryRouteImport } from './routes/buyer.inventory'
@@ -176,6 +178,11 @@ const BuyerVendorsRoute = BuyerVendorsRouteImport.update({
   path: '/vendors',
   getParentRoute: () => BuyerRoute,
 } as any)
+const BuyerTeamRoute = BuyerTeamRouteImport.update({
+  id: '/team',
+  path: '/team',
+  getParentRoute: () => BuyerRoute,
+} as any)
 const BuyerSettingsRoute = BuyerSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -214,6 +221,11 @@ const BuyerPurchaseOrdersRoute = BuyerPurchaseOrdersRouteImport.update({
 const BuyerPaymentsRoute = BuyerPaymentsRouteImport.update({
   id: '/payments',
   path: '/payments',
+  getParentRoute: () => BuyerRoute,
+} as any)
+const BuyerNotificationsRoute = BuyerNotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
   getParentRoute: () => BuyerRoute,
 } as any)
 const BuyerMessagesRoute = BuyerMessagesRouteImport.update({
@@ -306,6 +318,7 @@ export interface FileRoutesByFullPath {
   '/buyer/inventory': typeof BuyerInventoryRoute
   '/buyer/marketplace': typeof BuyerMarketplaceRoute
   '/buyer/messages': typeof BuyerMessagesRoute
+  '/buyer/notifications': typeof BuyerNotificationsRoute
   '/buyer/payments': typeof BuyerPaymentsRoute
   '/buyer/purchase-orders': typeof BuyerPurchaseOrdersRoute
   '/buyer/quotations': typeof BuyerQuotationsRoute
@@ -314,6 +327,7 @@ export interface FileRoutesByFullPath {
   '/buyer/rfqs': typeof BuyerRfqsRouteWithChildren
   '/buyer/risk': typeof BuyerRiskRoute
   '/buyer/settings': typeof BuyerSettingsRoute
+  '/buyer/team': typeof BuyerTeamRoute
   '/buyer/vendors': typeof BuyerVendorsRoute
   '/vendor/buyers': typeof VendorBuyersRoute
   '/vendor/compliance': typeof VendorComplianceRoute
@@ -351,6 +365,7 @@ export interface FileRoutesByTo {
   '/buyer/inventory': typeof BuyerInventoryRoute
   '/buyer/marketplace': typeof BuyerMarketplaceRoute
   '/buyer/messages': typeof BuyerMessagesRoute
+  '/buyer/notifications': typeof BuyerNotificationsRoute
   '/buyer/payments': typeof BuyerPaymentsRoute
   '/buyer/purchase-orders': typeof BuyerPurchaseOrdersRoute
   '/buyer/quotations': typeof BuyerQuotationsRoute
@@ -358,6 +373,7 @@ export interface FileRoutesByTo {
   '/buyer/requisitions': typeof BuyerRequisitionsRoute
   '/buyer/risk': typeof BuyerRiskRoute
   '/buyer/settings': typeof BuyerSettingsRoute
+  '/buyer/team': typeof BuyerTeamRoute
   '/buyer/vendors': typeof BuyerVendorsRoute
   '/vendor/buyers': typeof VendorBuyersRoute
   '/vendor/compliance': typeof VendorComplianceRoute
@@ -399,6 +415,7 @@ export interface FileRoutesById {
   '/buyer/inventory': typeof BuyerInventoryRoute
   '/buyer/marketplace': typeof BuyerMarketplaceRoute
   '/buyer/messages': typeof BuyerMessagesRoute
+  '/buyer/notifications': typeof BuyerNotificationsRoute
   '/buyer/payments': typeof BuyerPaymentsRoute
   '/buyer/purchase-orders': typeof BuyerPurchaseOrdersRoute
   '/buyer/quotations': typeof BuyerQuotationsRoute
@@ -407,6 +424,7 @@ export interface FileRoutesById {
   '/buyer/rfqs': typeof BuyerRfqsRouteWithChildren
   '/buyer/risk': typeof BuyerRiskRoute
   '/buyer/settings': typeof BuyerSettingsRoute
+  '/buyer/team': typeof BuyerTeamRoute
   '/buyer/vendors': typeof BuyerVendorsRoute
   '/vendor/buyers': typeof VendorBuyersRoute
   '/vendor/compliance': typeof VendorComplianceRoute
@@ -449,6 +467,7 @@ export interface FileRouteTypes {
     | '/buyer/inventory'
     | '/buyer/marketplace'
     | '/buyer/messages'
+    | '/buyer/notifications'
     | '/buyer/payments'
     | '/buyer/purchase-orders'
     | '/buyer/quotations'
@@ -457,6 +476,7 @@ export interface FileRouteTypes {
     | '/buyer/rfqs'
     | '/buyer/risk'
     | '/buyer/settings'
+    | '/buyer/team'
     | '/buyer/vendors'
     | '/vendor/buyers'
     | '/vendor/compliance'
@@ -494,6 +514,7 @@ export interface FileRouteTypes {
     | '/buyer/inventory'
     | '/buyer/marketplace'
     | '/buyer/messages'
+    | '/buyer/notifications'
     | '/buyer/payments'
     | '/buyer/purchase-orders'
     | '/buyer/quotations'
@@ -501,6 +522,7 @@ export interface FileRouteTypes {
     | '/buyer/requisitions'
     | '/buyer/risk'
     | '/buyer/settings'
+    | '/buyer/team'
     | '/buyer/vendors'
     | '/vendor/buyers'
     | '/vendor/compliance'
@@ -541,6 +563,7 @@ export interface FileRouteTypes {
     | '/buyer/inventory'
     | '/buyer/marketplace'
     | '/buyer/messages'
+    | '/buyer/notifications'
     | '/buyer/payments'
     | '/buyer/purchase-orders'
     | '/buyer/quotations'
@@ -549,6 +572,7 @@ export interface FileRouteTypes {
     | '/buyer/rfqs'
     | '/buyer/risk'
     | '/buyer/settings'
+    | '/buyer/team'
     | '/buyer/vendors'
     | '/vendor/buyers'
     | '/vendor/compliance'
@@ -751,6 +775,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BuyerVendorsRouteImport
       parentRoute: typeof BuyerRoute
     }
+    '/buyer/team': {
+      id: '/buyer/team'
+      path: '/team'
+      fullPath: '/buyer/team'
+      preLoaderRoute: typeof BuyerTeamRouteImport
+      parentRoute: typeof BuyerRoute
+    }
     '/buyer/settings': {
       id: '/buyer/settings'
       path: '/settings'
@@ -805,6 +836,13 @@ declare module '@tanstack/react-router' {
       path: '/payments'
       fullPath: '/buyer/payments'
       preLoaderRoute: typeof BuyerPaymentsRouteImport
+      parentRoute: typeof BuyerRoute
+    }
+    '/buyer/notifications': {
+      id: '/buyer/notifications'
+      path: '/notifications'
+      fullPath: '/buyer/notifications'
+      preLoaderRoute: typeof BuyerNotificationsRouteImport
       parentRoute: typeof BuyerRoute
     }
     '/buyer/messages': {
@@ -951,6 +989,7 @@ interface BuyerRouteChildren {
   BuyerInventoryRoute: typeof BuyerInventoryRoute
   BuyerMarketplaceRoute: typeof BuyerMarketplaceRoute
   BuyerMessagesRoute: typeof BuyerMessagesRoute
+  BuyerNotificationsRoute: typeof BuyerNotificationsRoute
   BuyerPaymentsRoute: typeof BuyerPaymentsRoute
   BuyerPurchaseOrdersRoute: typeof BuyerPurchaseOrdersRoute
   BuyerQuotationsRoute: typeof BuyerQuotationsRoute
@@ -959,6 +998,7 @@ interface BuyerRouteChildren {
   BuyerRfqsRoute: typeof BuyerRfqsRouteWithChildren
   BuyerRiskRoute: typeof BuyerRiskRoute
   BuyerSettingsRoute: typeof BuyerSettingsRoute
+  BuyerTeamRoute: typeof BuyerTeamRoute
   BuyerVendorsRoute: typeof BuyerVendorsRoute
   BuyerIndexRoute: typeof BuyerIndexRoute
 }
@@ -968,6 +1008,7 @@ const BuyerRouteChildren: BuyerRouteChildren = {
   BuyerInventoryRoute: BuyerInventoryRoute,
   BuyerMarketplaceRoute: BuyerMarketplaceRoute,
   BuyerMessagesRoute: BuyerMessagesRoute,
+  BuyerNotificationsRoute: BuyerNotificationsRoute,
   BuyerPaymentsRoute: BuyerPaymentsRoute,
   BuyerPurchaseOrdersRoute: BuyerPurchaseOrdersRoute,
   BuyerQuotationsRoute: BuyerQuotationsRoute,
@@ -976,6 +1017,7 @@ const BuyerRouteChildren: BuyerRouteChildren = {
   BuyerRfqsRoute: BuyerRfqsRouteWithChildren,
   BuyerRiskRoute: BuyerRiskRoute,
   BuyerSettingsRoute: BuyerSettingsRoute,
+  BuyerTeamRoute: BuyerTeamRoute,
   BuyerVendorsRoute: BuyerVendorsRoute,
   BuyerIndexRoute: BuyerIndexRoute,
 }

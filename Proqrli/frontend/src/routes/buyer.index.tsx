@@ -19,7 +19,7 @@ import {
   formatBuyerCurrency,
   getStockState,
 } from "@/lib/buyer-mock-data";
-import { requisitionsApi, purchaseOrdersApi, billsApi, inventoryApi } from "@/lib/api";
+import { requisitionsApi, purchaseOrdersApi, billsApi, inventoryApi, settingsApi, Requisition, PurchaseOrder, VendorBill, InventoryItemDto } from "@/lib/api";
 import { useBuyer } from "@/lib/buyer-context";
 import {
   Area,
@@ -35,13 +35,20 @@ import {
 
 export const Route = createFileRoute("/buyer/")({
   loader: async () => {
-    const [realRequisitions, realPOs, realBills, realInventory] = await Promise.all([
+    const [realRequisitions, realPOs, realBills, realInventory, liveSettings] = await Promise.all([
       requisitionsApi.getAll().catch(() => []),
       purchaseOrdersApi.getAll().catch(() => []),
       billsApi.getAll().catch(() => []),
       inventoryApi.getAll().catch(() => []),
+      settingsApi.getTenantSettings().catch(() => null),
     ]);
-    return { realRequisitions, realPOs, realBills, realInventory };
+    return { 
+        realRequisitions: realRequisitions as Requisition[], 
+        realPOs: realPOs as PurchaseOrder[], 
+        realBills: realBills as VendorBill[], 
+        realInventory: realInventory as InventoryItemDto[], 
+        liveSettings 
+    };
   },
   component: () => (
     <BuyerPermissionGate permission="dashboard:view">
@@ -52,47 +59,48 @@ export const Route = createFileRoute("/buyer/")({
 
 function BuyerDashboard() {
   const { user, tenant } = useBuyer();
-  const { realRequisitions, realPOs, realBills, realInventory } = Route.useLoaderData();
-  const openPRs = realRequisitions.filter((r: any) => r.status === "Pending Approval" || r.status === "Draft").length;
-  const openPOs = realPOs.filter((p: any) => !["Closed", "Cancelled", "Received"].includes(p.status)).length;
-  const billsDue = realBills.filter((b: any) => ["Pending", "Approved", "Scheduled", "Overdue"].includes(b.status))
-    .reduce((s: any, b: any) => s + (b.totalAmount || b.amount || 0), 0);
+  const { realRequisitions, realPOs, realBills, realInventory, liveSettings } = Route.useLoaderData();
   
-  // Real-time Risk Alerts (Overdue POs)
+  const displayCompanyName = liveSettings?.companyName || tenant.companyName;
+  const displayUserName = user.name.includes("@") ? user.name.split("@")[0] : user.name.split(" ")[0];
+
+  const openPRs = realRequisitions.filter(r => r.status === "Pending Approval" || r.status === "Draft").length;
+  const openPOs = realPOs.filter(p => !["Closed", "Cancelled", "Received"].includes(p.status)).length;
+  const billsDue = realBills.filter(b => ["Pending", "Approved", "Scheduled", "Overdue"].includes(b.status))
+    .reduce((s, b) => s + (b.amount || 0), 0);
+  
   const realRiskAlerts = realPOs
-    .filter((po: any) => po.status !== "Closed" && po.status !== "Received" && po.expectedDelivery && new Date(po.expectedDelivery) < new Date())
-    .map((po: any) => ({
+    .filter(po => po.status !== "Closed" && po.status !== "Received" && po.expectedDelivery && new Date(po.expectedDelivery) < new Date())
+    .map(po => ({
       id: po.id,
-      vendorName: po.vendor?.companyName || "Unknown Vendor",
+      vendorName: po.vendorName || "Unknown Vendor",
       level: "Medium",
       signal: "Overdue Delivery",
       detail: `PO ${po.poNumber} is overdue since ${new Date(po.expectedDelivery).toLocaleDateString()}.`
     }));
   const openRisks = realRiskAlerts.length;
 
-  // Real-time Spend Series (Last 6 Months from POs)
   const spendSeries = useMemo(() => {
     const series = Array.from({ length: 6 }).map((_, i) => {
       const d = new Date();
       d.setMonth(d.getMonth() - (5 - i));
       return { month: d.toLocaleString('default', { month: 'short', year: '2-digit' }), spend: 0, orders: 0 };
     });
-    realPOs.forEach((po: any) => {
-      const d = new Date(po.createdAt || po.poDate || Date.now());
+    (realPOs as PurchaseOrder[]).forEach(po => {
+      const d = new Date(po.poDate || Date.now());
       const mStr = d.toLocaleString('default', { month: 'short', year: '2-digit' });
       const bucket = series.find(s => s.month === mStr);
       if (bucket) {
-        bucket.spend += (po.totalAmount || 0);
+        bucket.spend += (po.total || 0);
         bucket.orders += 1;
       }
     });
     return series;
   }, [realPOs]);
 
-  // Real-time Category Distribution (Value by Category from Inventory)
   const categorySeries = useMemo(() => {
     const map: Record<string, number> = {};
-    realInventory.forEach((i: any) => {
+    (realInventory as InventoryItemDto[]).forEach(i => {
       const cat = i.category || "Uncategorized";
       map[cat] = (map[cat] || 0) + ((i.onHand || 0) * (i.unitCost || 0));
     });
@@ -104,8 +112,8 @@ function BuyerDashboard() {
   return (
     <div className="mx-auto flex max-w-7xl flex-col gap-8">
       <PageHeader
-        eyebrow={`Welcome back, ${user.name.split(" ")[0]}`}
-        title={tenant.companyName}
+        eyebrow={`Welcome back, ${displayUserName}`}
+        title={displayCompanyName}
         description="A daily snapshot of requisitions, vendors, and cash. Drill in for detail."
         actions={
           <Link to="/buyer/marketplace" className="inline-flex h-10 items-center gap-2 rounded-sm bg-foreground px-4 text-sm font-semibold text-background hover:opacity-85">

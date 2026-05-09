@@ -4,6 +4,7 @@
 // rendering them again inside React breaks Radix UI portals (dropdowns,
 // dialogs, sheets) and causes the lag/crash you see in the browser.
 import { Outlet, Link, createRootRoute } from "@tanstack/react-router";
+import { Toaster } from "@/components/ui/sonner";
 
 function NotFoundComponent() {
     return (
@@ -33,5 +34,10 @@ export const Route = createRootRoute({
 });
 
 function RootComponent() {
-    return <Outlet />;
+    return (
+        <>
+            <Outlet />
+            <Toaster />
+        </>
+    );
 }

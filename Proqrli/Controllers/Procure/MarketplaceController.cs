@@ -24,19 +24,49 @@ namespace ProqrLi.Controllers.Procure
         }
 
         [HttpGet("products")]
-        public async Task<IActionResult> GetProducts()
+        public async Task<IActionResult> GetProducts(
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 12,
+            [FromQuery] string? category = null,
+            [FromQuery] string? search = null)
         {
             try
             {
-                var listings = await _context.ProductListings
+                if (page < 1) page = 1;
+                if (pageSize < 1) pageSize = 12;
+                if (pageSize > 100) pageSize = 100;
+
+                var query = _context.ProductListings
                     .Include(p => p.VendorTenant)
                     .Include(p => p.ProductCategory)
                     .Where(p => p.Status == "Active")
+                    .AsQueryable();
+
+                if (!string.IsNullOrWhiteSpace(category) && category != "All")
+                {
+                    query = query.Where(p => p.ProductCategory != null && p.ProductCategory.CategoryName == category);
+                }
+
+                if (!string.IsNullOrWhiteSpace(search))
+                {
+                    var s = search.Trim().ToLower();
+                    query = query.Where(p =>
+                        (p.ProductName != null && p.ProductName.ToLower().Contains(s)) ||
+                        (p.SKU != null && p.SKU.ToLower().Contains(s)));
+                }
+
+                var totalCount = await query.CountAsync();
+
+                var listings = await query
+                    .OrderByDescending(p => p.TotalSold)
+                    .ThenBy(p => p.ProductName)
+                    .Skip((page - 1) * pageSize)
+                    .Take(pageSize)
                     .ToListAsync();
 
-                // Fetch images separately or join
+                var productIds = listings.Select(p => p.ProductID).ToList();
                 var imageDict = await _context.ProductImages
-                    .Where(img => img.IsPrimary)
+                    .Where(img => img.IsPrimary && productIds.Contains(img.ProductID))
                     .GroupBy(img => img.ProductID)
                     .ToDictionaryAsync(g => g.Key, g => g.First().ImagePath);
 
@@ -55,13 +85,19 @@ namespace ProqrLi.Controllers.Procure
                     reorderPoint = 5,
                     rating = p.AverageRating,
                     image = imageDict.ContainsKey(p.ProductID) ? imageDict[p.ProductID] : null,
-                    leadTimeDays = 3, // Dummy, can add to DB later
-                    vendorAccredited = true, // We could fetch from VendorStoreProfile or VendorAccreditation
+                    leadTimeDays = 3,
+                    vendorAccredited = true,
                     minOrder = p.MinOrderQty,
                     description = p.Description
                 }).ToList();
 
-                return Ok(products);
+                return Ok(new
+                {
+                    items = products,
+                    totalCount,
+                    page,
+                    pageSize
+                });
             }
             catch (Exception ex)
             {

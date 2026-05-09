@@ -1,11 +1,12 @@
 /* eslint-disable prettier/prettier */
 import * as React from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { Bell, ChevronDown, LogOut, Menu, Palette, Search, UserCog } from "lucide-react";
 import { useBuyer } from "@/lib/buyer-context";
 import { BUYER_TEAM, BUYER_ROLE_LABELS, BUYER_ROLE_DESCRIPTIONS } from "@/lib/buyer-mock-data";
 import { THEME_PRESETS } from "@/lib/themes";
-import { authApi } from "@/lib/api";
+import { authApi, notificationsApi } from "@/lib/api";
+import { Info, CheckCircle2, AlertTriangle, XCircle, ArrowRight, Loader2, Bell, ChevronDown, LogOut, Menu, Palette, Search, UserCog } from "lucide-react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,14 +22,30 @@ import { cn } from "@/lib/utils";
 export function BuyerTopbar() {
   const { user, role, setUser, themeId, setThemeId, accent, setAccent, isRealSession, clearRealSession } = useBuyer();
   const navigate = useNavigate();
-  const [mobileOpen, setMobileOpen] = React.useState(false);
+  const queryClient = useQueryClient();
+
+  const { data: notifications = [], isLoading: isNotifLoading } = useQuery({
+    queryKey: ["notifications"],
+    queryFn: notificationsApi.getAll,
+    refetchInterval: 10000,
+  });
+
+  const readOneMutation = useMutation({
+    mutationFn: (id: string) => notificationsApi.markAsRead(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["notifications"] }),
+  });
+
+  const readAllMutation = useMutation({
+    mutationFn: notificationsApi.markAllAsRead,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["notifications"] }),
+  });
+
+  const unreadCount = notifications.filter(n => !n.read).length;
 
   const handleSignOut = async () => {
-    // Call the backend to invalidate the HttpOnly auth cookie
     if (isRealSession) {
-      try { await authApi.logout(); } catch { /* ignore network errors on logout */ }
+      try { await authApi.logout(); } catch { /* ignore */ }
     }
-    // Clear both real-session and mock localStorage keys
     try {
       window.localStorage.removeItem("procurli:buyer:realUser");
       window.localStorage.removeItem("procurli:buyer:userId");
@@ -42,7 +59,6 @@ export function BuyerTopbar() {
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-3 border-b border-border bg-paper/85 px-4 backdrop-blur md:px-6">
       <div className="flex min-w-0 flex-1 items-center gap-3">
-        {/* Show toggle in topbar if on mobile OR if sidebar is collapsed */}
         {(isMobile || state === "collapsed") && (
           <SidebarTrigger className="-ml-1" />
         )}
@@ -123,10 +139,75 @@ export function BuyerTopbar() {
           </DropdownMenuContent>
         </DropdownMenu>
 
-        <Button variant="ghost" size="icon" className="relative h-10 w-10">
-          <Bell className="h-5 w-5" />
-          <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-rose-500" />
-        </Button>
+        {/* Notifications */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="relative h-10 w-10">
+              <Bell className="h-5 w-5" />
+              {unreadCount > 0 && (
+                <span className="absolute right-2.5 top-2.5 flex h-2 w-2 items-center justify-center rounded-full bg-rose-500 ring-2 ring-paper">
+                    <span className="h-full w-full animate-ping rounded-full bg-rose-400 opacity-75" />
+                </span>
+              )}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-[360px] p-0">
+            <div className="flex items-center justify-between border-b border-border px-4 py-3">
+              <span className="font-mono text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Notifications</span>
+              <Link to="/buyer/notifications" className="text-[10px] font-bold text-foreground hover:underline">View all</Link>
+            </div>
+            <div className="max-h-[400px] overflow-y-auto">
+              {notifications.slice(0, 5).map((n) => (
+                <DropdownMenuItem 
+                  key={n.id} 
+                  className={cn(
+                    "flex cursor-pointer items-start gap-3 rounded-none border-b border-border px-4 py-3 focus:bg-muted",
+                    !n.read && "bg-muted/30"
+                  )}
+                  onClick={() => {
+                    if (!n.read) readOneMutation.mutate(n.id);
+                    if (n.link) navigate({ to: n.link });
+                  }}
+                >
+                  <div className={cn(
+                    "mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-background",
+                    !n.read && "ring-1 ring-border shadow-sm"
+                  )}>
+                     {n.type === "info" && <Info className="h-3.5 w-3.5 text-sky-600" />}
+                     {n.type === "success" && <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />}
+                     {n.type === "warning" && <AlertTriangle className="h-3.5 w-3.5 text-amber-600" />}
+                     {n.type === "error" && <XCircle className="h-3.5 w-3.5 text-rose-600" />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="truncate text-xs font-bold text-foreground">{n.title}</div>
+                      {!n.read && <div className="h-1.5 w-1.5 shrink-0 rounded-full bg-rose-500 animate-pulse" />}
+                    </div>
+                    <div className="mt-0.5 line-clamp-2 text-[11px] text-muted-foreground leading-tight">{n.message}</div>
+                    <div className="mt-1.5 text-[9px] text-muted-foreground font-mono">{n.at}</div>
+                  </div>
+                </DropdownMenuItem>
+              ))}
+              {notifications.length === 0 && !isNotifLoading && (
+                  <div className="px-4 py-10 text-center text-xs text-muted-foreground">No new alerts</div>
+              )}
+              {isNotifLoading && (
+                  <div className="flex items-center justify-center py-8">
+                      <Loader2 className="h-5 w-5 animate-spin text-muted-foreground/30" />
+                  </div>
+              )}
+            </div>
+            <div className="border-t border-border bg-paper-mid px-4 py-2.5 text-center">
+               <button 
+                onClick={() => readAllMutation.mutate()}
+                disabled={unreadCount === 0}
+                className="text-[10px] font-bold text-muted-foreground hover:text-foreground disabled:opacity-50"
+               >
+                Mark all as read
+               </button>
+            </div>
+          </DropdownMenuContent>
+        </DropdownMenu>
 
         {/* User / session menu */}
         <DropdownMenu>

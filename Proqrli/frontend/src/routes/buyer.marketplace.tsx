@@ -59,18 +59,39 @@ function StockPill({ product }: { product: MarketplaceProduct }) {
 function MarketplacePage() {
     const [cat, setCat] = React.useState("All");
     const [q, setQ] = React.useState("");
+    const [debouncedQ, setDebouncedQ] = React.useState("");
+    const [page, setPage] = React.useState(1);
+    const [pageSize, setPageSize] = React.useState(12);
     const [cart, setCart] = React.useState<Record<string, number>>({});
+    const [productCache, setProductCache] = React.useState<Record<string, MarketplaceProduct>>({});
     const [detail, setDetail] = React.useState<MarketplaceProduct | null>(null);
     const [detailQty, setDetailQty] = React.useState(1);
     const [cartOpen, setCartOpen] = React.useState(false);
 
+    // Debounce search input
+    React.useEffect(() => {
+        const t = setTimeout(() => setDebouncedQ(q), 300);
+        return () => clearTimeout(t);
+    }, [q]);
+
+    // Reset to page 1 when filters change
+    React.useEffect(() => {
+        setPage(1);
+    }, [cat, debouncedQ, pageSize]);
+
     const {
-        data: marketplaceProducts = [],
+        data: productData,
         isLoading: isProductsLoading,
         error: productsError,
     } = useQuery({
-        queryKey: ["marketplace-products"],
-        queryFn: marketplaceApi.getProducts,
+        queryKey: ["marketplace-products", page, pageSize, cat, debouncedQ],
+        queryFn: () =>
+            marketplaceApi.getProducts({
+                page,
+                pageSize,
+                category: cat === "All" ? undefined : cat,
+                search: debouncedQ || undefined,
+            }),
     });
 
     const {
@@ -82,17 +103,25 @@ function MarketplacePage() {
     });
 
     const apiError = productsError ?? categoriesError;
+    const marketplaceProducts = productData?.items ?? [];
+    const totalCount = productData?.totalCount ?? 0;
+    const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
 
-    const filtered = marketplaceProducts.filter(
-        (p) =>
-            (cat === "All" || p.category === cat) &&
-            (q === "" ||
-                (p.name || "").toLowerCase().includes(q.toLowerCase()) ||
-                (p.sku || "").toLowerCase().includes(q.toLowerCase())),
-    );
+    // Cache products so cart can access them across pages
+    React.useEffect(() => {
+        if (marketplaceProducts.length > 0) {
+            setProductCache((prev) => {
+                const next = { ...prev };
+                marketplaceProducts.forEach((p) => { next[p.id] = p; });
+                return next;
+            });
+        }
+    }, [marketplaceProducts]);
 
-    const addToCart = (id: string, qty = 1) =>
-        setCart((c) => ({ ...c, [id]: (c[id] ?? 0) + qty }));
+    const addToCart = (product: MarketplaceProduct, qty = 1) => {
+        setProductCache((prev) => ({ ...prev, [product.id]: product }));
+        setCart((c) => ({ ...c, [product.id]: (c[product.id] ?? 0) + qty }));
+    };
 
     const removeFromCart = (id: string) =>
         setCart((c) => { const n = { ...c }; delete n[id]; return n; });
@@ -103,8 +132,8 @@ function MarketplacePage() {
     };
 
     const cartCount = Object.values(cart).reduce((s, n) => s + n, 0);
-    const cartTotal = marketplaceProducts.reduce(
-        (s, p) => s + (cart[p.id] ?? 0) * p.price,
+    const cartTotal = Object.entries(cart).reduce(
+        (s, [id, qty]) => s + qty * (productCache[id]?.price ?? 0),
         0,
     );
 
@@ -182,7 +211,8 @@ function MarketplacePage() {
                     ))}
                 </div>
                 <span className="ml-auto text-xs text-muted-foreground">
-                    {filtered.length} product{filtered.length !== 1 ? "s" : ""}
+                    {totalCount} product{totalCount !== 1 ? "s" : ""}
+                    {totalPages > 1 && ` · Page ${page} of ${totalPages}`}
                 </span>
             </div>
 
@@ -191,21 +221,77 @@ function MarketplacePage() {
                 <div className="rounded-md border border-dashed border-border p-12 text-center text-sm text-muted-foreground">
                     Loading products...
                 </div>
-            ) : filtered.length > 0 ? (
+            ) : marketplaceProducts.length > 0 ? (
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                    {filtered.map((p) => (
+                    {marketplaceProducts.map((p) => (
                         <ProductCard
                             key={p.id}
                             product={p}
                             cartQty={cart[p.id] ?? 0}
                             onOpen={() => openDetail(p)}
-                            onAddToCart={() => addToCart(p.id)}
+                            onAddToCart={() => addToCart(p)}
                         />
                     ))}
                 </div>
             ) : (
                 <div className="rounded-md border border-dashed border-border p-12 text-center text-sm text-muted-foreground">
                     No products match your filters. Try clearing the search.
+                </div>
+            )}
+
+            {/* ── Pagination controls ── */}
+            {totalPages > 1 && (
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    {/* Results info */}
+                    <div className="text-xs text-muted-foreground">
+                        Showing{" "}
+                        <span className="font-semibold text-foreground">
+                            {(page - 1) * pageSize + 1}
+                            {" — "}
+                            {Math.min(page * pageSize, totalCount)}
+                        </span>{" "}
+                        of <span className="font-semibold text-foreground">{totalCount}</span> results
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                        {/* Page size selector */}
+                        <div className="flex items-center gap-2">
+                            <label htmlFor="pageSize" className="text-xs text-muted-foreground">Per page</label>
+                            <select
+                                id="pageSize"
+                                value={pageSize}
+                                onChange={(e) => setPageSize(Number(e.target.value))}
+                                className="h-8 rounded-sm border border-border bg-card px-2 text-xs font-semibold outline-none focus:border-foreground"
+                            >
+                                {[8, 12, 24, 48].map((n) => (
+                                    <option key={n} value={n}>{n}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        {/* Page navigation */}
+                        <div className="flex items-center gap-1">
+                            <button
+                                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                                disabled={page <= 1}
+                                className="flex h-8 items-center rounded-sm border border-border px-3 text-xs font-semibold hover:border-foreground disabled:cursor-not-allowed disabled:opacity-40"
+                            >
+                                Prev
+                            </button>
+
+                            <span className="flex h-8 min-w-[4rem] items-center justify-center rounded-sm border border-border bg-muted px-3 text-xs font-semibold">
+                                {page} / {totalPages}
+                            </span>
+
+                            <button
+                                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                                disabled={page >= totalPages}
+                                className="flex h-8 items-center rounded-sm border border-border px-3 text-xs font-semibold hover:border-foreground disabled:cursor-not-allowed disabled:opacity-40"
+                            >
+                                Next
+                            </button>
+                        </div>
+                    </div>
                 </div>
             )}
 
@@ -331,7 +417,7 @@ function MarketplacePage() {
                                         </div>
 
                                         <button
-                                            onClick={() => { addToCart(detail.id, detailQty); setDetail(null); }}
+                                            onClick={() => { addToCart(detail!, detailQty); setDetail(null); }}
                                             className="flex-1 rounded-sm bg-foreground py-2.5 text-sm font-semibold text-background hover:opacity-85"
                                         >
                                             {cart[detail.id]
@@ -372,52 +458,71 @@ function MarketplacePage() {
                                 <p className="text-sm text-muted-foreground">Your cart is empty.</p>
                             </div>
                         ) : (
-                            marketplaceProducts.filter((p) => (cart[p.id] ?? 0) > 0).map((p) => (
-                                <div key={p.id} className="flex items-center gap-4 px-6 py-4">
-                                    {/* Thumbnail */}
-                                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-sm bg-muted text-2xl overflow-hidden shadow-sm">
-                                        {p.image ? (
-                                            <img src={p.image} alt={p.name} className="h-full w-full object-cover" />
-                                        ) : (
-                                            <Package className="h-5 w-5 text-muted-foreground/40" />
-                                        )}
-                                    </div>
+                            Object.entries(cart)
+                                .filter(([_, qty]) => qty > 0)
+                                .map(([id, qty]) => {
+                                    const p = productCache[id];
+                                    if (!p) {
+                                        return (
+                                            <div key={id} className="flex items-center gap-4 px-6 py-4 text-sm text-muted-foreground">
+                                                <Package className="h-5 w-5" />
+                                                <span>Product {id} — loading info…</span>
+                                                <button
+                                                    onClick={() => removeFromCart(id)}
+                                                    className="ml-auto flex h-7 w-7 items-center justify-center rounded-sm border border-rose-200 bg-rose-50 text-rose-600 hover:bg-rose-100"
+                                                >
+                                                    <X className="h-3 w-3" />
+                                                </button>
+                                            </div>
+                                        );
+                                    }
+                                    return (
+                                        <div key={id} className="flex items-center gap-4 px-6 py-4">
+                                            {/* Thumbnail */}
+                                            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-sm bg-muted text-2xl overflow-hidden shadow-sm">
+                                                {p.image ? (
+                                                    <img src={p.image} alt={p.name} className="h-full w-full object-cover" />
+                                                ) : (
+                                                    <Package className="h-5 w-5 text-muted-foreground/40" />
+                                                )}
+                                            </div>
 
-                                    {/* Info */}
-                                    <div className="min-w-0 flex-1">
-                                        <p className="truncate text-sm font-semibold">{p.name}</p>
-                                        <p className="font-mono text-xs text-muted-foreground">{p.sku}</p>
-                                        <p className="mt-0.5 font-mono text-xs font-semibold">
-                                            {formatBuyerCurrency(p.price)} / {p.uom}
-                                        </p>
-                                    </div>
+                                            {/* Info */}
+                                            <div className="min-w-0 flex-1">
+                                                <p className="truncate text-sm font-semibold">{p.name}</p>
+                                                <p className="font-mono text-xs text-muted-foreground">{p.sku}</p>
+                                                <p className="mt-0.5 font-mono text-xs font-semibold">
+                                                    {formatBuyerCurrency(p.price)} / {p.uom}
+                                                </p>
+                                            </div>
 
-                                    {/* Qty stepper */}
-                                    <div className="flex shrink-0 items-center gap-1">
-                                        <button
-                                            onClick={() => updateQty(p.id, (cart[p.id] ?? 0) - 1)}
-                                            className="flex h-7 w-7 items-center justify-center rounded-sm border border-border hover:border-foreground"
-                                        >
-                                            <Minus className="h-3 w-3" />
-                                        </button>
-                                        <span className="w-8 text-center font-mono text-sm font-semibold">
-                                            {cart[p.id]}
-                                        </span>
-                                        <button
-                                            onClick={() => updateQty(p.id, (cart[p.id] ?? 0) + 1)}
-                                            className="flex h-7 w-7 items-center justify-center rounded-sm border border-border hover:border-foreground"
-                                        >
-                                            <Plus className="h-3 w-3" />
-                                        </button>
-                                        <button
-                                            onClick={() => removeFromCart(p.id)}
-                                            className="ml-1 flex h-7 w-7 items-center justify-center rounded-sm border border-rose-200 bg-rose-50 text-rose-600 hover:bg-rose-100"
-                                        >
-                                            <X className="h-3 w-3" />
-                                        </button>
-                                    </div>
-                                </div>
-                            ))
+                                            {/* Qty stepper */}
+                                            <div className="flex shrink-0 items-center gap-1">
+                                                <button
+                                                    onClick={() => updateQty(id, qty - 1)}
+                                                    className="flex h-7 w-7 items-center justify-center rounded-sm border border-border hover:border-foreground"
+                                                >
+                                                    <Minus className="h-3 w-3" />
+                                                </button>
+                                                <span className="w-8 text-center font-mono text-sm font-semibold">
+                                                    {qty}
+                                                </span>
+                                                <button
+                                                    onClick={() => updateQty(id, qty + 1)}
+                                                    className="flex h-7 w-7 items-center justify-center rounded-sm border border-border hover:border-foreground"
+                                                >
+                                                    <Plus className="h-3 w-3" />
+                                                </button>
+                                                <button
+                                                    onClick={() => removeFromCart(id)}
+                                                    className="ml-1 flex h-7 w-7 items-center justify-center rounded-sm border border-rose-200 bg-rose-50 text-rose-600 hover:bg-rose-100"
+                                                >
+                                                    <X className="h-3 w-3" />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    );
+                                })
                         )}
                     </div>
 

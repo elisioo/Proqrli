@@ -66,6 +66,12 @@ export type LoginPayload = {
     password: string;
 };
 
+export type ChangePasswordPayload = {
+    email: string;
+    otp: string;
+    newPassword: string;
+};
+
 export const authApi = {
     sendOtp: (body: SendOtpPayload) =>
         req<{ message: string; devCode?: string }>("/auth/send-otp", { method: "POST", body: JSON.stringify(body) }),
@@ -77,6 +83,8 @@ export const authApi = {
         req<AuthUser>("/auth/onboarding", { method: "POST", body: JSON.stringify(body) }),
     login: (body: LoginPayload) =>
         req<AuthUser>("/auth/login", { method: "POST", body: JSON.stringify(body) }),
+    changePassword: (body: ChangePasswordPayload) =>
+        req<AuthUser>("/auth/change-password", { method: "POST", body: JSON.stringify(body) }),
     logout: () =>
         req<void>("/auth/logout", { method: "POST" }),
     me: () =>
@@ -591,8 +599,103 @@ export type MarketplaceProduct = {
     description?: string;
 };
 
+export type PaginatedProducts = {
+    items: MarketplaceProduct[];
+    totalCount: number;
+    page: number;
+    pageSize: number;
+};
+
 export const marketplaceApi = {
-    getProducts: () => req<MarketplaceProduct[]>("/marketplace/products"),
+    getProducts: (params?: { page?: number; pageSize?: number; category?: string; search?: string }) => {
+        const qs = new URLSearchParams();
+        if (params?.page !== undefined) qs.set("page", String(params.page));
+        if (params?.pageSize !== undefined) qs.set("pageSize", String(params.pageSize));
+        if (params?.category) qs.set("category", params.category);
+        if (params?.search) qs.set("search", params.search);
+        const query = qs.toString();
+        return req<PaginatedProducts>(`/marketplace/products${query ? `?${query}` : ""}`);
+    },
     getCategories: () => req<string[]>("/marketplace/categories"),
 };
 
+export type TeamMember = {
+    userId: number;
+    email: string;
+    fullName: string;
+    position: string;
+    role: string;
+    isActive: boolean;
+    mustChangePassword: boolean;
+    createdAt: string;
+};
+
+export type InvitePayload = {
+    email: string;
+    role: string;
+    fullName?: string;
+    position?: string;
+};
+
+export const teamApi = {
+    list: () => req<TeamMember[]>("/team"),
+    invite: (payload: InvitePayload) => req<{ message: string; userId: number; devPassword?: string }>("/team/invite", { method: "POST", body: JSON.stringify(payload) }),
+    updateRole: (userId: number, role: string) => req<{ message: string }>(`/team/${userId}/role`, { method: "PUT", body: JSON.stringify({ role }) }),
+    remove: (userId: number) => req<{ message: string }>(`/team/${userId}`, { method: "DELETE" }),
+};
+
+export type NotificationDto = {
+    id: string;
+    type: "info" | "success" | "warning" | "error";
+    title: string;
+    message: string;
+    at: string;
+    read: boolean;
+    link?: string;
+    roleRequired?: string;
+};
+
+export const notificationsApi = {
+    getAll: () => req<NotificationDto[]>("/notifications"),
+    markAsRead: (id: string) => req<void>(`/notifications/${id}/read`, { method: "POST" }),
+    markAllAsRead: () => req<void>("/notifications/read-all", { method: "POST" }),
+};
+
+// ─── Settings & Audit ──────────────────────────────────────────────────────────
+
+export type TenantSettingsDto = {
+    companyName: string;
+    industry: string;
+    contactEmail: string;
+    taxId: string;
+    annualBudget: number;
+    poApprovalThreshold: number;
+    billAutoPayLimit: number;
+    requiredApprovers: number;
+};
+
+export type AuditLogEntryDto = {
+    logID: number;
+    tenantID: number;
+    userID: number;
+    userName: string;
+    role: string;
+    action: string;
+    module: string;
+    entityId?: string;
+    ipAddress: string;
+    timestamp: string;
+};
+
+export const settingsApi = {
+    getTenantSettings: () => req<TenantSettingsDto>("/settings/tenant"),
+    updateTenantSettings: (body: Partial<TenantSettingsDto>) =>
+        req<{ message: string }>("/settings/tenant", { method: "PATCH", body: JSON.stringify(body) }),
+    getAuditLogs: (search?: string, page = 1, pageSize = 10) => {
+        const qs = new URLSearchParams();
+        if (search) qs.set("search", search);
+        qs.set("page", page.toString());
+        qs.set("pageSize", pageSize.toString());
+        return req<{ data: AuditLogEntryDto[], total: number, page: number, pageSize: number }>(`/settings/audit-logs?${qs.toString()}`);
+    },
+};

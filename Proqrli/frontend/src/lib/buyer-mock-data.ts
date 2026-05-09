@@ -5,41 +5,45 @@
 // VENDOR_INVOICE (bill), PAYMENT, VENDOR_RISK_SCORE.
 
 export type BuyerRole =
-  | "buyer_owner"          // CFO / Procurement Director
-  | "buyer_procurement"    // Buyer / Procurement officer
-  | "buyer_approver"       // Approves PRs and POs over threshold
-  | "buyer_finance"        // Pays bills, manages cash
-  | "inventory_staff"      // Stock in / out operations
-  | "inventory_manager";   // Inventory control & warehouse management
+  | "buyer_owner"          // Full system access
+  | "buyer_procurement"    // Procurement Officer
+  | "buyer_requester"      // Requester / Department Staff
+  | "buyer_approver"       // Approver / Manager
+  | "buyer_finance"        // Finance Officer
+  | "buyer_inventory"      // Inventory Manager
+  | "buyer_warehouse";     // Warehouse Staff
 
 export const BUYER_ROLE_LABELS: Record<BuyerRole, string> = {
-  buyer_owner: "Owner",
-  buyer_procurement: "Procurement",
+  buyer_owner: "Owner / Admin",
+  buyer_procurement: "Procurement Officer",
+  buyer_requester: "Requester",
   buyer_approver: "Approver",
-  buyer_finance: "Finance",
-  inventory_staff: "Inventory Staff",
-  inventory_manager: "Inventory Manager",
+  buyer_finance: "Finance Officer",
+  buyer_inventory: "Inventory Manager",
+  buyer_warehouse: "Warehouse Staff",
 };
 
 export const BUYER_ROLE_DESCRIPTIONS: Record<BuyerRole, string> = {
-  buyer_owner: "Full access — billing, team, vendors, approvals, payments.",
-  buyer_procurement: "Browse marketplace, raise PRs, RFQs, POs. No payment access.",
-  buyer_approver: "Approve / reject PRs and POs. Read-only on payments.",
-  buyer_finance: "Approve bills, schedule payments, manage budgets.",
-  inventory_staff: "Stock in / out operations. View and update inventory levels.",
-  inventory_manager: "Inventory control — manage stock, reorder alerts, and warehouse settings.",
+  buyer_owner: "Full system access — company settings, users, all records, and analytics.",
+  buyer_procurement: "Operational procurement — PRs, RFQs, POs, and supplier communications.",
+  buyer_requester: "Submit and track requisitions for your department.",
+  buyer_approver: "Review and approve/reject requisitions and purchase orders.",
+  buyer_finance: "Manage invoices, track payments, and generate financial reports.",
+  buyer_inventory: "Manage stock movement, SKUs, and inventory analytics.",
+  buyer_warehouse: "Receive deliveries and update stock quantities.",
 };
 
 export const BUYER_PERMISSIONS = [
   "dashboard:view",
+  "analytics:view",
   "marketplace:browse",
   "vendors:view", "vendors:manage",
-  "requisitions:view", "requisitions:create", "requisitions:approve",
+  "requisitions:view", "requisitions:create", "requisitions:approve", "requisitions:cancel",
   "rfq:view", "rfq:create",
   "quotations:view", "quotations:award",
   "po:view", "po:create", "po:approve",
   "receipts:view", "receipts:create",
-  "bills:view", "bills:approve",
+  "bills:view", "bills:manage", "bills:approve",
   "payments:view", "payments:schedule",
   "inventory:view", "inventory:manage",
   "risk:view",
@@ -48,71 +52,43 @@ export const BUYER_PERMISSIONS = [
   "settings:view", "settings:edit",
   "billing:view", "billing:manage",
   "budget:view", "budget:manage",
+  "audit_log:view",
 ] as const;
 export type BuyerPermission = (typeof BUYER_PERMISSIONS)[number];
 
 export const BUYER_ROLE_PERMISSIONS: Record<BuyerRole, BuyerPermission[]> = {
   buyer_owner: [...BUYER_PERMISSIONS],
   buyer_procurement: [
-    "dashboard:view",
-    "marketplace:browse",
+    "dashboard:view", "analytics:view", "marketplace:browse",
     "vendors:view", "vendors:manage",
     "requisitions:view", "requisitions:create",
     "rfq:view", "rfq:create",
     "quotations:view", "quotations:award",
     "po:view", "po:create",
-    "receipts:view", "receipts:create",
-    "bills:view",
-    "payments:view",
-    "inventory:view", "inventory:manage",
-    "risk:view",
-    "messages:view", "messages:send",
-    "settings:view",
-  ],
-  buyer_approver: [
-    "dashboard:view",
-    "vendors:view",
-    "requisitions:view", "requisitions:approve",
-    "rfq:view",
-    "quotations:view",
-    "po:view", "po:approve",
     "receipts:view",
-    "bills:view",
-    "payments:view",
     "inventory:view",
     "risk:view",
     "messages:view", "messages:send",
     "settings:view",
   ],
+  buyer_requester: [
+    "dashboard:view", "marketplace:browse", "requisitions:view", "requisitions:create", "requisitions:cancel",
+    "settings:view",
+  ],
+  buyer_approver: [
+    "dashboard:view", "analytics:view", "requisitions:view", "requisitions:approve", "po:view", "po:approve",
+    "messages:view", "messages:send", "settings:view", "team:view", "budget:view",
+  ],
   buyer_finance: [
-    "dashboard:view",
-    "vendors:view",
-    "requisitions:view",
-    "po:view",
-    "receipts:view",
-    "bills:view", "bills:approve",
-    "payments:view", "payments:schedule",
-    "risk:view",
-    "settings:view",
-    "billing:view", "billing:manage",
-    "budget:view", "budget:manage",
+    "dashboard:view", "analytics:view", "po:view", "bills:view", "bills:manage", "bills:approve", "payments:view", "payments:schedule",
+    "settings:view", "billing:view", "billing:manage",
   ],
-  inventory_staff: [
-    "dashboard:view",
-    "inventory:view", "inventory:manage",
-    "receipts:view", "receipts:create",
-    "messages:view", "messages:send",
-    "settings:view",
+  buyer_inventory: [
+    "dashboard:view", "analytics:view", "inventory:view", "inventory:manage", "receipts:view", "receipts:create",
+    "settings:view", "vendors:view", "risk:view", "requisitions:create",
   ],
-  inventory_manager: [
-    "dashboard:view",
-    "inventory:view", "inventory:manage",
-    "requisitions:view", "requisitions:create",
-    "po:view",
-    "receipts:view", "receipts:create",
-    "vendors:view",
-    "risk:view",
-    "messages:view", "messages:send",
+  buyer_warehouse: [
+    "dashboard:view", "inventory:view", "inventory:manage", "receipts:view", "receipts:create",
     "settings:view",
   ],
 };
@@ -151,10 +127,11 @@ export type BuyerTeamMember = {
 export const BUYER_TEAM: BuyerTeamMember[] = [
   { id: "bu1", name: "Sun Shane", email: "sunshane@pacificmfg.com", role: "buyer_owner", department: "Executive", active: true, joinedAt: "2022-09-01", initials: "EM" },
   { id: "bu2", name: "Raj Bhatt", email: "raj@pacificmfg.com", role: "buyer_procurement", department: "Procurement", active: true, joinedAt: "2023-02-14", initials: "RB" },
-  { id: "bu3", name: "Sara Lim", email: "sara@pacificmfg.com", role: "buyer_procurement", department: "Procurement", active: true, joinedAt: "2023-08-30", initials: "SL" },
+  { id: "bu3", name: "Sara Lim", email: "sara@pacificmfg.com", role: "buyer_requester", department: "Maintenance", active: true, joinedAt: "2023-08-30", initials: "SL" },
   { id: "bu4", name: "Marco Velasquez", email: "marco@pacificmfg.com", role: "buyer_approver", department: "Operations", active: true, joinedAt: "2022-11-04", initials: "MV" },
   { id: "bu5", name: "Yuki Tanaka", email: "yuki@pacificmfg.com", role: "buyer_finance", department: "Finance", active: true, joinedAt: "2024-01-22", initials: "YT" },
-  { id: "bu6", name: "Tomás Reyes", email: "tomas@pacificmfg.com", role: "buyer_procurement", department: "Procurement", active: false, joinedAt: "2023-05-10", initials: "TR" },
+  { id: "bu6", name: "Anya Petrova", email: "anya@pacificmfg.com", role: "buyer_inventory", department: "Warehouse", active: true, joinedAt: "2023-05-10", initials: "AP" },
+  { id: "bu7", name: "Diego Rivera", email: "diego@pacificmfg.com", role: "buyer_warehouse", department: "Warehouse", active: true, joinedAt: "2023-06-15", initials: "DR" },
 ];
 
 // ─── Vendors visible to this buyer (accredited + marketplace) ───
@@ -605,6 +582,46 @@ export const INVENTORY: InventoryItem[] = [
   { id: "iv10", sku: "VC-DEG-25L", name: "Industrial Degreaser 25L", category: "Chemicals", uom: "pail", location: "Chem Store · Pad 2", onHand: 12, onOrder: 0, reorderPoint: 8, reorderQty: 24, lastReceivedAt: "2026-04-05", preferredVendorId: "v3", preferredVendorName: "Vertex Chemicals", unitCost: 145 },
   { id: "iv11", sku: "BN-NUT-M16", name: "Hex Nut M16 Grade 8 (100pk)", category: "Fasteners", uom: "pack", location: "Bay 2 · Bin C6", onHand: 9, onOrder: 0, reorderPoint: 12, reorderQty: 25, lastReceivedAt: "2026-03-30", preferredVendorId: "v4", preferredVendorName: "Bolt & Nut Co.", unitCost: 28 },
   { id: "iv12", sku: "ACM-BRG-6307", name: "Deep Groove Ball Bearing 6307", category: "Bearings", uom: "pc", location: "Bay 4 · Rack A2", onHand: 64, onOrder: 0, reorderPoint: 30, reorderQty: 120, lastReceivedAt: "2026-04-01", preferredVendorId: "v1", preferredVendorName: "Acme Industrial Supply", unitCost: 18.4 },
+];
+
+// ─── Audit Logs ───
+export type AuditLogEntry = {
+  id: string;
+  userId: string;
+  userName: string;
+  role: BuyerRole;
+  action: string;
+  module: string;
+  entityId?: string;
+  timestamp: string;
+  ipAddress: string;
+};
+
+export const BUYER_AUDIT_LOGS: AuditLogEntry[] = [
+  { id: "log1", userId: "u1", userName: "Elena Blanco", role: "buyer_owner", action: "Updated company settings", module: "Settings", timestamp: "2026-05-08 14:20:00", ipAddress: "192.168.1.10" },
+  { id: "log2", userId: "u2", userName: "Marcus Tan", role: "buyer_procurement", action: "Approved Requisition PR-2026-012", module: "Requisitions", entityId: "PR-2026-012", timestamp: "2026-05-08 13:45:12", ipAddress: "192.168.1.15" },
+  { id: "log3", userId: "u3", userName: "Sarah Lee", role: "buyer_finance", action: "Scheduled Payment PAY-882", module: "Payments", entityId: "PAY-882", timestamp: "2026-05-08 11:10:05", ipAddress: "192.168.1.22" },
+  { id: "log4", userId: "u1", userName: "Elena Blanco", role: "buyer_owner", action: "Invited new team member: j.doe@company.com", module: "Team", timestamp: "2026-05-08 09:30:00", ipAddress: "192.168.1.10" },
+  { id: "log5", userId: "u4", userName: "David Kho", role: "buyer_warehouse", action: "Received Delivery GRN-104", module: "Receipts", entityId: "GRN-104", timestamp: "2026-05-07 16:55:30", ipAddress: "192.168.1.31" },
+  { id: "log6", userId: "u2", userName: "Marcus Tan", role: "buyer_procurement", action: "Created RFQ-2026-045", module: "RFQs", entityId: "RFQ-2026-045", timestamp: "2026-05-07 14:12:18", ipAddress: "192.168.1.15" },
+];
+
+// ─── Notifications ───
+export type BuyerNotification = {
+  id: string;
+  type: "info" | "success" | "warning" | "error";
+  title: string;
+  message: string;
+  at: string;
+  read: boolean;
+  link?: string;
+};
+
+export const BUYER_NOTIFICATIONS: BuyerNotification[] = [
+  { id: "n1", type: "info", title: "New Quotation Received", message: "Northstar Hydraulics submitted a quote for RFQ-0420.", at: "2 mins ago", read: false, link: "/buyer/quotations" },
+  { id: "n2", type: "warning", title: "Low Stock Alert", message: "Hydraulic Cylinder 50-ton is below reorder point.", at: "1 hour ago", read: false, link: "/buyer/inventory" },
+  { id: "n3", type: "success", title: "PO Approved", message: "Purchase Order PO-1102 has been approved by Finance.", at: "3 hours ago", read: true, link: "/buyer/purchase-orders" },
+  { id: "n4", type: "info", title: "Team Invitation Accepted", message: "John Doe joined the workspace as Procurement Officer.", at: "5 hours ago", read: true, link: "/buyer/settings?tab=team" },
 ];
 
 export type StockState = "In stock" | "Low stock" | "Out of stock";

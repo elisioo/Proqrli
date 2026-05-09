@@ -1,5 +1,17 @@
 namespace ProqrLi.Models
 {
+    /// <summary>DTO for team member listing</summary>
+    public record TeamMemberDto(
+        int UserId,
+        string Email,
+        string FullName,
+        string Position,
+        string Role,
+        bool IsActive,
+        bool MustChangePassword,
+        DateTime CreatedAt
+    );
+
     /// <summary>Step 1 — request to send OTP to an email</summary>
     public record SendOtpRequest(string Email);
 

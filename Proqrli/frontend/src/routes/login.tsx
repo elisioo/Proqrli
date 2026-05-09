@@ -2,7 +2,7 @@
 /* eslint-disable prettier/prettier */
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import * as React from "react";
-import { ArrowRight, ShoppingCart, Store, Eye, EyeOff, AlertCircle, Loader2 } from "lucide-react";
+import { ArrowRight, ShoppingCart, Store, Eye, EyeOff, AlertCircle, Loader2, CheckCircle2 } from "lucide-react";
 import { TEAM_MEMBERS, ROLE_LABELS } from "@/lib/mock-data";
 import { BUYER_TEAM, BUYER_ROLE_LABELS } from "@/lib/buyer-mock-data";
 import { authApi, type AuthUser } from "@/lib/api";
@@ -35,6 +35,16 @@ const PORTAL_THEME: Record<Portal, { tint: string; tintSoft: string; tintRing: s
     sceneTo: "to-emerald-50",
   },
 };
+
+
+function checkPassword(pw: string) {
+  return {
+    length: pw.length >= 12,
+    uppercase: /[A-Z]/.test(pw),
+    number: /[0-9]/.test(pw),
+    special: /[^A-Za-z0-9]/.test(pw),
+  };
+}
 
 function LoginPage() {
   const [portal, setPortal] = React.useState<Portal>("buyer");
@@ -103,49 +113,66 @@ function LoginPage() {
 function LoginForm({ portal, theme }: { portal: Portal; theme: typeof PORTAL_THEME[Portal] }) {
   const navigate = useNavigate();
   const team = portal === "vendor" ? TEAM_MEMBERS : BUYER_TEAM;
-  const roleLabels = portal === "vendor" ? ROLE_LABELS : BUYER_ROLE_LABELS;
 
- 
+  const [step, setStep] = React.useState<"login" | "otp" | "changePassword">("login");
   const [email, setEmail]     = React.useState("");
   const [password, setPassword] = React.useState("");
+  const [otp, setOtp]         = React.useState("");
+  const [newPw, setNewPw]     = React.useState("");
+  const [confirmPw, setConfirmPw] = React.useState("");
   const [showPw, setShowPw]   = React.useState(false);
+  const [showCPw, setShowCPw]   = React.useState(false);
   const [loading, setLoading]  = React.useState(false);
   const [error, setError]      = React.useState<string | null>(null);
+  const [info, setInfo]        = React.useState<string | null>(null);
+
+  const pwStrength = checkPassword(newPw);
+  const pwOk = Object.values(pwStrength).every(Boolean) && newPw === confirmPw;
 
   React.useEffect(() => {
-   
     setEmail("");
     setPassword("");
+    setOtp("");
+    setNewPw("");
+    setConfirmPw("");
     setError(null);
+    setInfo(null);
+    setStep("login");
   }, [portal, team]);
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const finishSession = (user: AuthUser) => {
+    if (portal === "buyer") {
+      try { window.localStorage.setItem("procurli:buyer:realUser", JSON.stringify(user)); } catch {}
+      try { window.localStorage.setItem("procurli:buyer:userId", `real:${user.userId}`); } catch {}
+      navigate({ to: "/buyer" });
+    } else {
+      try { window.localStorage.setItem("procurli:vendor:userId", `real:${user.userId}`); } catch {}
+      navigate({ to: "/vendor" });
+    }
+  };
+
+  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
     setLoading(true);
 
     try {
-      // ── Try real API first ──────────────────────────────────────────────
-      const user: AuthUser = await authApi.login({ email, password });
+      const res = await authApi.login({ email, password });
 
-      // Persist real session so BuyerProvider picks it up
-      if (portal === "buyer") {
-        try { window.localStorage.setItem("procurli:buyer:realUser", JSON.stringify(user)); } catch {}
-        // Also write the legacy key so any code still reading it gets something
-        try { window.localStorage.setItem("procurli:buyer:userId", `real:${user.userId}`); } catch {}
-        navigate({ to: "/buyer" });
-      } else {
-        // Vendor login — store vendor session (vendor context will be updated separately)
-        try { window.localStorage.setItem("procurli:vendor:userId", `real:${user.userId}`); } catch {}
-        navigate({ to: "/vendor" });
+      // Check if this is an invited user requiring OTP
+      if ((res as any).requiresOtp === true) {
+        setInfo("A verification code has been sent to your inbox.");
+        setStep("otp");
+        setLoading(false);
+        return;
       }
+
+      finishSession(res);
     } catch (apiErr) {
-      // ── Mock fallback (dev / no backend) ────────────────────────────────
       const isMockPassword = password === "demo" || password === "";
       const mockMatch = team.find((m) => m.email === email);
 
       if (isMockPassword && mockMatch) {
-        // Graceful demo-mode fallback when the backend isn't running
         if (portal === "vendor") {
           try { window.localStorage.setItem("procurli:vendor:userId", mockMatch.id); } catch {}
           navigate({ to: "/vendor" });
@@ -156,7 +183,6 @@ function LoginForm({ portal, theme }: { portal: Portal; theme: typeof PORTAL_THE
         return;
       }
 
-      // Show the API error to the user
       const msg = apiErr instanceof Error ? apiErr.message : "Login failed. Please try again.";
       setError(msg);
     } finally {
@@ -164,68 +190,245 @@ function LoginForm({ portal, theme }: { portal: Portal; theme: typeof PORTAL_THE
     }
   };
 
+  const handleVerifyOtp = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setError(null);
+
+    // We skip calling authApi.verifyOtp here because the subsequent authApi.changePassword
+    // call also requires the OTP. Some backend implementations consume the OTP once verified,
+    // which would cause the password change to fail with an "expired" error.
+    setStep("changePassword");
+  };
+
+  const handleChangePassword = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setError(null);
+
+    if (!pwOk) {
+      setError("Please meet all password requirements.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const user = await authApi.changePassword({
+        email: email.trim().toLowerCase(),
+        otp: otp.trim(),
+        newPassword: newPw,
+      });
+      finishSession(user);
+    } catch (apiErr) {
+      const msg = apiErr instanceof Error ? apiErr.message : "Password change failed.";
+      setError(msg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <form onSubmit={handleSubmit} className="mt-8 space-y-4">
-      {/* Error banner */}
+    <div className="mt-8 space-y-4">
+      {/* Error / Info banner */}
       {error && (
         <div className="flex items-start gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
           <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0" />
           <span>{error}</span>
         </div>
       )}
-
-      <div>
-        <label className="mb-1.5 block text-xs font-semibold text-foreground">Business email</label>
-        <input
-          id="login-email"
-          value={email}
-          onChange={(e) => { setEmail(e.target.value); setError(null); }}
-          type="email"
-          placeholder="Enter your email"
-          required
-          className="h-12 w-full rounded-full border border-border bg-card px-5 text-sm outline-none transition-colors focus:border-foreground"
-        />
-      </div>
-
-      <div>
-        <label className="mb-1.5 block text-xs font-semibold text-foreground">Password</label>
-        <div className="relative">
-          <input
-            id="login-password"
-            value={password}
-            onChange={(e) => { setPassword(e.target.value); setError(null); }}
-            type={showPw ? "text" : "password"}
-            placeholder="Enter your password"
-            required
-            className="h-12 w-full rounded-full border border-border bg-card px-5 pr-12 text-sm outline-none transition-colors focus:border-foreground"
-          />
-          <button
-            type="button"
-            onClick={() => setShowPw((v) => !v)}
-            className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-          >
-            {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-          </button>
+      {info && !error && (
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+          {info}
         </div>
-      </div>
+      )}
 
-      <button
-        id="login-submit"
-        type="submit"
-        disabled={loading}
-        className={cn(
-          "inline-flex h-12 w-full items-center justify-center gap-2 rounded-full text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60",
-          theme.tint,
-        )}
-      >
-        {loading ? (
-          <><Loader2 className="h-4 w-4 animate-spin" /> Signing in…</>
-        ) : (
-          <>Sign in to {portal === "vendor" ? "vendor" : "buyer"} portal <ArrowRight className="h-4 w-4" /></>
-        )}
-      </button>
-      
-    </form>
+      {step === "login" && (
+        <form onSubmit={handleLogin} className="space-y-4">
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold text-foreground">Business email</label>
+            <input
+              id="login-email"
+              value={email}
+              onChange={(e) => { setEmail(e.target.value); setError(null); }}
+              type="email"
+              placeholder="Enter your email"
+              required
+              className="h-12 w-full rounded-full border border-border bg-card px-5 text-sm outline-none transition-colors focus:border-foreground"
+            />
+          </div>
+
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold text-foreground">Password</label>
+            <div className="relative">
+              <input
+                id="login-password"
+                value={password}
+                onChange={(e) => { setPassword(e.target.value); setError(null); }}
+                type={showPw ? "text" : "password"}
+                placeholder="Enter your password"
+                required
+                className="h-12 w-full rounded-full border border-border bg-card px-5 pr-12 text-sm outline-none transition-colors focus:border-foreground"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPw((v) => !v)}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              >
+                {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
+          </div>
+
+          <button
+            id="login-submit"
+            type="submit"
+            disabled={loading}
+            className={cn(
+              "inline-flex h-12 w-full items-center justify-center gap-2 rounded-full text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60",
+              theme.tint,
+            )}
+          >
+            {loading ? (
+              <><Loader2 className="h-4 w-4 animate-spin" /> Signing in…</>
+            ) : (
+              <>Sign in to {portal === "vendor" ? "vendor" : "buyer"} portal <ArrowRight className="h-4 w-4" /></>
+            )}
+          </button>
+        </form>
+      )}
+
+      {step === "otp" && (
+        <form onSubmit={handleVerifyOtp} className="space-y-4">
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold text-foreground">Verification code</label>
+            <input
+              value={otp}
+              onChange={(e) => { setOtp(e.target.value); setError(null); }}
+              type="text"
+              inputMode="numeric"
+              maxLength={6}
+              placeholder="Enter 6-digit code"
+              required
+              className="h-12 w-full rounded-full border border-border bg-card px-5 text-center text-lg font-mono tracking-[0.5em] outline-none transition-colors focus:border-foreground"
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={loading}
+            className={cn(
+              "inline-flex h-12 w-full items-center justify-center gap-2 rounded-full text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60",
+              theme.tint,
+            )}
+          >
+            {loading ? (
+              <><Loader2 className="h-4 w-4 animate-spin" /> Verifying…</>
+            ) : (
+              <>Verify code <ArrowRight className="h-4 w-4" /></>
+            )}
+          </button>
+        </form>
+      )}
+
+      {step === "changePassword" && (
+        <form onSubmit={handleChangePassword} className="space-y-4">
+          <PasswordField
+            id="new-password"
+            label="New password"
+            placeholder="At least 12 characters"
+            value={newPw}
+            show={showPw}
+            onToggle={() => setShowPw((v) => !v)}
+            onChange={(e) => { setNewPw(e.target.value); setError(null); }}
+          />
+
+          {/* Strength indicators */}
+          <div className="grid grid-cols-2 gap-1.5">
+            <StrengthRow ok={pwStrength.length} label="12+ characters" />
+            <StrengthRow ok={pwStrength.uppercase} label="Uppercase letter" />
+            <StrengthRow ok={pwStrength.number} label="Number" />
+            <StrengthRow ok={pwStrength.special} label="Special character" />
+          </div>
+
+          <PasswordField
+            id="confirm-password"
+            label="Confirm password"
+            placeholder="Repeat password"
+            value={confirmPw}
+            show={showCPw}
+            onToggle={() => setShowCPw((v) => !v)}
+            onChange={(e) => { setConfirmPw(e.target.value); setError(null); }}
+          />
+
+          {confirmPw && (
+            <p className={cn("text-xs px-2", newPw === confirmPw ? "text-emerald-600" : "text-rose-600")}>
+              {newPw === confirmPw ? "✓ Passwords match" : "✗ Passwords don't match"}
+            </p>
+          )}
+
+          <button
+            type="submit"
+            disabled={loading || !pwOk}
+            className={cn(
+              "inline-flex h-12 w-full items-center justify-center gap-2 rounded-full text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60",
+              theme.tint,
+            )}
+          >
+            {loading ? (
+              <><Loader2 className="h-4 w-4 animate-spin" /> Setting password…</>
+            ) : (
+              <>Set password & sign in <ArrowRight className="h-4 w-4" /></>
+            )}
+          </button>
+        </form>
+      )}
+    </div>
+  );
+}
+
+// ─── Small helpers ────────────────────────────────────────────────────────────
+function StrengthRow({ ok, label }: { ok: boolean; label: string }) {
+  return (
+    <div className={cn("flex items-center gap-1.5 text-xs px-2", ok ? "text-emerald-600" : "text-muted-foreground")}>
+      <span className={cn("h-1.5 w-1.5 rounded-full", ok ? "bg-emerald-500" : "bg-muted-foreground/40")} />
+      {label}
+    </div>
+  );
+}
+
+function PasswordField({
+  label, id, value, show, onToggle, onChange, placeholder,
+}: {
+  label: string;
+  id: string;
+  value: string;
+  show: boolean;
+  onToggle: () => void;
+  onChange: React.ChangeEventHandler<HTMLInputElement>;
+  placeholder?: string;
+}) {
+  return (
+    <div>
+      <label htmlFor={id} className="mb-1.5 block text-xs font-semibold text-foreground">
+        {label}
+      </label>
+      <div className="relative">
+        <input
+          id={id}
+          type={show ? "text" : "password"}
+          value={value}
+          onChange={onChange}
+          placeholder={placeholder}
+          autoComplete="new-password"
+          required
+          className="h-12 w-full rounded-full border border-border bg-card px-5 pr-12 text-sm outline-none transition-colors focus:border-foreground"
+        />
+        <button
+          type="button"
+          onClick={onToggle}
+          className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+        >
+          {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+        </button>
+      </div>
+    </div>
   );
 }
 

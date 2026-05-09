@@ -36,6 +36,18 @@ namespace ProqrLi.Models
         public bool OnboardingComplete { get; set; } = false;
 
         public bool IsActive { get; set; } = true;
+
+        /// <summary>
+        /// Set to true when a user is invited with a temporary password.
+        /// On first login they must verify email via OTP and set a new password.
+        /// </summary>
+        public bool MustChangePassword { get; set; } = false;
+
+        /// <summary>
+        /// The user ID of the tenant owner who sent the invitation.
+        /// </summary>
+        public int? InvitedByUserID { get; set; }
+
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }
 

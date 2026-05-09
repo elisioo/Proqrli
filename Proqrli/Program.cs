@@ -47,7 +47,10 @@ builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<OtpService>();
 
 
-builder.Services.AddControllers()
+builder.Services.AddControllers(options =>
+    {
+        options.Filters.Add<ProqrLi.Filters.AuditLogActionFilter>();
+    })
     .AddJsonOptions(options =>
     {
         options.JsonSerializerOptions.ReferenceHandler =
@@ -68,10 +71,11 @@ builder.Services.AddRazorPages();
 
 var app = builder.Build();
 
-// Run Database Seeder
+// Run migrations + Database Seeder
 using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    context.Database.Migrate();
     DbSeeder.Seed(context);
 }
 

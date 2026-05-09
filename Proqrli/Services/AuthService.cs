@@ -21,6 +21,9 @@ namespace ProqrLi.Services
         public async Task<bool> IsEmailTakenAsync(string email)
             => await _db.TenantUsers.AnyAsync(u => u.Email == email.Trim().ToLowerInvariant());
 
+        public async Task<bool> IsEmailTakenByActiveUserAsync(string email)
+            => await _db.TenantUsers.AnyAsync(u => u.Email == email.Trim().ToLowerInvariant() && !u.MustChangePassword);
+
         // ── Step 3: Register (email + password only) ──────────────────────────
 
         public async Task<AuthResponse> RegisterAsync(RegisterRequest req)
@@ -142,7 +145,11 @@ namespace ProqrLi.Services
 
         // ── Login ─────────────────────────────────────────────────────────────
 
-        public async Task<AuthResponse> LoginAsync(LoginRequest req)
+        /// <summary>
+        /// Login with MustChangePassword flag for invited users.
+        /// Returns tuple with AuthResponse and mustChangePassword flag.
+        /// </summary>
+        public async Task<(AuthResponse response, bool mustChangePassword)> LoginAsync(LoginRequest req)
         {
             var email = req.Email.Trim().ToLowerInvariant();
 
@@ -163,12 +170,14 @@ namespace ProqrLi.Services
                 await _db.SaveChangesAsync();
             }
 
+            var mustChangePassword = user.MustChangePassword;
+
             var userRole = await _db.UserRoles
                 .Include(ur => ur.Role)
                 .FirstOrDefaultAsync(ur => ur.UserID == user.UserID);
             var roleName = userRole?.Role?.RoleName ?? "buyer_owner";
 
-            return BuildResponse(user, user.Tenant!, roleName);
+            return (BuildResponse(user, user.Tenant!, roleName), mustChangePassword);
         }
 
         // ── Get by ID (used by /me) ────────────────────────────────────────────
@@ -187,6 +196,182 @@ namespace ProqrLi.Services
             var roleName = userRole?.Role?.RoleName ?? "buyer_owner";
 
             return BuildResponse(user, user.Tenant!, roleName);
+        }
+
+        // ── Team Management ─────────────────────────────────────────────────────
+
+        public async Task<TenantUser?> GetUserByIdAsync(int userId)
+            => await _db.TenantUsers.FindAsync(userId);
+
+        public async Task<TenantUser?> GetUserByEmailAsync(string email)
+            => await _db.TenantUsers
+                .FirstOrDefaultAsync(u => u.Email == email.Trim().ToLowerInvariant());
+
+        public async Task<string?> GetUserRoleAsync(int userId)
+        {
+            var userRole = await _db.UserRoles
+                .Include(ur => ur.Role)
+                .FirstOrDefaultAsync(ur => ur.UserID == userId);
+            return userRole?.Role?.RoleName;
+        }
+
+        public async Task<List<TeamMemberDto>> GetTeamMembersAsync(int tenantId)
+        {
+            var users = await _db.TenantUsers
+                .Where(u => u.TenantID == tenantId && u.IsActive)
+                .ToListAsync();
+
+            var userIds = users.Select(u => u.UserID).ToList();
+            var userRoles = await _db.UserRoles
+                .Include(ur => ur.Role)
+                .Where(ur => userIds.Contains(ur.UserID))
+                .ToListAsync();
+
+            var roleMap = userRoles.ToDictionary(ur => ur.UserID, ur => ur.Role?.RoleName ?? "");
+
+            return users.Select(u => new TeamMemberDto(
+                UserId: u.UserID,
+                Email: u.Email,
+                FullName: u.FullName ?? "",
+                Position: u.Position ?? "",
+                Role: roleMap.GetValueOrDefault(u.UserID, ""),
+                IsActive: u.IsActive,
+                MustChangePassword: u.MustChangePassword,
+                CreatedAt: u.CreatedAt
+            )).ToList();
+        }
+
+        public async Task<(TenantUser user, string tempPassword)> InviteUserAsync(
+            int tenantId, int invitedByUserId, string email, string roleName,
+            string? fullName = null, string? position = null)
+        {
+            var normalisedEmail = email.Trim().ToLowerInvariant();
+
+            if (await IsEmailTakenByActiveUserAsync(normalisedEmail))
+                throw new InvalidOperationException("An active account with this email already exists.");
+
+            // Remove any previous pending invite for this email in this tenant
+            var existing = await _db.TenantUsers
+                .FirstOrDefaultAsync(u => u.Email == normalisedEmail && u.TenantID == tenantId);
+            if (existing != null)
+            {
+                _db.TenantUsers.Remove(existing);
+                await _db.SaveChangesAsync();
+            }
+
+            // Generate temporary password
+            var tempPassword = GenerateTempPassword();
+
+            var user = new TenantUser
+            {
+                TenantID = tenantId,
+                Email = normalisedEmail,
+                FullName = fullName?.Trim(),
+                Position = position?.Trim(),
+                IsActive = true,
+                OnboardingComplete = false,
+                MustChangePassword = true,
+                InvitedByUserID = invitedByUserId,
+            };
+            user.PasswordHash = _hasher.HashPassword(user, tempPassword);
+            _db.TenantUsers.Add(user);
+            await _db.SaveChangesAsync();
+
+            // Ensure role exists for this tenant
+            var role = await _db.Roles
+                .FirstOrDefaultAsync(r => r.TenantID == tenantId && r.RoleName == roleName);
+            if (role == null)
+            {
+                role = new Role
+                {
+                    TenantID = tenantId,
+                    RoleName = roleName,
+                    Description = $"{roleName} role"
+                };
+                _db.Roles.Add(role);
+                await _db.SaveChangesAsync();
+            }
+
+            _db.UserRoles.Add(new UserRole { UserID = user.UserID, RoleID = role.RoleID });
+            await _db.SaveChangesAsync();
+
+            return (user, tempPassword);
+        }
+
+        public async Task UpdateUserRoleAsync(int tenantId, int userId, string newRoleName)
+        {
+            var user = await _db.TenantUsers
+                .FirstOrDefaultAsync(u => u.UserID == userId && u.TenantID == tenantId);
+            if (user == null) throw new InvalidOperationException("User not found.");
+
+            var existing = await _db.UserRoles
+                .Include(ur => ur.Role)
+                .FirstOrDefaultAsync(ur => ur.UserID == userId);
+
+            // Ensure target role exists
+            var role = await _db.Roles
+                .FirstOrDefaultAsync(r => r.TenantID == tenantId && r.RoleName == newRoleName);
+            if (role == null)
+            {
+                role = new Role
+                {
+                    TenantID = tenantId,
+                    RoleName = newRoleName,
+                    Description = $"{newRoleName} role"
+                };
+                _db.Roles.Add(role);
+                await _db.SaveChangesAsync();
+            }
+
+            if (existing != null)
+            {
+                existing.RoleID = role.RoleID;
+            }
+            else
+            {
+                _db.UserRoles.Add(new UserRole { UserID = userId, RoleID = role.RoleID });
+            }
+            await _db.SaveChangesAsync();
+        }
+
+        public async Task DeactivateUserAsync(int tenantId, int userId)
+        {
+            var user = await _db.TenantUsers
+                .FirstOrDefaultAsync(u => u.UserID == userId && u.TenantID == tenantId);
+            if (user == null) throw new InvalidOperationException("User not found.");
+            user.IsActive = false;
+            await _db.SaveChangesAsync();
+        }
+
+        // ── Password change (invited user) ──────────────────────────────────────
+
+        public async Task<AuthResponse> ChangePasswordAsync(string email, string newPassword)
+        {
+            var normalisedEmail = email.Trim().ToLowerInvariant();
+            var user = await _db.TenantUsers
+                .Include(u => u.Tenant)
+                .FirstOrDefaultAsync(u => u.Email == normalisedEmail && u.IsActive);
+
+            if (user == null)
+                throw new InvalidOperationException("User not found.");
+
+            user.PasswordHash = _hasher.HashPassword(user, newPassword);
+            user.MustChangePassword = false;
+            await _db.SaveChangesAsync();
+
+            var userRole = await _db.UserRoles
+                .Include(ur => ur.Role)
+                .FirstOrDefaultAsync(ur => ur.UserID == user.UserID);
+            var roleName = userRole?.Role?.RoleName ?? "buyer_owner";
+
+            return BuildResponse(user, user.Tenant!, roleName);
+        }
+
+        private static string GenerateTempPassword()
+        {
+            const string chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%";
+            var rng = new Random();
+            return new string(Enumerable.Range(0, 12).Select(_ => chars[rng.Next(chars.Length)]).ToArray());
         }
 
         // ─────────────────────────────────────────────────────────────────────

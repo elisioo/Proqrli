@@ -115,6 +115,57 @@ namespace Proqrli.Migrations
                     b.ToTable("AnalyticsSnapshot");
                 });
 
+            modelBuilder.Entity("ProqrLi.Models.AuditLog", b =>
+                {
+                    b.Property<int>("LogID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("LogID"));
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("EntityId")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("IpAddress")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Module")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<int>("TenantID")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("Timestamp")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("UserID")
+                        .HasColumnType("int");
+
+                    b.Property<string>("UserName")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.HasKey("LogID");
+
+                    b.ToTable("AuditLog");
+                });
+
             modelBuilder.Entity("ProqrLi.Models.Billing", b =>
                 {
                     b.Property<int>("BillingID")
@@ -2152,6 +2203,12 @@ namespace Proqrli.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("TenantID"));
 
+                    b.Property<decimal>("AnnualBudget")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("BillAutoPayLimit")
+                        .HasColumnType("decimal(18,2)");
+
                     b.Property<string>("CompanyName")
                         .IsRequired()
                         .HasMaxLength(150)
@@ -2176,8 +2233,18 @@ namespace Proqrli.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<decimal>("PoApprovalThreshold")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("RequiredApprovers")
+                        .HasColumnType("int");
+
                     b.Property<string>("Status")
                         .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("TaxId")
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
@@ -2294,7 +2361,13 @@ namespace Proqrli.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<int?>("InvitedByUserID")
+                        .HasColumnType("int");
+
                     b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("MustChangePassword")
                         .HasColumnType("bit");
 
                     b.Property<bool>("OnboardingComplete")

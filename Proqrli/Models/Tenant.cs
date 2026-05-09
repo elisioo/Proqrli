@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -55,6 +55,20 @@ namespace ProqrLi.Models
 
         [MaxLength(20)]
         public string? ContactPhone { get; set; }
+
+        [MaxLength(50)]
+        public string? TaxId { get; set; }
+
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal AnnualBudget { get; set; } = 0;
+
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal PoApprovalThreshold { get; set; } = 0;
+
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal BillAutoPayLimit { get; set; } = 0;
+
+        public int RequiredApprovers { get; set; } = 1;
 
         [Required]
         [MaxLength(50)]

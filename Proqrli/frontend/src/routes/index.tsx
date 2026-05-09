@@ -121,17 +121,17 @@ function LandingPage() {
 
     return (
         <div className="min-h-screen bg-paper text-foreground">
-         
+
             <nav
                 className={`fixed inset-x-0 top-0 z-50 flex items-center justify-between px-6 py-4 transition-all md:px-10 ${scrolled
-                        ? "bg-paper/85 backdrop-blur-md shadow-[0_2px_24px_rgba(24,23,20,0.06)]"
-                        : "bg-transparent"
+                    ? "bg-paper/85 backdrop-blur-md shadow-[0_2px_24px_rgba(24,23,20,0.06)]"
+                    : "bg-transparent"
                     }`}
             >
                 <Link to="/" className="flex items-center gap-2.5">
                     <img
                         src={logo}
-                        style={{width:100, height:'auto'} }
+                        style={{ width: 100, height: 'auto' }}
                     />
 
                 </Link>
@@ -155,7 +155,7 @@ function LandingPage() {
                             Get started
                         </button>
                     </Link>
-                    <button 
+                    <button
                         className="flex h-10 w-10 items-center justify-center rounded-full border border-paper-dark bg-paper/70 hover:border-foreground md:hidden"
                         onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                         aria-label="Toggle menu"
@@ -211,7 +211,7 @@ function LandingPage() {
 
                 <div className="relative z-10 mx-auto flex w-full max-w-5xl flex-col items-center text-center">
                     {/* Eyebrow pill */}
-           
+
 
                     <h1 className="font-display text-[clamp(40px,7.5vw,96px)] font-extrabold leading-[1.1] sm:leading-[0.98] tracking-[-0.04em] text-foreground">
                         Release, Secure and
@@ -381,8 +381,8 @@ function LandingPage() {
                                 >
                                     <span
                                         className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full border-[1.5px] font-display text-[13px] font-bold transition-all ${activeStep === i
-                                                ? "border-foreground bg-foreground text-background"
-                                                : "border-paper-dark text-ink-muted"
+                                            ? "border-foreground bg-foreground text-background"
+                                            : "border-paper-dark text-ink-muted"
                                             }`}
                                     >
                                         {i + 1}
@@ -411,7 +411,7 @@ function LandingPage() {
                     </div>
                 </div>
             </section>
-    
+
             {/* VENDOR CTA SECTION */}
             <section id="vendors" className="bg-foreground px-6 py-24 md:px-10 md:py-32">
                 <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-16">
@@ -617,10 +617,10 @@ function DashboardMockup() {
                                     <span className="col-span-2 text-right">
                                         <span
                                             className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9.5px] ${r.tone === "ok"
-                                                    ? "bg-foreground text-paper"
-                                                    : r.tone === "warn"
-                                                        ? "border border-foreground/30 text-foreground"
-                                                        : "bg-paper-mid text-ink-soft"
+                                                ? "bg-foreground text-paper"
+                                                : r.tone === "warn"
+                                                    ? "border border-foreground/30 text-foreground"
+                                                    : "bg-paper-mid text-ink-soft"
                                                 }`}
                                         >
                                             <CircleDot className="h-2 w-2" />

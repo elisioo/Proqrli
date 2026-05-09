@@ -83,6 +83,7 @@ const SECTIONS: NavSection[] = [
     title: "Manage",
     items: [
       { to: "/buyer/settings", label: "Settings", icon: Settings, permission: "settings:view" },
+      { to: "/buyer/team", label: "Team", icon: Users, permission: "team:view" },
     ],
   },
 ];
@@ -120,7 +121,7 @@ export function BuyerSidebar({ onNavigate }: { onNavigate?: () => void }) {
         {SECTIONS.map((section) => {
           const visible = section.items.filter((i) => hasPermission(i.permission));
           if (visible.length === 0) return null;
-          
+
           return (
             <SidebarGroup key={section.title}>
               <SidebarGroupLabel className="t-label">{section.title}</SidebarGroupLabel>
@@ -131,12 +132,12 @@ export function BuyerSidebar({ onNavigate }: { onNavigate?: () => void }) {
                       item.to === "/buyer"
                         ? pathname === "/buyer"
                         : pathname.startsWith(item.to);
-                    
+
                     return (
                       <SidebarMenuItem key={item.to}>
-                        <SidebarMenuButton 
+                        <SidebarMenuButton
                           asChild
-                          isActive={isActive} 
+                          isActive={isActive}
                           tooltip={item.label}
                         >
                           <Link to={item.to} onClick={handleNavigate} className="flex items-center">

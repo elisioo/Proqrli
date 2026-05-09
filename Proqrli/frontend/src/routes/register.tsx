@@ -17,7 +17,7 @@ export const Route = createFileRoute("/register")({
 type Portal = "vendor" | "buyer";
 type Step   = "email" | "otp" | "password";
 
-// ─── Password strength checker ────────────────────────────────────────────────
+
 function checkPassword(pw: string) {
   return {
     length:    pw.length >= 12,
@@ -32,7 +32,7 @@ function RegisterPage() {
   const [portal, setPortal] = React.useState<Portal>("buyer");
   const [step, setStep]     = React.useState<Step>("email");
 
-  // ── Shared state across steps ──────────────────────────────────────────────
+
   const [email,     setEmail]     = React.useState("");
   const [otp,       setOtp]       = React.useState("");
   const [password,  setPassword]  = React.useState("");
@@ -48,7 +48,6 @@ function RegisterPage() {
   const pwStrength = checkPassword(password);
   const pwOk = Object.values(pwStrength).every(Boolean) && password === confirmPw;
 
-  // ── Step 1: Send OTP ──────────────────────────────────────────────────────
   const handleSendOtp = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
@@ -69,7 +68,7 @@ function RegisterPage() {
     }
   };
 
-  // ── Step 2: Verify OTP ────────────────────────────────────────────────────
+ 
   const handleVerifyOtp = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
@@ -86,7 +85,7 @@ function RegisterPage() {
     }
   };
 
-  // ── Step 3: Create account ────────────────────────────────────────────────
+
   const handleRegister = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
@@ -110,7 +109,7 @@ function RegisterPage() {
     }
   };
 
-  // ── Step progress dots ────────────────────────────────────────────────────
+
   const steps: Step[] = ["email", "otp", "password"];
   const stepIdx       = steps.indexOf(step);
 
@@ -349,7 +348,7 @@ function RegisterPage() {
         <div className="relative z-10 flex h-full flex-col justify-end p-12 text-background">
           <div className="mb-6 space-y-3">
             <StepCard active={step === "email"}    num={1} title="Verify your email"     desc="Enter your business email to receive a one-time code." />
-            <StepCard active={step === "otp"}      num={2} title="Enter the OTP"          desc="A 6-digit code is sent to your inbox — valid for 10 minutes." />
+            <StepCard active={step === "otp"}      num={2} title="Enter the OTP"          desc="A 6-digit code is sent to your inbox — valid for 3 minutes." />
             <StepCard active={step === "password"} num={3} title="Set a secure password" desc="12+ characters with uppercase, number & special character." />
           </div>
           <h2 className="font-display text-5xl font-extrabold uppercase leading-none tracking-tight">

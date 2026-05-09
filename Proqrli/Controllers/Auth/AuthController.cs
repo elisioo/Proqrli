@@ -2,36 +2,28 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
+using ProqrLi.Data;
 using ProqrLi.Models;
 using ProqrLi.Services;
 
 namespace ProqrLi.Controllers.Auth
 {
-    /// <summary>
-    /// Cookie-based auth endpoints for the buyer/vendor SPA.
-    /// Base route: /api/auth
-    ///
-    /// Registration flow:
-    ///   1. POST /api/auth/send-otp    — send 6-digit code to email
-    ///   2. POST /api/auth/verify-otp  — validate OTP, returns a short-lived verified token
-    ///   3. POST /api/auth/register    — create account (email + password only, no company yet)
-    ///   4. POST /api/auth/onboarding  — save business profile (company name, size, full name, etc.)
-    /// </summary>
     [ApiController]
     [Route("api/auth")]
     public class AuthController : ControllerBase
     {
         private readonly AuthService _auth;
         private readonly OtpService  _otp;
+        private readonly ApplicationDbContext _db;
 
-        public AuthController(AuthService auth, OtpService otp)
+        public AuthController(AuthService auth, OtpService otp, ApplicationDbContext db)
         {
             _auth = auth;
             _otp  = otp;
+            _db   = db;
         }
 
-        // ─── Step 1: Send OTP ──────────────────────────────────────────────────
-        // POST /api/auth/send-otp
+    
         [HttpPost("send-otp")]
         public async Task<IActionResult> SendOtp([FromBody] SendOtpRequest req)
         {
@@ -42,9 +34,12 @@ namespace ProqrLi.Controllers.Auth
             if (!req.Email.Contains('@') || !req.Email.Contains('.'))
                 return BadRequest(new { error = "Enter a valid email address." });
 
-            // Check if email is already registered
-            bool taken = await _auth.IsEmailTakenAsync(req.Email);
-            if (taken)
+            // Allow OTP for new registrations OR invited users who need to change password
+            var user = await _auth.GetUserByEmailAsync(req.Email);
+            bool isInvitedUser = user?.MustChangePassword == true;
+
+            bool taken = await _auth.IsEmailTakenByActiveUserAsync(req.Email);
+            if (taken && !isInvitedUser)
                 return BadRequest(new { error = "An account with this email already exists. Please sign in." });
 
             try
@@ -68,8 +63,7 @@ namespace ProqrLi.Controllers.Auth
             }
         }
 
-        // ─── Step 2: Verify OTP ────────────────────────────────────────────────
-        // POST /api/auth/verify-otp
+
         [HttpPost("verify-otp")]
         public async Task<IActionResult> VerifyOtp([FromBody] VerifyOtpRequest req)
         {
@@ -83,8 +77,6 @@ namespace ProqrLi.Controllers.Auth
             return Ok(new { verified = true });
         }
 
-        // ─── Step 3: Register (email + password only) ─────────────────────────
-        // POST /api/auth/register
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterRequest req)
         {
@@ -108,8 +100,7 @@ namespace ProqrLi.Controllers.Auth
             }
         }
 
-        // ─── Step 4: Save onboarding profile ──────────────────────────────────
-        // POST /api/auth/onboarding
+ 
         [HttpPost("onboarding")]
         public async Task<IActionResult> Onboarding([FromBody] OnboardingRequest req)
         {
@@ -131,8 +122,7 @@ namespace ProqrLi.Controllers.Auth
             }
         }
 
-        // ─── Login ────────────────────────────────────────────────────────────
-        // POST /api/auth/login
+       
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginRequest req)
         {
@@ -141,27 +131,112 @@ namespace ProqrLi.Controllers.Auth
 
             try
             {
-                var resp = await _auth.LoginAsync(req);
+                var (resp, mustChange) = await _auth.LoginAsync(req);
+                if (mustChange)
+                {
+                    // Auto-send OTP for invited user
+                    var code = await _otp.GenerateAndSendOtpAsync(req.Email);
+                    var isDev = HttpContext.RequestServices
+                        .GetRequiredService<IWebHostEnvironment>()
+                        .IsDevelopment();
+
+                    return Ok(new
+                    {
+                        requiresOtp = true,
+                        email = req.Email,
+                        message = "Please verify your email with the OTP sent to your inbox.",
+                        devCode = isDev ? code : (string?)null
+                    });
+                }
+
                 await SignInAsync(resp);
+
+                // Explicit audit log for login (filter won't catch it because user wasn't auth'd yet)
+                await LogAuditAsync(resp.UserId, resp.FullName, resp.Role, "Logged in", "Auth");
+
                 return Ok(resp);
             }
             catch (UnauthorizedAccessException ex)
             {
+                // Log failed login attempt (TenantUser fields, not AuthResponse)
+                var failUser = await _auth.GetUserByEmailAsync(req.Email);
+                if (failUser != null)
+                {
+                    var failRole = await _auth.GetUserRoleAsync(failUser.UserID) ?? "unknown";
+                    await LogAuditWithTenantAsync(
+                        failUser.TenantID, failUser.UserID,
+                        failUser.FullName ?? failUser.Email, failRole,
+                        $"Failed login attempt", "Auth");
+                }
+
                 return Unauthorized(new { error = ex.Message });
             }
         }
 
-        // ─── Logout ───────────────────────────────────────────────────────────
-        // POST /api/auth/logout
+     
+        public record ChangePasswordRequest(string Email, string Otp, string NewPassword);
+
+        [HttpPost("change-password")]
+        public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest req)
+        {
+            if (string.IsNullOrWhiteSpace(req.Email) ||
+                string.IsNullOrWhiteSpace(req.Otp) ||
+                string.IsNullOrWhiteSpace(req.NewPassword))
+                return BadRequest(new { error = "Email, OTP, and new password are required." });
+
+            if (!IsPasswordValid(req.NewPassword, out var pwErr))
+                return BadRequest(new { error = pwErr });
+
+            // Verify OTP first
+            bool valid = await _otp.VerifyAsync(req.Email, req.Otp);
+            if (!valid)
+                return BadRequest(new { error = "Invalid or expired code. Please try again." });
+
+            try
+            {
+                var resp = await _auth.ChangePasswordAsync(req.Email, req.NewPassword);
+                await SignInAsync(resp);
+
+                // Log password change (invited user first login)
+                await LogAuditAsync(resp.UserId, resp.FullName, resp.Role, "Changed password (first login)", "Auth");
+
+                return Ok(resp);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+        }
+    
         [HttpPost("logout")]
         public async Task<IActionResult> Logout()
         {
+            var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var userName = User.FindFirstValue(ClaimTypes.Name) ?? "Unknown";
+            var role = User.FindFirstValue("role_name") ?? "User";
+            var tenantIdStr = User.FindFirstValue("tenant_id");
+
             await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+
+            if (int.TryParse(userIdStr, out var userId) && int.TryParse(tenantIdStr, out var tenantId))
+            {
+                _db.AuditLogs.Add(new AuditLog
+                {
+                    TenantID = tenantId,
+                    UserID = userId,
+                    UserName = userName,
+                    Role = role,
+                    Action = "Logged out",
+                    Module = "Auth",
+                    IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "0.0.0.0",
+                    Timestamp = DateTime.UtcNow
+                });
+                await _db.SaveChangesAsync();
+            }
+
             return Ok(new { message = "Signed out." });
         }
 
-        // ─── Me ───────────────────────────────────────────────────────────────
-        //  GET /api/auth/me
         [HttpGet("me")]
         public async Task<IActionResult> Me()
         {
@@ -187,6 +262,30 @@ namespace ProqrLi.Controllers.Auth
             if (!pw.Any(char.IsDigit))         { error = "Password must contain at least one number."; return false; }
             if (!pw.Any(c => !char.IsLetterOrDigit(c))) { error = "Password must contain at least one special character."; return false; }
             return true;
+        }
+
+        private async Task LogAuditAsync(int userId, string userName, string role, string action, string module, string? entityId = null)
+        {
+            var tenantIdStr = User.FindFirstValue("tenant_id");
+            if (!int.TryParse(tenantIdStr, out var tenantId)) return;
+            await LogAuditWithTenantAsync(tenantId, userId, userName, role, action, module, entityId);
+        }
+
+        private async Task LogAuditWithTenantAsync(int tenantId, int userId, string userName, string role, string action, string module, string? entityId = null)
+        {
+            _db.AuditLogs.Add(new AuditLog
+            {
+                TenantID = tenantId,
+                UserID = userId,
+                UserName = userName,
+                Role = role,
+                Action = action,
+                Module = module,
+                EntityId = entityId,
+                IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "0.0.0.0",
+                Timestamp = DateTime.UtcNow
+            });
+            await _db.SaveChangesAsync();
         }
 
         private async Task SignInAsync(AuthResponse resp)
