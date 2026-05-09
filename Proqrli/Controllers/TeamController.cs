@@ -25,7 +25,7 @@ namespace ProqrLi.Controllers
             _env = env;
         }
 
-        // ── Helpers ────────────────────────────────────────────────────────────
+      
 
         private int GetCurrentUserId()
         {
@@ -49,7 +49,6 @@ namespace ProqrLi.Controllers
             return role.EndsWith("_owner");
         }
 
-        // ── GET /api/team ──────────────────────────────────────────────────────
 
         [HttpGet]
         public async Task<IActionResult> GetTeam()
@@ -70,7 +69,7 @@ namespace ProqrLi.Controllers
             }
         }
 
-        // ── POST /api/team/invite ─────────────────────────────────────────────
+     
 
         public record InviteRequest(string Email, string Role, string? FullName, string? Position);
 
@@ -115,7 +114,7 @@ namespace ProqrLi.Controllers
             }
         }
 
-        // ── PUT /api/team/{id}/role ────────────────────────────────────────────
+        
 
         public record UpdateRoleRequest(string Role);
 
@@ -141,7 +140,7 @@ namespace ProqrLi.Controllers
             }
         }
 
-        // ── DELETE /api/team/{id} ──────────────────────────────────────────────
+        
 
         [HttpDelete("{id}")]
         public async Task<IActionResult> Deactivate(int id)
@@ -165,7 +164,7 @@ namespace ProqrLi.Controllers
             }
         }
 
-        // ── Email helper ───────────────────────────────────────────────────────
+       
 
         private async Task SendInvitationEmailAsync(string email, string tempPassword)
         {
@@ -180,7 +179,7 @@ namespace ProqrLi.Controllers
 
                 var senderEmail = _config["SendGrid:SenderEmail"] ?? "noreply@proqrli.com";
                 var senderName = _config["SendGrid:SenderName"] ?? "ProqrLi Team";
-                var appUrl = _config["AppUrl"] ?? "https://proqrli.com";
+                var appUrl = _config["AppUrl"] ?? "https://proqrli.runasp.net";
 
                 var client = new SendGrid.SendGridClient(apiKey);
                 var from = new SendGrid.Helpers.Mail.EmailAddress(senderEmail, senderName);

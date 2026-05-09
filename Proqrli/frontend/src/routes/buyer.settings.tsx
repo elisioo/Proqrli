@@ -7,7 +7,7 @@ import { BUYER_ROLE_LABELS, BUYER_ROLE_DESCRIPTIONS, type BuyerRole } from "@/li
 import { THEME_PRESETS } from "@/lib/themes";
 import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { History, Search, Loader2, Download } from "lucide-react";
+import { History, Search, Loader2, Download, RefreshCw } from "lucide-react";
 import { settingsApi, teamApi, type TenantSettingsDto, type AuditLogEntryDto } from "@/lib/api";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -330,6 +330,13 @@ function SettingsPage() {
                       className="h-8 w-52 rounded-sm border border-border bg-paper pl-8 pr-3 text-[11px] outline-none focus:border-foreground"
                     />
                   </div>
+                  <button
+                    onClick={() => queryClient.invalidateQueries({ queryKey: ["audit-logs"] })}
+                    className="inline-flex h-8 items-center gap-1.5 rounded-sm border border-border bg-card px-3 text-[11px] font-semibold hover:bg-paper-mid"
+                  >
+                    <RefreshCw className={cn("h-3 w-3", isLogsLoading && "animate-spin")} />
+                    Refresh
+                  </button>
                   <button
                     onClick={() => exportCsv(logs)}
                     disabled={logs.length === 0}
