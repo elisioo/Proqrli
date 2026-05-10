@@ -1703,6 +1703,15 @@ namespace Proqrli.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<bool>("IsArchived")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Justification")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("ManualItemCount")
+                        .HasColumnType("int");
+
                     b.Property<string>("PRNumber")
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
@@ -1727,6 +1736,10 @@ namespace Proqrli.Migrations
 
                     b.Property<int>("TenantID")
                         .HasColumnType("int");
+
+                    b.Property<string>("Title")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<decimal>("TotalEstimated")
                         .HasColumnType("decimal(18,2)");

@@ -1,11 +1,12 @@
 /* eslint-disable prettier/prettier */
 import * as React from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { PageHeader } from "@/components/PageHeader";
 import { BuyerPermissionGate } from "@/components/BuyerPermissionGate";
 import { formatBuyerCurrency } from "@/lib/buyer-mock-data";
-import { marketplaceApi, type MarketplaceProduct } from "@/lib/api";
+import { marketplaceApi, requisitionsApi, type MarketplaceProduct } from "@/lib/api";
 import { useQuery } from "@tanstack/react-query";
+import { toast } from "sonner";
 import {
     Search, ShoppingCart, Star, Truck, X, Plus, Minus,
     Eye, Package, BadgeCheck,
@@ -67,6 +68,8 @@ function MarketplacePage() {
     const [detail, setDetail] = React.useState<MarketplaceProduct | null>(null);
     const [detailQty, setDetailQty] = React.useState(1);
     const [cartOpen, setCartOpen] = React.useState(false);
+    const [isSubmitting, setIsSubmitting] = React.useState(false);
+    const navigate = useNavigate();
 
     // Debounce search input
     React.useEffect(() => {
@@ -140,6 +143,54 @@ function MarketplacePage() {
     const openDetail = (p: MarketplaceProduct) => {
         setDetail(p);
         setDetailQty(cart[p.id] ?? 1);
+    };
+
+    const handleSubmitPr = async () => {
+        setIsSubmitting(true);
+        try {
+            const items = Object.entries(cart).filter(([_, qty]) => qty > 0);
+            if (items.length === 0) return;
+            
+            const firstId = items[0][0];
+            const firstItemName = productCache[firstId]?.name || "Products";
+            const title = `Marketplace: ${firstItemName}${items.length > 1 ? ` + ${items.length - 1} other(s)` : ""}`;
+            
+            let justification = "Marketplace items requested:\n\n";
+            items.forEach(([id, qty]) => {
+                 const p = productCache[id];
+                 if (p) {
+                     justification += `- ${qty}x ${p.name} @ ${formatBuyerCurrency(p.price)}/${p.uom} = ${formatBuyerCurrency(p.price * qty)}\n`;
+                 }
+            });
+
+            await requisitionsApi.create({
+                title,
+                justification,
+                amount: cartTotal,
+                itemCount: cartCount,
+                neededBy: new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10),
+                items: items.map(([id, qty]) => {
+                    const p = productCache[id];
+                    return {
+                        sku: p?.sku || "UNKNOWN",
+                        name: p?.name || "Unknown Item",
+                        quantity: qty,
+                        price: p?.price || 0,
+                        category: p?.category || "General",
+                        uom: p?.uom || "Unit"
+                    };
+                }),
+            });
+            
+            toast.success("Purchase requisition created from cart!");
+            setCart({});
+            setCartOpen(false);
+            navigate({ to: "/buyer/requisitions" });
+        } catch (e) {
+            toast.error("Failed to create requisition. Please try again.");
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     return (
@@ -534,8 +585,12 @@ function MarketplacePage() {
                                 <span className="font-mono font-bold">{formatBuyerCurrency(cartTotal)}</span>
                             </div>
                             {/* Submit as PR */}
-                            <button className="w-full rounded-sm bg-foreground py-2.5 text-sm font-semibold text-background hover:opacity-85">
-                                Submit as purchase requisition
+                            <button
+                                onClick={handleSubmitPr}
+                                disabled={isSubmitting}
+                                className="w-full rounded-sm bg-foreground py-2.5 text-sm font-semibold text-background hover:opacity-85 disabled:opacity-50"
+                            >
+                                {isSubmitting ? "Submitting..." : "Submit as purchase requisition"}
                             </button>
                             <button
                                 onClick={() => setCart({})}

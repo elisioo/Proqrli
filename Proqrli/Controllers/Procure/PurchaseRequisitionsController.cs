@@ -20,14 +20,16 @@ namespace ProqrLi.Controllers
             {
                 Id          = r.PRID.ToString(),
                 PrNumber    = r.PRNumber ?? "",
-                Title       = r.Purpose ?? "",
+                Title       = r.Title ?? "",
+                Justification = r.Justification ?? "",
                 RequestedBy = r.RequestedBy?.FullName ?? "",
                 Department  = r.Department ?? "",
                 Amount      = r.TotalEstimated,
-                ItemCount   = itemCount,
+                ItemCount   = itemCount > 0 ? itemCount : r.ManualItemCount,
                 Status      = r.Status,
                 RaisedAt    = r.RequestDate.ToString("yyyy-MM-dd"),
                 NeededBy    = r.RequiredDate?.ToString("yyyy-MM-dd") ?? "",
+                IsArchived  = r.IsArchived,
             };
         }
 
@@ -83,7 +85,9 @@ namespace ProqrLi.Controllers
             var pr = new PurchaseRequisition
             {
                 PRNumber       = string.IsNullOrWhiteSpace(dto.PrNumber) ? $"PR-{DateTime.UtcNow.Year}-{Guid.NewGuid().ToString()[..4].ToUpper()}" : dto.PrNumber,
-                Purpose        = dto.Title,
+                Title          = dto.Title,
+                Justification  = dto.Justification,
+                ManualItemCount = dto.ItemCount,
                 Department     = dto.Department,
                 TotalEstimated = dto.Amount,
                 RequestDate    = DateTime.UtcNow,
@@ -95,6 +99,39 @@ namespace ProqrLi.Controllers
 
             _db.PurchaseRequisitions.Add(pr);
             await _db.SaveChangesAsync();
+
+            if (dto.Items != null && dto.Items.Any())
+            {
+                foreach (var dtoItem in dto.Items)
+                {
+                    // Map to a local Item (buyer inventory) if it doesn't exist
+                    var localItem = await _db.Items.FirstOrDefaultAsync(i => i.TenantID == tenantId && i.ItemName == dtoItem.Name);
+                    if (localItem == null)
+                    {
+                        localItem = new Item
+                        {
+                            TenantID = tenantId,
+                            ItemName = dtoItem.Name,
+                            ItemCode = dtoItem.Sku,
+                            Category = dtoItem.Category,
+                            UnitOfMeasure = dtoItem.Uom,
+                            UnitPrice = dtoItem.Price
+                        };
+                        _db.Items.Add(localItem);
+                        await _db.SaveChangesAsync(); // needed to get the new ItemID
+                    }
+
+                    _db.RequisitionItems.Add(new RequisitionItem
+                    {
+                        PRID = pr.PRID,
+                        ItemID = localItem.ItemID,
+                        Quantity = dtoItem.Quantity,
+                        EstimatedPrice = dtoItem.Price,
+                        Specifications = "Sourced from Marketplace"
+                    });
+                }
+                await _db.SaveChangesAsync();
+            }
 
             // Reload with includes for the DTO
             var saved = await _db.PurchaseRequisitions
@@ -114,10 +151,13 @@ namespace ProqrLi.Controllers
 
             if (pr == null) return NotFound();
 
-            if (dto.Title      != null) pr.Purpose        = dto.Title;
-            if (dto.Department != null) pr.Department      = dto.Department;
-            if (dto.Amount     != null) pr.TotalEstimated  = dto.Amount.Value;
-            if (dto.Status     != null) pr.Status          = dto.Status;
+            if (dto.Title      != null) pr.Title          = dto.Title;
+            if (dto.Justification != null) pr.Justification = dto.Justification;
+            if (dto.Department != null) pr.Department     = dto.Department;
+            if (dto.Amount     != null) pr.TotalEstimated = dto.Amount.Value;
+            if (dto.ItemCount  != null) pr.ManualItemCount = dto.ItemCount.Value;
+            if (dto.Status     != null) pr.Status         = dto.Status;
+            if (dto.IsArchived != null) pr.IsArchived     = dto.IsArchived.Value;
             if (dto.NeededBy   != null && DateTime.TryParse(dto.NeededBy, out var nb))
                 pr.RequiredDate = nb;
 
@@ -150,8 +190,8 @@ namespace ProqrLi.Controllers
             var pr = await _db.PurchaseRequisitions.FindAsync(id);
             if (pr == null) return NotFound();
 
-            // Soft delete — just cancel it, don't remove the record
-            pr.Status = "Cancelled";
+            // Soft delete
+            pr.IsArchived = true;
             await _db.SaveChangesAsync();
 
             return NoContent();

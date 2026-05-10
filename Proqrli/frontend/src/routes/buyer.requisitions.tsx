@@ -1,7 +1,7 @@
 /* eslint-disable prettier/prettier */
 import { createFileRoute } from "@tanstack/react-router";
 import * as React from "react";
-import { Pencil, Archive, Loader2 } from "lucide-react";
+import { Pencil, Ban, Loader2, Archive, RotateCcw, X as XIcon } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { BuyerPermissionGate } from "@/components/BuyerPermissionGate";
 import { AutoStatus } from "@/components/StatusPill";
@@ -64,12 +64,14 @@ function generatePRNumber(): string {
 const EMPTY = {
     prNumber: "",
     title: "",
+    justification: "",
     requestedBy: "",
     department: DEFAULT_DEPTS[0],
     amount: 0,
-    itemCount: 0,
+    itemCount: 1,
     status: "Draft" as const,
-    neededBy: new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10),
+    neededBy: new Date().toISOString().slice(0, 10),
+    isArchived: false,
 };
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
@@ -81,7 +83,7 @@ function RequisitionsPage() {
 
     const store = useApiCollection<Requisition, CreateRequisitionPayload, UpdateRequisitionPayload>(requisitionsApi);
 
-    const [view, setView] = React.useState<"active" | "cancelled">("active");
+    const [view, setView] = React.useState<"active" | "cancelled" | "archived">("active");
     const [drawer, setDrawer] = React.useState<{ mode: "create" | "edit"; id?: string } | null>(null);
     const [draft, setDraft] = React.useState(EMPTY);
     const [saving, setSaving] = React.useState(false);
@@ -102,9 +104,10 @@ function RequisitionsPage() {
         [store.items],
     );
 
-    const active = store.items.filter((r) => r.status !== "Cancelled");
-    const cancelled = store.items.filter((r) => r.status === "Cancelled");
-    const list = view === "active" ? active : cancelled;
+    const active = store.items.filter((r) => !r.isArchived && r.status !== "Cancelled");
+    const cancelled = store.items.filter((r) => !r.isArchived && r.status === "Cancelled");
+    const archived = store.items.filter((r) => r.isArchived);
+    const list = view === "active" ? active : view === "cancelled" ? cancelled : archived;
 
     // ── Drawer open / close ────────────────────────────────────────────────
 
@@ -121,12 +124,14 @@ function RequisitionsPage() {
         setDraft({
             prNumber: r.prNumber,
             title: r.title,
+            justification: r.justification ?? "",
             requestedBy: r.requestedBy,
             department: r.department,
             amount: r.amount,
             itemCount: r.itemCount,
             status: r.status as typeof EMPTY.status,
             neededBy: r.neededBy,
+            isArchived: r.isArchived,
         });
         setDrawer({ mode: "edit", id: r.id });
     };
@@ -142,6 +147,7 @@ function RequisitionsPage() {
             if (drawer.mode === "create") {
                 await store.create({
                     title: draft.title,
+                    justification: draft.justification,
                     requestedBy: draft.requestedBy,
                     department: draft.department,
                     amount: draft.amount,
@@ -151,11 +157,13 @@ function RequisitionsPage() {
             } else if (drawer.id) {
                 await store.update(drawer.id, {
                     title: draft.title,
+                    justification: draft.justification,
                     department: draft.department,
                     amount: draft.amount,
                     itemCount: draft.itemCount,
                     status: draft.status,
                     neededBy: draft.neededBy,
+                    isArchived: draft.isArchived,
                 });
             }
             closeDrawer();
@@ -166,18 +174,32 @@ function RequisitionsPage() {
         }
     };
 
-    // ── Archive (with confirmation modal) ─────────────────────────────────
-
     const handleArchive = () => {
         if (!drawer?.id) return;
         const target = store.items.find((r) => r.id === drawer.id);
         setConfirmState({
-            title: "Cancel requisition?",
-            desc: `Are you sure you want to cancel "${target?.title ?? "this requisition"}"? This action cannot be undone.`,
+            title: "Archive requisition?",
+            desc: `Are you sure you want to archive "${target?.title ?? "this requisition"}"? It will be moved to the archive tab.`,
             onConfirm: async () => {
                 await store.archive(drawer.id!);
                 closeDrawer();
             },
+        });
+    };
+
+    const handleCancel = (r: Requisition) => {
+        setConfirmState({
+            title: "Cancel requisition?",
+            desc: `Are you sure you want to cancel "${r.title}"?`,
+            onConfirm: () => store.update(r.id, { status: "Cancelled" }),
+        });
+    };
+
+    const handleRestore = (r: Requisition) => {
+        setConfirmState({
+            title: "Restore requisition?",
+            desc: `Restore "${r.title}" to active status?`,
+            onConfirm: () => store.update(r.id, { isArchived: false }),
         });
     };
 
@@ -200,6 +222,9 @@ function RequisitionsPage() {
     };
 
     // ─────────────────────────────────────────────────────────────────────────
+
+    // Requestors cannot edit once approved/rejected/converted
+    const isLocked = !canApprove && ["Approved", "Rejected", "Converted to RFQ", "Converted to PO"].includes(draft.status);
 
     return (
         <div className="mx-auto flex max-w-7xl flex-col gap-6">
@@ -239,10 +264,10 @@ function RequisitionsPage() {
                 <>
                     {/* View tabs */}
                     <div className="flex gap-1 border-b border-border">
-                        {(["active", "cancelled"] as const).map((v) => (
+                        {(canApprove ? ["active", "cancelled", "archived"] : ["active", "cancelled"]).map((v) => (
                             <button
                                 key={v}
-                                onClick={() => setView(v)}
+                                onClick={() => setView(v as any)}
                                 className={cn(
                                     "border-b-2 px-3 py-2 text-xs font-mono uppercase tracking-widest",
                                     view === v
@@ -250,7 +275,7 @@ function RequisitionsPage() {
                                         : "border-transparent text-muted-foreground hover:text-foreground",
                                 )}
                             >
-                                {v} ({v === "active" ? active.length : cancelled.length})
+                                {v} ({v === "active" ? active.length : v === "cancelled" ? cancelled.length : archived.length})
                             </button>
                         ))}
                     </div>
@@ -285,44 +310,72 @@ function RequisitionsPage() {
                                         <td className="px-4 py-3"><AutoStatus status={r.status} /></td>
                                         <td className="px-4 py-3">
                                             <div className="flex justify-end gap-1">
-                                                {r.status === "Cancelled" ? (
-                                                    <span className="text-xs text-muted-foreground">Cancelled</span>
+                                                {r.isArchived ? (
+                                                    canApprove && (
+                                                        <button
+                                                            onClick={() => handleRestore(r)}
+                                                            className="inline-flex h-7 items-center gap-1 rounded-sm border border-emerald-200 bg-emerald-50 px-2 text-[10px] font-semibold text-emerald-700 hover:bg-emerald-100"
+                                                            title="Restore"
+                                                        >
+                                                            <RotateCcw className="h-3 w-3" /> Restore
+                                                        </button>
+                                                    )
                                                 ) : (
                                                     <>
-                                                        {r.status === "Pending Approval" && canApprove && (
+                                                        {r.status === "Cancelled" ? (
+                                                            <span className="text-xs text-muted-foreground">Cancelled</span>
+                                                        ) : (
                                                             <>
+                                                                {r.status === "Pending Approval" && canApprove && (
+                                                                    <>
+                                                                        <button
+                                                                            onClick={() => handleApprove(r)}
+                                                                            className="rounded-sm bg-foreground px-2 py-1 text-[10px] font-semibold text-background"
+                                                                        >
+                                                                            Approve
+                                                                        </button>
+                                                                        <button
+                                                                            onClick={() => handleReject(r)}
+                                                                            className="rounded-sm border border-border px-2 py-1 text-[10px] font-semibold"
+                                                                        >
+                                                                            Reject
+                                                                        </button>
+                                                                    </>
+                                                                )}
                                                                 <button
-                                                                    onClick={() => handleApprove(r)}
-                                                                    className="rounded-sm bg-foreground px-2 py-1 text-[10px] font-semibold text-background"
+                                                                    onClick={() => openEdit(r)}
+                                                                    className="inline-flex h-7 items-center gap-1 rounded-sm border border-border bg-card px-2 text-[10px] font-semibold hover:border-foreground"
                                                                 >
-                                                                    Approve
+                                                                    <Pencil className="h-3 w-3" />
                                                                 </button>
-                                                                <button
-                                                                    onClick={() => handleReject(r)}
-                                                                    className="rounded-sm border border-border px-2 py-1 text-[10px] font-semibold"
-                                                                >
-                                                                    Reject
-                                                                </button>
+                                                                {/* Anyone can cancel their draft/pending request */}
+                                                                {["Draft", "Pending Approval"].includes(r.status) && (
+                                                                    <button
+                                                                        onClick={() => handleCancel(r)}
+                                                                        className="inline-flex h-7 items-center gap-1 rounded-sm border border-rose-200 bg-rose-50 px-2 text-[10px] font-semibold text-rose-700 hover:bg-rose-100"
+                                                                        title="Cancel request"
+                                                                    >
+                                                                        <XIcon className="h-3 w-3" />
+                                                                    </button>
+                                                                )}
+                                                                {/* Only Admin/Approver can Archive */}
+                                                                {canApprove && (
+                                                                    <button
+                                                                        onClick={() =>
+                                                                            setConfirmState({
+                                                                                title: "Archive requisition?",
+                                                                                desc: `Archive "${r.title}"? It will be hidden from the active list.`,
+                                                                                onConfirm: () => store.archive(r.id),
+                                                                            })
+                                                                        }
+                                                                        className="inline-flex h-7 items-center gap-1 rounded-sm border border-amber-200 bg-amber-50 px-2 text-[10px] font-semibold text-amber-700 hover:bg-amber-100"
+                                                                        title="Archive"
+                                                                    >
+                                                                        <Archive className="h-3 w-3" />
+                                                                    </button>
+                                                                )}
                                                             </>
                                                         )}
-                                                        <button
-                                                            onClick={() => openEdit(r)}
-                                                            className="inline-flex h-7 items-center gap-1 rounded-sm border border-border bg-card px-2 text-[10px] font-semibold hover:border-foreground"
-                                                        >
-                                                            <Pencil className="h-3 w-3" />
-                                                        </button>
-                                                        <button
-                                                            onClick={() =>
-                                                                setConfirmState({
-                                                                    title: "Cancel requisition?",
-                                                                    desc: `Are you sure you want to cancel "${r.title}"?`,
-                                                                    onConfirm: () => store.archive(r.id),
-                                                                })
-                                                            }
-                                                            className="inline-flex h-7 items-center gap-1 rounded-sm border border-rose-200 bg-rose-50 px-2 text-[10px] font-semibold text-rose-700 hover:bg-rose-100"
-                                                        >
-                                                            <Archive className="h-3 w-3" />
-                                                        </button>
                                                     </>
                                                 )}
                                             </div>
@@ -350,8 +403,9 @@ function RequisitionsPage() {
                 description="Submit a request for goods or services for your department."
                 onClose={closeDrawer}
                 onSave={handleSave}
-                onArchive={drawer?.mode === "edit" ? handleArchive : undefined}
-                canSave={draft.title.trim() !== "" && draft.requestedBy.trim() !== "" && !saving}
+                onArchive={drawer?.mode === "edit" && canApprove ? handleArchive : undefined}
+                archiveLabel="Archive record"
+                canSave={!isLocked && draft.title.trim() !== "" && draft.requestedBy.trim() !== "" && !saving}
                 saveLabel={saving ? "Saving…" : undefined}
             >
                 {/* PR Number — read-only, auto-generated */}
@@ -386,6 +440,7 @@ function RequisitionsPage() {
                         className={inputCls}
                         value={draft.title}
                         onChange={(e) => setDraft({ ...draft, title: e.target.value })}
+                        disabled={isLocked}
                         placeholder="Enter the title"
                     />
                 </Field>
@@ -395,6 +450,7 @@ function RequisitionsPage() {
                         <input
                             className={inputCls}
                             value={draft.requestedBy}
+                            disabled={isLocked}
                             onChange={(e) => setDraft({ ...draft, requestedBy: e.target.value })}
                         />
                     </Field>
@@ -403,6 +459,7 @@ function RequisitionsPage() {
                         <SelectOrCustom
                             value={draft.department}
                             options={allDepts}
+                            disabled={isLocked}
                             onChange={(val) => setDraft({ ...draft, department: val })}
                             addLabel="+ Other department…"
                             placeholder="Type department name…"
@@ -414,6 +471,7 @@ function RequisitionsPage() {
                     <Field label="Items">
                         <NumberInput
                             value={draft.itemCount}
+                            disabled={isLocked}
                             onChange={(val) => setDraft({ ...draft, itemCount: val })}
                             placeholder="0"
                         />
@@ -421,6 +479,7 @@ function RequisitionsPage() {
                     <Field label="Amount">
                         <NumberInput
                             value={draft.amount}
+                            disabled={isLocked}
                             onChange={(val) => setDraft({ ...draft, amount: val })}
                             placeholder="0.00"
                             step={0.01}
@@ -431,6 +490,7 @@ function RequisitionsPage() {
                             type="date"
                             className={inputCls}
                             value={draft.neededBy}
+                            disabled={isLocked}
                             onChange={(e) => setDraft({ ...draft, neededBy: e.target.value })}
                         />
                     </Field>
@@ -439,6 +499,9 @@ function RequisitionsPage() {
                 <Field label="Justification">
                     <textarea
                         className={textareaCls}
+                        value={draft.justification}
+                        disabled={isLocked}
+                        onChange={(e) => setDraft({ ...draft, justification: e.target.value })}
                         placeholder="Why this is needed and any vendor preferences."
                     />
                 </Field>

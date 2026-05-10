@@ -1,0 +1,1 @@
+import{j as n,L as o}from"./index-DdY6y1JG.js";const e=()=>n.jsxs("div",{className:"mx-auto max-w-3xl p-12 text-center",children:[n.jsx("p",{className:"t-label",children:"RFQ not found"}),n.jsx(o,{to:"/buyer/rfqs",className:"mt-4 inline-block underline",children:"Back to RFQs"})]});export{e as notFoundComponent};

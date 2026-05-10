@@ -1,3 +1,4 @@
+/* eslint-disable prettier/prettier */
 import * as React from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { PageHeader } from "@/components/PageHeader";
@@ -20,13 +21,7 @@ export const Route = createFileRoute("/buyer/settings")({
   ),
 });
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
 
-/**
- * Convert a UTC ISO-8601 timestamp string to a human-readable Philippines
- * local time string (Asia/Manila, UTC+8). The backend always sends timestamps
- * as "yyyy-MM-ddTHH:mm:ssZ" (explicit UTC), so conversion is always accurate.
- */
 function formatPHTime(ts: string): string {
   const utc = ts.endsWith("Z") || /[+-]\d{2}:\d{2}$/.test(ts) ? ts : ts + "Z";
   return new Date(utc).toLocaleString("en-PH", {

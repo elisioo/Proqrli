@@ -96,6 +96,7 @@ export type Requisition = {
     id: string;
     prNumber: string;
     title: string;
+    justification?: string;
     requestedBy: string;
     department: string;
     amount: number;
@@ -103,26 +104,37 @@ export type Requisition = {
     status: "Draft" | "Pending Approval" | "Approved" | "Rejected" | "Converted to RFQ" | "Converted to PO" | "Cancelled";
     raisedAt: string;
     neededBy: string;
-    archived?: boolean;
+    isArchived: boolean;
 };
 
 export type CreateRequisitionPayload = {
     prNumber?: string;
     title: string;
+    justification?: string;
     requestedBy?: string;
     department?: string;
     amount: number;
     itemCount?: number;
     neededBy: string;
+    items?: Array<{
+        sku: string;
+        name: string;
+        quantity: number;
+        price: number;
+        category: string;
+        uom: string;
+    }>;
 };
 
 export type UpdateRequisitionPayload = Partial<{
     title: string;
+    justification: string;
     department: string;
     amount: number;
     itemCount: number;
     status: string;
     neededBy: string;
+    isArchived: boolean;
 }>;
 
 export const requisitionsApi = {

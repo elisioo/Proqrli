@@ -60,11 +60,20 @@ namespace ProqrLi.Models
         [MaxLength(50)]
         public string? CostCenter { get; set; }
 
+        [MaxLength(200)]
+        public string? Title { get; set; }
+
         [MaxLength(500)]
         public string? Purpose { get; set; }
 
+        public string? Justification { get; set; }
+
+        public int ManualItemCount { get; set; }
+
         [MaxLength(50)]
         public string Status { get; set; } = "Draft";
+
+        public bool IsArchived { get; set; } = false;
 
         [Column(TypeName = "decimal(18,2)")]
         public decimal TotalEstimated { get; set; }

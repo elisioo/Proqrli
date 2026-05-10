@@ -10,7 +10,8 @@ namespace ProqrLi.DTOs
     {
         public string Id          { get; set; } = "";   // PRID cast to string
         public string PrNumber    { get; set; } = "";
-        public string Title       { get; set; } = "";   // maps to Purpose
+        public string Title       { get; set; } = "";
+        public string Justification { get; set; } = "";
         public string RequestedBy { get; set; } = "";   // RequestedBy.FullName
         public string Department  { get; set; } = "";
         public decimal Amount     { get; set; }         // TotalEstimated
@@ -18,27 +19,42 @@ namespace ProqrLi.DTOs
         public string Status      { get; set; } = "";
         public string RaisedAt    { get; set; } = "";   // RequestDate ISO
         public string NeededBy    { get; set; } = "";   // RequiredDate ISO
+        public bool IsArchived    { get; set; }
     }
 
     public class CreateRequisitionDto
     {
         public string? PrNumber    { get; set; }
         public string Title        { get; set; } = "";
+        public string? Justification { get; set; }
         public string? RequestedBy { get; set; }
         public string? Department  { get; set; }
         public decimal Amount      { get; set; }
         public int ItemCount       { get; set; } = 1;
         public string NeededBy     { get; set; } = "";
+        public List<CreateRequisitionItemDto>? Items { get; set; }
+    }
+
+    public class CreateRequisitionItemDto
+    {
+        public string Sku { get; set; } = "";
+        public string Name { get; set; } = "";
+        public decimal Quantity { get; set; }
+        public decimal Price { get; set; }
+        public string Category { get; set; } = "";
+        public string Uom { get; set; } = "";
     }
 
     public class UpdateRequisitionDto
     {
         public string? Title      { get; set; }
+        public string? Justification { get; set; }
         public string? Department { get; set; }
         public decimal? Amount    { get; set; }
         public int? ItemCount     { get; set; }
         public string? Status     { get; set; }
         public string? NeededBy   { get; set; }
+        public bool? IsArchived   { get; set; }
     }
 
     // ─── Purchase Order ───────────────────────────────────────────────────────

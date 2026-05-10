@@ -25,6 +25,7 @@ export function CrudDrawer({
     onClose,
     onSave,
     onArchive,
+    archiveLabel,
     saveLabel,
     children,
     canSave = true,
@@ -36,6 +37,7 @@ export function CrudDrawer({
     onClose: () => void;
     onSave: () => void;
     onArchive?: () => void;
+    archiveLabel?: string;
     saveLabel?: string;
     children: React.ReactNode;
     canSave?: boolean;
@@ -72,7 +74,7 @@ export function CrudDrawer({
                                 onClick={onArchive}
                                 className="inline-flex h-9 items-center gap-1 rounded-sm border border-amber-200 bg-amber-50 px-3 text-xs font-semibold text-amber-700 hover:bg-amber-100"
                             >
-                                <Archive className="h-3 w-3" /> Archive
+                                <Archive className="h-3 w-3" /> {archiveLabel ?? "Archive"}
                             </button>
                         )}
                     </div>
@@ -172,6 +174,7 @@ export function SelectOrCustom({
     addLabel = "+ Add custom…",
     placeholder = "Type a value…",
     className,
+    disabled,
 }: {
     value: string;
     options: string[];
@@ -179,6 +182,7 @@ export function SelectOrCustom({
     addLabel?: string;
     placeholder?: string;
     className?: string;
+    disabled?: boolean;
 }) {
     // Track whether we're in "custom typing" mode.
     const isCustom = value !== "" && !options.includes(value);
@@ -194,26 +198,30 @@ export function SelectOrCustom({
             <div className="flex items-center gap-2">
                 <input
                     autoFocus
-                    className={cn(inputCls, className)}
+                    className={cn(inputCls, disabled && "cursor-not-allowed bg-muted opacity-70", className)}
                     value={value}
                     placeholder={placeholder}
+                    disabled={disabled}
                     onChange={(e) => onChange(e.target.value)}
                 />
-                <button
-                    type="button"
-                    onClick={() => { setCustomMode(false); onChange(options[0] ?? ""); }}
-                    className="shrink-0 text-xs font-semibold text-muted-foreground hover:text-foreground"
-                >
-                    Cancel
-                </button>
+                {!disabled && (
+                    <button
+                        type="button"
+                        onClick={() => { setCustomMode(false); onChange(options[0] ?? ""); }}
+                        className="shrink-0 text-xs font-semibold text-muted-foreground hover:text-foreground"
+                    >
+                        Cancel
+                    </button>
+                )}
             </div>
         );
     }
 
     return (
         <select
-            className={cn(selectCls, className)}
+            className={cn(selectCls, disabled && "cursor-not-allowed bg-muted opacity-70", className)}
             value={options.includes(value) ? value : ""}
+            disabled={disabled}
             onChange={(e) => {
                 if (e.target.value === "___OTHER___") {
                     setCustomMode(true);
