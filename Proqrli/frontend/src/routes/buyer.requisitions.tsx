@@ -364,18 +364,19 @@ function RequisitionsPage() {
                             readOnly
                         />
                     </Field>
-                    <Field label="Status">
+                    <Field label="Status" hint={!canApprove ? "Only Approvers can authorize requests" : undefined}>
                         <select
-                            className={selectCls}
+                            className={cn(selectCls, (!canApprove && !["Draft", "Pending Approval"].includes(draft.status)) && "cursor-not-allowed bg-muted opacity-70")}
                             value={draft.status}
                             onChange={(e) => setDraft({ ...draft, status: e.target.value as typeof draft.status })}
+                            disabled={!canApprove && !["Draft", "Pending Approval"].includes(draft.status)}
                         >
-                            <option>Draft</option>
-                            <option>Pending Approval</option>
-                            <option>Approved</option>
-                            <option>Rejected</option>
-                            <option>Converted to RFQ</option>
-                            <option>Converted to PO</option>
+                            <option value="Draft">Draft</option>
+                            <option value="Pending Approval">Pending Approval</option>
+                            {(canApprove || draft.status === "Approved") && <option value="Approved" disabled={!canApprove}>Approved</option>}
+                            {(canApprove || draft.status === "Rejected") && <option value="Rejected" disabled={!canApprove}>Rejected</option>}
+                            {(canApprove || draft.status === "Converted to RFQ") && <option value="Converted to RFQ" disabled={!canApprove}>Converted to RFQ</option>}
+                            {(canApprove || draft.status === "Converted to PO") && <option value="Converted to PO" disabled={!canApprove}>Converted to PO</option>}
                         </select>
                     </Field>
                 </div>

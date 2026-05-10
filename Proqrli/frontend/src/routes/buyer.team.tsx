@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useBuyer } from "@/lib/buyer-context";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/buyer/team")({
     component: () => (
@@ -23,6 +24,7 @@ export const Route = createFileRoute("/buyer/team")({
 });
 
 const ROLES: { value: BuyerRole; label: string }[] = [
+    { value: "buyer_owner", label: BUYER_ROLE_LABELS["buyer_owner"] },
     { value: "buyer_procurement", label: BUYER_ROLE_LABELS["buyer_procurement"] },
     { value: "buyer_approver", label: BUYER_ROLE_LABELS["buyer_approver"] },
     { value: "buyer_finance", label: BUYER_ROLE_LABELS["buyer_finance"] },
@@ -30,58 +32,6 @@ const ROLES: { value: BuyerRole; label: string }[] = [
     { value: "buyer_warehouse", label: BUYER_ROLE_LABELS["buyer_warehouse"] },
     { value: "buyer_requester", label: BUYER_ROLE_LABELS["buyer_requester"] },
 ];
-
-// ─── Toast System ────────────────────────────────────────────────────────────
-
-type ToastType = "success" | "error" | "warning";
-
-interface Toast {
-    id: string;
-    type: ToastType;
-    message: string;
-}
-
-function ToastContainer({ toasts, onDismiss }: { toasts: Toast[]; onDismiss: (id: string) => void }) {
-    return (
-        <div className="fixed bottom-5 right-5 z-50 flex flex-col gap-2 w-80">
-            {toasts.map((t) => (
-                <div
-                    key={t.id}
-                    className={cn(
-                        "flex items-start gap-3 rounded-md border px-4 py-3 text-sm shadow-lg animate-in slide-in-from-right-5 duration-200",
-                        t.type === "success" && "border-emerald-200 bg-emerald-50 text-emerald-800",
-                        t.type === "error" && "border-rose-200 bg-rose-50 text-rose-800",
-                        t.type === "warning" && "border-amber-200 bg-amber-50 text-amber-800",
-                    )}
-                >
-                    {t.type === "success" && <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0 text-emerald-600" />}
-                    {t.type === "error" && <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-rose-600" />}
-                    {t.type === "warning" && <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-600" />}
-                    <span className="flex-1 leading-snug">{t.message}</span>
-                    <button onClick={() => onDismiss(t.id)} className="flex-shrink-0 opacity-50 hover:opacity-100">
-                        <X className="h-3.5 w-3.5" />
-                    </button>
-                </div>
-            ))}
-        </div>
-    );
-}
-
-function useToast() {
-    const [toasts, setToasts] = React.useState<Toast[]>([]);
-
-    const push = React.useCallback((type: ToastType, message: string) => {
-        const id = crypto.randomUUID();
-        setToasts((prev) => [...prev, { id, type, message }]);
-        setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 4500);
-    }, []);
-
-    const dismiss = React.useCallback((id: string) => {
-        setToasts((prev) => prev.filter((t) => t.id !== id));
-    }, []);
-
-    return { toasts, dismiss, toast: { success: (m: string) => push("success", m), error: (m: string) => push("error", m), warning: (m: string) => push("warning", m) } };
-}
 
 // ─── Confirmation Dialog ─────────────────────────────────────────────────────
 
@@ -153,12 +103,10 @@ function ConfirmDialog({
     );
 }
 
-// ─── Page ────────────────────────────────────────────────────────────────────
 
 function TeamPage() {
     const { hasPermission } = useBuyer();
     const queryClient = useQueryClient();
-    const { toasts, dismiss, toast } = useToast();
 
     const [inviteOpen, setInviteOpen] = React.useState(false);
     const [form, setForm] = React.useState<InvitePayload>({ email: "", role: "buyer_procurement" });
@@ -378,14 +326,10 @@ function TeamPage() {
                 onCancel={() => setConfirm({ open: false, memberId: null, isPending: false, name: "" })}
                 isLoading={removeMutation.isPending}
             />
-
-            {/* Toast Notifications */}
-            <ToastContainer toasts={toasts} onDismiss={dismiss} />
         </div>
     );
 }
 
-// ─── Row ─────────────────────────────────────────────────────────────────────
 
 function TeamMemberRow({
     member,

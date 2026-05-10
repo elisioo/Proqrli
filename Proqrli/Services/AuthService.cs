@@ -247,14 +247,41 @@ namespace ProqrLi.Services
         {
             var normalisedEmail = email.Trim().ToLowerInvariant();
 
-            if (await IsEmailTakenByActiveUserAsync(normalisedEmail))
-                throw new InvalidOperationException("An active account with this email already exists.");
+            // Removed redundant check because we handle it below
 
-            // Remove any previous pending invite for this email in this tenant
             var existing = await _db.TenantUsers
                 .FirstOrDefaultAsync(u => u.Email == normalisedEmail && u.TenantID == tenantId);
+            
             if (existing != null)
             {
+                if (!existing.MustChangePassword && existing.IsActive)
+                    throw new InvalidOperationException("An active account with this email already exists.");
+
+                if (!existing.MustChangePassword && !existing.IsActive)
+                {
+                    // User was deactivated. Reactivate instead of recreate.
+                    existing.IsActive = true;
+                    
+                    var existingRole = await _db.Roles.FirstOrDefaultAsync(r => r.TenantID == tenantId && r.RoleName == roleName);
+                    if (existingRole == null)
+                    {
+                        existingRole = new Role { TenantID = tenantId, RoleName = roleName, Description = $"{roleName} role" };
+                        _db.Roles.Add(existingRole);
+                        await _db.SaveChangesAsync();
+                    }
+
+                    var userRole = await _db.UserRoles.FirstOrDefaultAsync(ur => ur.UserID == existing.UserID);
+                    if (userRole != null) userRole.RoleID = existingRole.RoleID;
+                    else _db.UserRoles.Add(new UserRole { UserID = existing.UserID, RoleID = existingRole.RoleID });
+
+                    await _db.SaveChangesAsync();
+                    return (existing, "User reactivated. They can use their existing password.");
+                }
+
+                // If MustChangePassword is true, it's a pending invite. Remove dependencies and recreate.
+                var existingRoles = await _db.UserRoles.Where(ur => ur.UserID == existing.UserID).ToListAsync();
+                _db.UserRoles.RemoveRange(existingRoles);
+                
                 _db.TenantUsers.Remove(existing);
                 await _db.SaveChangesAsync();
             }
@@ -339,7 +366,23 @@ namespace ProqrLi.Services
             var user = await _db.TenantUsers
                 .FirstOrDefaultAsync(u => u.UserID == userId && u.TenantID == tenantId);
             if (user == null) throw new InvalidOperationException("User not found.");
-            user.IsActive = false;
+
+            if (user.MustChangePassword)
+            {
+                // This is a pending invite that has never been activated.
+                // We can safely hard-delete the user and their associated roles to keep the database clean.
+                var existingRoles = await _db.UserRoles.Where(ur => ur.UserID == userId).ToListAsync();
+                _db.UserRoles.RemoveRange(existingRoles);
+                
+                _db.TenantUsers.Remove(user);
+            }
+            else
+            {
+                // This is a fully registered user.
+                // We soft delete (deactivate) them to retain audit history and foreign key references.
+                user.IsActive = false;
+            }
+
             await _db.SaveChangesAsync();
         }
 
