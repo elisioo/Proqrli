@@ -5,15 +5,24 @@ import { BuyerTopbar } from "@/components/buyer/BuyerTopbar";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 
 export const Route = createFileRoute("/buyer")({
-  // ── Auth guard ─────────────────────────────────────────────────────────────
-  // If neither a real session nor a mock demo session exists, redirect to /login.
-  beforeLoad: () => {
+
+  beforeLoad: async () => {
     if (typeof window === "undefined") return; // SSR safety
 
-    const hasReal = !!window.localStorage.getItem("procurli:buyer:realUser");
-    const hasMock = !!window.localStorage.getItem("procurli:buyer:userId");
+    try {
 
-    if (!hasReal && !hasMock) {
+      const res = await fetch("/api/auth/me", { credentials: "include" });
+      if (!res.ok) {
+
+        throw redirect({ to: "/login" });
+      }
+
+      const user = await res.json();
+      window.localStorage.setItem("procurli:buyer:realUser", JSON.stringify(user));
+    } catch (err: unknown) {
+
+      if (err && typeof err === "object" && "isRedirect" in err) throw err;
+
       throw redirect({ to: "/login" });
     }
   },

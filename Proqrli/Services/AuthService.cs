@@ -361,6 +361,19 @@ namespace ProqrLi.Services
             await _db.SaveChangesAsync();
         }
 
+        public async Task UpdateMemberProfileAsync(int tenantId, int userId, string fullName, string position)
+        {
+            var user = await _db.TenantUsers
+                .FirstOrDefaultAsync(u => u.UserID == userId && u.TenantID == tenantId);
+            
+            if (user == null) throw new InvalidOperationException("User not found.");
+
+            user.FullName = fullName?.Trim();
+            user.Position = position?.Trim();
+
+            await _db.SaveChangesAsync();
+        }
+
         public async Task DeactivateUserAsync(int tenantId, int userId)
         {
             var user = await _db.TenantUsers
@@ -408,6 +421,20 @@ namespace ProqrLi.Services
             var roleName = userRole?.Role?.RoleName ?? "buyer_owner";
 
             return BuildResponse(user, user.Tenant!, roleName);
+        }
+
+        public async Task UpdatePasswordAsync(int userId, string oldPassword, string newPassword)
+        {
+            var user = await _db.TenantUsers.FindAsync(userId);
+            if (user == null || !user.IsActive)
+                throw new InvalidOperationException("User not found or inactive.");
+
+            var verifyResult = _hasher.VerifyHashedPassword(user, user.PasswordHash, oldPassword);
+            if (verifyResult == PasswordVerificationResult.Failed)
+                throw new UnauthorizedAccessException("Current password is incorrect.");
+
+            user.PasswordHash = _hasher.HashPassword(user, newPassword);
+            await _db.SaveChangesAsync();
         }
 
         private static string GenerateTempPassword()

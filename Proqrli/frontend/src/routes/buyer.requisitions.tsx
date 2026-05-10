@@ -5,6 +5,7 @@ import { Pencil, Ban, Loader2, Archive, RotateCcw, X as XIcon } from "lucide-rea
 import { PageHeader } from "@/components/PageHeader";
 import { BuyerPermissionGate } from "@/components/BuyerPermissionGate";
 import { AutoStatus } from "@/components/StatusPill";
+import { toast } from "sonner";
 import {
     CrudDrawer,
     Field,
@@ -88,6 +89,14 @@ function RequisitionsPage() {
     const [draft, setDraft] = React.useState(EMPTY);
     const [saving, setSaving] = React.useState(false);
 
+    // ── Pagination ────────────────────────────────────────────────────────
+    const PAGE_SIZE_OPTIONS = [5, 10, 25, 50, 0] as const; // 0 = All
+    const [page, setPage] = React.useState(1);
+    const [pageSize, setPageSize] = React.useState<number>(10);
+
+    // Reset to page 1 whenever the tab changes
+    React.useEffect(() => { setPage(1); }, [view]);
+
     // Confirmation modal state (archive, approve, reject, etc.)
     const [confirmState, setConfirmState] = React.useState<{
         title: string;
@@ -104,10 +113,15 @@ function RequisitionsPage() {
         [store.items],
     );
 
-    const active = store.items.filter((r) => !r.isArchived && r.status !== "Cancelled");
+    const active    = store.items.filter((r) => !r.isArchived && r.status !== "Cancelled");
     const cancelled = store.items.filter((r) => !r.isArchived && r.status === "Cancelled");
-    const archived = store.items.filter((r) => r.isArchived);
-    const list = view === "active" ? active : view === "cancelled" ? cancelled : archived;
+    const archived  = store.items.filter((r) => r.isArchived);
+    const list      = view === "active" ? active : view === "cancelled" ? cancelled : archived;
+
+    // Paginate
+    const totalPages    = pageSize === 0 ? 1 : Math.max(1, Math.ceil(list.length / pageSize));
+    const safePage      = Math.min(page, totalPages);
+    const paginatedList = pageSize === 0 ? list : list.slice((safePage - 1) * pageSize, safePage * pageSize);
 
     // ── Drawer open / close ────────────────────────────────────────────────
 
@@ -154,6 +168,7 @@ function RequisitionsPage() {
                     itemCount: draft.itemCount,
                     neededBy: draft.neededBy,
                 });
+                toast.success("Requisition created successfully");
             } else if (drawer.id) {
                 await store.update(drawer.id, {
                     title: draft.title,
@@ -165,10 +180,12 @@ function RequisitionsPage() {
                     neededBy: draft.neededBy,
                     isArchived: draft.isArchived,
                 });
+                toast.success("Requisition updated successfully");
             }
             closeDrawer();
         } catch (err) {
             console.error("Save failed:", err);
+            toast.error("Failed to save requisition");
         } finally {
             setSaving(false);
         }
@@ -181,8 +198,13 @@ function RequisitionsPage() {
             title: "Archive requisition?",
             desc: `Are you sure you want to archive "${target?.title ?? "this requisition"}"? It will be moved to the archive tab.`,
             onConfirm: async () => {
-                await store.archive(drawer.id!);
-                closeDrawer();
+                try {
+                    await store.archive(drawer.id!);
+                    toast.success("Requisition archived");
+                    closeDrawer();
+                } catch {
+                    toast.error("Failed to archive requisition");
+                }
             },
         });
     };
@@ -191,7 +213,14 @@ function RequisitionsPage() {
         setConfirmState({
             title: "Cancel requisition?",
             desc: `Are you sure you want to cancel "${r.title}"?`,
-            onConfirm: () => store.update(r.id, { status: "Cancelled" }),
+            onConfirm: async () => {
+                try {
+                    await store.update(r.id, { status: "Cancelled" });
+                    toast.success("Requisition cancelled");
+                } catch {
+                    toast.error("Failed to cancel requisition");
+                }
+            },
         });
     };
 
@@ -199,7 +228,14 @@ function RequisitionsPage() {
         setConfirmState({
             title: "Restore requisition?",
             desc: `Restore "${r.title}" to active status?`,
-            onConfirm: () => store.update(r.id, { isArchived: false }),
+            onConfirm: async () => {
+                try {
+                    await store.update(r.id, { isArchived: false });
+                    toast.success("Requisition restored");
+                } catch {
+                    toast.error("Failed to restore requisition");
+                }
+            },
         });
     };
 
@@ -209,7 +245,14 @@ function RequisitionsPage() {
         setConfirmState({
             title: "Approve requisition?",
             desc: `Approve "${r.title}" (${r.prNumber})? This will mark it ready for PO or RFQ conversion.`,
-            onConfirm: () => store.update(r.id, { status: "Approved" }),
+            onConfirm: async () => {
+                try {
+                    await store.update(r.id, { status: "Approved" });
+                    toast.success("Requisition approved");
+                } catch {
+                    toast.error("Failed to approve requisition");
+                }
+            },
         });
     };
 
@@ -217,7 +260,14 @@ function RequisitionsPage() {
         setConfirmState({
             title: "Reject requisition?",
             desc: `Reject "${r.title}" (${r.prNumber})? The requester will need to submit a new PR.`,
-            onConfirm: () => store.update(r.id, { status: "Rejected" }),
+            onConfirm: async () => {
+                try {
+                    await store.update(r.id, { status: "Rejected" });
+                    toast.success("Requisition rejected");
+                } catch {
+                    toast.error("Failed to reject requisition");
+                }
+            },
         });
     };
 
@@ -296,7 +346,7 @@ function RequisitionsPage() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-border">
-                                {list.map((r) => (
+                                {paginatedList.map((r) => (
                                     <tr key={r.id} className="hover:bg-muted/40">
                                         <td className="px-4 py-3 font-mono text-xs">{r.prNumber}</td>
                                         <td className="px-4 py-3 font-medium">{r.title}</td>
@@ -365,7 +415,14 @@ function RequisitionsPage() {
                                                                             setConfirmState({
                                                                                 title: "Archive requisition?",
                                                                                 desc: `Archive "${r.title}"? It will be hidden from the active list.`,
-                                                                                onConfirm: () => store.archive(r.id),
+                                                                                onConfirm: async () => {
+                                                                                    try {
+                                                                                        await store.archive(r.id);
+                                                                                        toast.success("Requisition archived");
+                                                                                    } catch {
+                                                                                        toast.error("Failed to archive requisition");
+                                                                                    }
+                                                                                },
                                                                             })
                                                                         }
                                                                         className="inline-flex h-7 items-center gap-1 rounded-sm border border-amber-200 bg-amber-50 px-2 text-[10px] font-semibold text-amber-700 hover:bg-amber-100"
@@ -382,7 +439,7 @@ function RequisitionsPage() {
                                         </td>
                                     </tr>
                                 ))}
-                                {list.length === 0 && (
+                                {paginatedList.length === 0 && (
                                     <tr>
                                         <td colSpan={9} className="px-4 py-12 text-center text-sm text-muted-foreground">
                                             No requisitions in this view.
@@ -392,6 +449,75 @@ function RequisitionsPage() {
                             </tbody>
                         </table>
                     </div>
+
+                    {/* ── Pagination footer ── */}
+                    {list.length > 0 && (
+                        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border bg-card px-4 py-3 text-xs text-muted-foreground">
+                            {/* Left: row range + rows-per-page selector */}
+                            <div className="flex items-center gap-3">
+                                <span>
+                                    {pageSize === 0
+                                        ? `All ${list.length} rows`
+                                        : `${Math.min((safePage - 1) * pageSize + 1, list.length)}–${Math.min(safePage * pageSize, list.length)} of ${list.length}`}
+                                </span>
+                                <div className="flex items-center gap-1.5">
+                                    <span className="font-semibold text-foreground">Rows per page</span>
+                                    <select
+                                        value={pageSize}
+                                        onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }}
+                                        className="h-7 rounded-sm border border-border bg-card px-2 text-xs outline-none focus:border-foreground"
+                                    >
+                                        {PAGE_SIZE_OPTIONS.map((n) => (
+                                            <option key={n} value={n}>{n === 0 ? "All" : n}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+
+                            {/* Right: page buttons */}
+                            {pageSize !== 0 && totalPages > 1 && (
+                                <div className="flex items-center gap-1">
+                                    <button
+                                        onClick={() => setPage((p) => Math.max(1, p - 1))}
+                                        disabled={safePage === 1}
+                                        className="inline-flex h-7 w-7 items-center justify-center rounded-sm border border-border hover:border-foreground disabled:opacity-30"
+                                    >‹</button>
+
+                                    {Array.from({ length: totalPages }, (_, i) => i + 1)
+                                        .filter((pg) => pg === 1 || pg === totalPages || Math.abs(pg - safePage) <= 1)
+                                        .reduce<(number | "…")[]>((acc, pg, idx, arr) => {
+                                            if (idx > 0 && pg - (arr[idx - 1] as number) > 1) acc.push("…");
+                                            acc.push(pg);
+                                            return acc;
+                                        }, [])
+                                        .map((item, idx) =>
+                                            item === "…" ? (
+                                                <span key={`ellipsis-${idx}`} className="px-1">…</span>
+                                            ) : (
+                                                <button
+                                                    key={item}
+                                                    onClick={() => setPage(item as number)}
+                                                    className={cn(
+                                                        "inline-flex h-7 w-7 items-center justify-center rounded-sm border text-xs font-semibold",
+                                                        safePage === item
+                                                            ? "border-foreground bg-foreground text-background"
+                                                            : "border-border hover:border-foreground",
+                                                    )}
+                                                >{item}</button>
+                                            )
+                                        )
+                                    }
+
+                                    <button
+                                        onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                                        disabled={safePage === totalPages}
+                                        className="inline-flex h-7 w-7 items-center justify-center rounded-sm border border-border hover:border-foreground disabled:opacity-30"
+                                    >›</button>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
                 </>
             )}
 

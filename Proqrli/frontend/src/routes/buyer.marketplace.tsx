@@ -4,6 +4,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { PageHeader } from "@/components/PageHeader";
 import { BuyerPermissionGate } from "@/components/BuyerPermissionGate";
 import { formatBuyerCurrency } from "@/lib/buyer-mock-data";
+import { useBuyer } from "@/lib/buyer-context";
 import { marketplaceApi, requisitionsApi, type MarketplaceProduct } from "@/lib/api";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -58,6 +59,7 @@ function StockPill({ product }: { product: MarketplaceProduct }) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 function MarketplacePage() {
+    const { user } = useBuyer();
     const [cat, setCat] = React.useState("All");
     const [q, setQ] = React.useState("");
     const [debouncedQ, setDebouncedQ] = React.useState("");
@@ -168,6 +170,8 @@ function MarketplacePage() {
                 justification,
                 amount: cartTotal,
                 itemCount: cartCount,
+                requestedBy: user.name,
+                department: user.department,
                 neededBy: new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10),
                 items: items.map(([id, qty]) => {
                     const p = productCache[id];

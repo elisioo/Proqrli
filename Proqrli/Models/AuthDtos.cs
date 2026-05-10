@@ -65,4 +65,17 @@ namespace ProqrLi.Models
         string Role,
         bool   OnboardingComplete
     );
+
+    /// <summary>PATCH /api/auth/profile — update own display name, position, phone</summary>
+    public record UpdateProfileRequest(
+        string? FullName       = null,
+        string? Position       = null,
+        string? ContactNumber  = null
+    );
+
+    /// <summary>POST /api/auth/update-password — change own password</summary>
+    public record UpdatePasswordRequest(
+        string OldPassword,
+        string NewPassword
+    );
 }

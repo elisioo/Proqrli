@@ -119,6 +119,37 @@ function TeamPage() {
         name: string;
     }>({ open: false, memberId: null, isPending: false, name: "" });
 
+    // ── Edit state ────────────────────────────────────────────────────────
+    const [editOpen, setEditOpen] = React.useState(false);
+    const [editForm, setEditForm] = React.useState<{ userId: number; fullName: string; position: string }>({
+        userId: 0, fullName: "", position: ""
+    });
+
+    const updateMemberMutation = useMutation({
+        mutationFn: (body: { userId: number; fullName: string; position: string }) => 
+            teamApi.updateMember(body.userId, { fullName: body.fullName, position: body.position }),
+        onSuccess: () => {
+            toast.success("Team member updated successfully");
+            queryClient.invalidateQueries({ queryKey: ["team-members"] });
+            setEditOpen(false);
+        },
+        onError: (err: Error) => toast.error(err.message),
+    });
+
+    const openEdit = (member: TeamMember) => {
+        setEditForm({
+            userId: member.userId,
+            fullName: member.fullName ?? "",
+            position: member.position ?? "",
+        });
+        setEditOpen(true);
+    };
+
+    const handleEditSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        updateMemberMutation.mutate(editForm);
+    };
+
     const { data: members = [], isLoading } = useQuery({
         queryKey: ["team-members"],
         queryFn: teamApi.list,
@@ -302,6 +333,7 @@ function TeamPage() {
                                     canManage={hasPermission("team:manage")}
                                     onUpdateRole={(role) => updateRoleMutation.mutate({ userId: m.userId, role })}
                                     onAction={() => openConfirm(m)}
+                                    onEdit={() => openEdit(m)}
                                     isUpdating={updateRoleMutation.isPending}
                                     isRemoving={removeMutation.isPending && confirm.memberId === m.userId}
                                 />
@@ -310,6 +342,48 @@ function TeamPage() {
                     </table>
                 )}
             </div>
+
+            {/* Edit Member Dialog */}
+            {editOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center">
+                    <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setEditOpen(false)} />
+                    <div className="relative z-10 w-full max-w-sm rounded-lg border border-border bg-card shadow-2xl mx-4">
+                        <div className="flex items-center justify-between border-b border-border px-5 py-4">
+                            <span className="text-sm font-semibold text-foreground">Edit team member</span>
+                            <button onClick={() => setEditOpen(false)} className="text-muted-foreground hover:text-foreground">
+                                <X className="h-4 w-4" />
+                            </button>
+                        </div>
+                        <form onSubmit={handleEditSubmit} className="p-5 flex flex-col gap-4">
+                            <div className="flex flex-col gap-1">
+                                <label className="text-xs font-semibold text-foreground">Full name</label>
+                                <input
+                                    type="text"
+                                    required
+                                    value={editForm.fullName}
+                                    onChange={(e) => setEditForm((f) => ({ ...f, fullName: e.target.value }))}
+                                    className="h-9 rounded-sm border border-border bg-card px-3 text-sm outline-none focus:border-foreground"
+                                />
+                            </div>
+                            <div className="flex flex-col gap-1">
+                                <label className="text-xs font-semibold text-foreground">Position</label>
+                                <input
+                                    type="text"
+                                    value={editForm.position}
+                                    onChange={(e) => setEditForm((f) => ({ ...f, position: e.target.value }))}
+                                    className="h-9 rounded-sm border border-border bg-card px-3 text-sm outline-none focus:border-foreground"
+                                />
+                            </div>
+                            <div className="flex justify-end gap-2 mt-2">
+                                <button type="button" onClick={() => setEditOpen(false)} className="h-8 rounded-sm border border-border px-3 text-xs font-semibold text-muted-foreground hover:text-foreground">Cancel</button>
+                                <button type="submit" disabled={updateMemberMutation.isPending} className="inline-flex h-8 items-center gap-1.5 rounded-sm bg-foreground px-3 text-xs font-semibold text-background hover:opacity-85 disabled:opacity-50">
+                                    {updateMemberMutation.isPending && <Loader2 className="h-3 w-3 animate-spin" />} Save
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
 
             {/* Confirmation Dialog */}
             <ConfirmDialog
@@ -336,6 +410,7 @@ function TeamMemberRow({
     canManage,
     onUpdateRole,
     onAction,
+    onEdit,
     isUpdating,
     isRemoving,
 }: {
@@ -343,6 +418,7 @@ function TeamMemberRow({
     canManage: boolean;
     onUpdateRole: (role: string) => void;
     onAction: () => void;
+    onEdit: () => void;
     isUpdating: boolean;
     isRemoving: boolean;
 }) {
@@ -417,35 +493,43 @@ function TeamMemberRow({
             </td>
             {canManage && (
                 <td className="px-4 py-3 text-right">
-                    {isPending ? (
-                        // Pending → show "Cancel Invite" in amber
+                    <div className="flex items-center justify-end gap-2">
                         <button
-                            onClick={onAction}
-                            disabled={isRemoving}
-                            className="inline-flex items-center gap-1 rounded-sm border border-amber-200 bg-amber-50 px-2.5 py-1.5 text-xs font-semibold text-amber-700 hover:bg-amber-100 disabled:opacity-50"
+                            onClick={onEdit}
+                            disabled={isRemoving || isUpdating}
+                            className="inline-flex h-7 px-3 items-center justify-center rounded-sm border border-border text-xs font-semibold text-muted-foreground hover:border-foreground hover:text-foreground disabled:opacity-50"
                         >
-                            {isRemoving
-                                ? <Loader2 className="h-3 w-3 animate-spin" />
-                                : <Ban className="h-3 w-3" />
-                            }
-                            Cancel Invite
+                            Edit
                         </button>
-                    ) : (
-                        // Active → show "Deactivate" in red
-                        <button
-                            onClick={onAction}
-                            disabled={isRemoving}
-                            className="inline-flex items-center gap-1 rounded-sm border border-rose-200 bg-rose-50 px-2.5 py-1.5 text-xs font-semibold text-rose-700 hover:bg-rose-100 disabled:opacity-50"
-                        >
-                            {isRemoving
-                                ? <Loader2 className="h-3 w-3 animate-spin" />
-                                : <Ban className="h-3 w-3" />
-                            }
-                            Deactivate
-                        </button>
-                    )}
+                        {isPending ? (
+                            <button
+                                onClick={onAction}
+                                disabled={isRemoving}
+                                className="inline-flex items-center gap-1 rounded-sm border border-amber-200 bg-amber-50 px-2.5 py-1.5 text-xs font-semibold text-amber-700 hover:bg-amber-100 disabled:opacity-50"
+                            >
+                                {isRemoving
+                                    ? <Loader2 className="h-3 w-3 animate-spin" />
+                                    : <Ban className="h-3 w-3" />
+                                }
+                                Cancel
+                            </button>
+                        ) : (
+                            <button
+                                onClick={onAction}
+                                disabled={isRemoving}
+                                className="inline-flex items-center gap-1 rounded-sm border border-rose-200 bg-rose-50 px-2.5 py-1.5 text-xs font-semibold text-rose-700 hover:bg-rose-100 disabled:opacity-50"
+                            >
+                                {isRemoving
+                                    ? <Loader2 className="h-3 w-3 animate-spin" />
+                                    : <Ban className="h-3 w-3" />
+                                }
+                                Deactivate
+                            </button>
+                        )}
+                    </div>
                 </td>
             )}
+
         </tr>
     );
 }

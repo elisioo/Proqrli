@@ -89,6 +89,21 @@ export const authApi = {
         req<void>("/auth/logout", { method: "POST" }),
     me: () =>
         req<AuthUser>("/auth/me"),
+    updateProfile: (body: UpdateProfilePayload) =>
+        req<AuthUser>("/auth/profile", { method: "PATCH", body: JSON.stringify(body) }),
+    updatePassword: (body: UpdatePasswordPayload) =>
+        req<{ message: string }>("/auth/update-password", { method: "POST", body: JSON.stringify(body) }),
+};
+
+export type UpdateProfilePayload = {
+    fullName?: string;
+    position?: string;
+    contactNumber?: string;
+};
+
+export type UpdatePasswordPayload = {
+    oldPassword: string;
+    newPassword: string;
 };
 
 
@@ -653,6 +668,7 @@ export const teamApi = {
     list: () => req<TeamMember[]>("/team"),
     invite: (payload: InvitePayload) => req<{ message: string; userId: number; devPassword?: string }>("/team/invite", { method: "POST", body: JSON.stringify(payload) }),
     updateRole: (userId: number, role: string) => req<{ message: string }>(`/team/${userId}/role`, { method: "PUT", body: JSON.stringify({ role }) }),
+    updateMember: (userId: number, payload: { fullName: string; position: string }) => req<{ message: string }>(`/team/${userId}`, { method: "PATCH", body: JSON.stringify(payload) }),
     remove: (userId: number) => req<{ message: string }>(`/team/${userId}`, { method: "DELETE" }),
 };
 

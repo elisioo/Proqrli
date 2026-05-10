@@ -315,5 +315,69 @@ namespace ProqrLi.Controllers.Auth
                 }
             );
         }
+        [HttpPatch("profile")]
+        public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileRequest req)
+        {
+            if (User.Identity?.IsAuthenticated != true)
+                return Unauthorized(new { error = "Not authenticated." });
+
+            var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (!int.TryParse(userIdStr, out var userId))
+                return Unauthorized(new { error = "Invalid session." });
+
+            var user = await _db.TenantUsers.FindAsync(userId);
+            if (user == null) return NotFound(new { error = "User not found." });
+
+            if (!string.IsNullOrWhiteSpace(req.FullName))   user.FullName      = req.FullName.Trim();
+            if (!string.IsNullOrWhiteSpace(req.Position))   user.Position      = req.Position.Trim();
+            if (req.ContactNumber != null)                   user.ContactNumber = req.ContactNumber.Trim();
+
+            await _db.SaveChangesAsync();
+
+            // Return the updated user data. No cookie re-issuance needed here—
+            // re-signing would overwrite any other user's session in the same browser.
+            // The frontend calls /api/auth/me on mount to get fresh data.
+            var resp = await _auth.GetByIdAsync(userId);
+
+            await LogAuditAsync(userId, user.FullName ?? user.Email, User.FindFirstValue("role_name") ?? "", "Updated profile", "Auth");
+
+            return Ok(resp);
+        }
+
+        [HttpPost("update-password")]
+        public async Task<IActionResult> UpdatePassword([FromBody] UpdatePasswordRequest req)
+        {
+            if (User.Identity?.IsAuthenticated != true)
+                return Unauthorized(new { error = "Not authenticated." });
+
+            if (string.IsNullOrWhiteSpace(req.OldPassword) || string.IsNullOrWhiteSpace(req.NewPassword))
+                return BadRequest(new { error = "Both current and new passwords are required." });
+
+            if (!IsPasswordValid(req.NewPassword, out var pwError))
+                return BadRequest(new { error = pwError });
+
+            var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (!int.TryParse(userIdStr, out var userId))
+                return Unauthorized(new { error = "Invalid session." });
+
+            try
+            {
+                await _auth.UpdatePasswordAsync(userId, req.OldPassword, req.NewPassword);
+                
+                var userName = User.FindFirstValue(ClaimTypes.Name) ?? "User";
+                var role = User.FindFirstValue("role_name") ?? "";
+                await LogAuditAsync(userId, userName, role, "Changed password", "Auth");
+
+                return Ok(new { message = "Password updated successfully." });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+        }
     }
 }

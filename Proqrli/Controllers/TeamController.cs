@@ -140,7 +140,35 @@ namespace ProqrLi.Controllers
             }
         }
 
-        
+        public record UpdateMemberRequest(string FullName, string Position);
+
+        [HttpPatch("{id}")]
+        public async Task<IActionResult> UpdateMember(int id, [FromBody] UpdateMemberRequest req)
+        {
+            if (!IsOwner())
+                return StatusCode(403, new { error = "Only workspace owners can edit team members' profiles." });
+
+            try
+            {
+                var tenantId = GetCurrentTenantId();
+                var user = await _auth.GetUserByIdAsync(id);
+                
+                if (user == null || user.TenantID != tenantId)
+                    return NotFound(new { error = "Team member not found in this workspace." });
+
+                // We can use the existing DbContext via standard injection but AuthService encapsulates DB.
+                // Since AuthService doesn't expose a direct update method for name/position by admin,
+                // we'll implement it right in AuthService. Let's call a new method UpdateMemberProfileAsync.
+                await _auth.UpdateMemberProfileAsync(tenantId, id, req.FullName, req.Position);
+
+                return Ok(new { message = "Team member profile updated." });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to update member {UserId}", id);
+                return StatusCode(500, new { error = ex.Message });
+            }
+        }
 
         [HttpDelete("{id}")]
         public async Task<IActionResult> Deactivate(int id)

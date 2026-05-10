@@ -1,18 +1,29 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ProqrLi.Data;
 using ProqrLi.Models;
 using ProqrLi.DTOs;
+using System.Security.Claims;
 
 namespace ProqrLi.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class PurchaseRequisitionsController : ControllerBase
     {
         private readonly ApplicationDbContext _db;
 
         public PurchaseRequisitionsController(ApplicationDbContext db) => _db = db;
+
+        // Resolve the authenticated user's ID from the session cookie.
+        // This is the ONLY correct way to identify who is creating a PR.
+        private int? GetSessionUserId()
+        {
+            var idStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            return int.TryParse(idStr, out var id) ? id : null;
+        }
 
         private static RequisitionDto ToDto(PurchaseRequisition r, int itemCount = 0)
         {
@@ -73,28 +84,43 @@ namespace ProqrLi.Controllers
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] CreateRequisitionDto dto)
         {
-            // Resolve tenant (simplified — first tenant for now)
+            // ── Resolve tenant ──────────────────────────────────────────────────
             var tenantId = await _db.Tenants.Select(t => t.TenantID).FirstOrDefaultAsync();
             if (tenantId == 0) tenantId = 1;
 
-            // Resolve requestedBy user
-            var requestedByUser = !string.IsNullOrWhiteSpace(dto.RequestedBy)
-                ? await _db.TenantUsers.FirstOrDefaultAsync(u => u.FullName == dto.RequestedBy)
-                : null;
+            // ── Resolve the requesting user from the AUTHENTICATED SESSION ──────
+            // NEVER use FullName string-matching — names can collide across users.
+            // The session cookie is the authoritative source of identity.
+            var sessionUserId = GetSessionUserId();
+            int requestedByID;
+
+            if (sessionUserId.HasValue)
+            {
+                // Verify the session user actually belongs to this tenant
+                var sessionUser = await _db.TenantUsers
+                    .FirstOrDefaultAsync(u => u.UserID == sessionUserId.Value && u.TenantID == tenantId);
+                requestedByID = sessionUser?.UserID
+                    ?? await _db.TenantUsers.Where(u => u.TenantID == tenantId).Select(u => u.UserID).FirstOrDefaultAsync();
+            }
+            else
+            {
+                // Fallback (unauthenticated legacy path — should not happen with [Authorize])
+                requestedByID = await _db.TenantUsers.Where(u => u.TenantID == tenantId).Select(u => u.UserID).FirstOrDefaultAsync();
+            }
 
             var pr = new PurchaseRequisition
             {
-                PRNumber       = string.IsNullOrWhiteSpace(dto.PrNumber) ? $"PR-{DateTime.UtcNow.Year}-{Guid.NewGuid().ToString()[..4].ToUpper()}" : dto.PrNumber,
-                Title          = dto.Title,
-                Justification  = dto.Justification,
+                PRNumber        = string.IsNullOrWhiteSpace(dto.PrNumber) ? $"PR-{DateTime.UtcNow.Year}-{Guid.NewGuid().ToString()[..4].ToUpper()}" : dto.PrNumber,
+                Title           = dto.Title,
+                Justification   = dto.Justification,
                 ManualItemCount = dto.ItemCount,
-                Department     = dto.Department,
-                TotalEstimated = dto.Amount,
-                RequestDate    = DateTime.UtcNow,
-                RequiredDate   = DateTime.TryParse(dto.NeededBy, out var nb) ? nb : DateTime.UtcNow.AddDays(14),
-                Status         = "Draft",
-                TenantID       = tenantId,
-                RequestedByID  = requestedByUser?.UserID ?? (await _db.TenantUsers.Select(u => u.UserID).FirstOrDefaultAsync()),
+                Department      = dto.Department,
+                TotalEstimated  = dto.Amount,
+                RequestDate     = DateTime.UtcNow,
+                RequiredDate    = DateTime.TryParse(dto.NeededBy, out var nb) ? nb : DateTime.UtcNow.AddDays(14),
+                Status          = "Draft",
+                TenantID        = tenantId,
+                RequestedByID   = requestedByID,
             };
 
             _db.PurchaseRequisitions.Add(pr);

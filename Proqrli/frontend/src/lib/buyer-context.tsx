@@ -51,6 +51,10 @@ type BuyerState = {
   hasPermission: (p: BuyerPermission) => boolean;
   /** Call after a successful /api/auth/logout to clear real session */
   clearRealSession: () => void;
+  /** Manual update of the real user session */
+  setRealUser: (au: AuthUser) => void;
+  /** Re-fetch the current user profile from /api/auth/me */
+  refreshUser: () => Promise<void>;
 };
 
 const BuyerCtx = React.createContext<BuyerState | null>(null);
@@ -90,7 +94,9 @@ function syntheticMember(au: AuthUser): BuyerTeamMember {
     role:       (au.role as BuyerRole) in BUYER_ROLE_PERMISSIONS
                   ? (au.role as BuyerRole)
                   : "buyer_procurement",
-    department: "",
+    department: au.position || "",
+    position:   au.position,
+    contactNumber: au.contactNumber,
     active:     true,
     joinedAt:   "",
     initials:   initials || "??",
@@ -128,7 +134,36 @@ function applyTheme(themeId: ThemePresetId, accent: string) {
 // ─── Provider ─────────────────────────────────────────────────────────────────
 export function BuyerProvider({ children }: { children: React.ReactNode }) {
   // ── Real user state (from API login) ───────────────────────────────────────
+  // localStorage is used only as a loading hint (avoids flash of wrong UI).
+  // The server cookie is ALWAYS the authoritative source of identity.
   const [realUser, setRealUserState] = React.useState<AuthUser | null>(() => readRealUser());
+  const [sessionVerified, setSessionVerified] = React.useState(false);
+
+  // On every mount (including refreshes), verify the session against the server.
+  // This prevents stale localStorage from showing the wrong user after switching accounts.
+  React.useEffect(() => {
+    let cancelled = false;
+    import("./api").then(({ authApi }) => {
+      authApi.me()
+        .then((au) => {
+          if (cancelled) return;
+          // Server confirmed a valid session — always use server's data
+          writeLS(LS_REAL_USER, JSON.stringify(au));
+          setRealUserState(au);
+          setSessionVerified(true);
+        })
+        .catch(() => {
+          if (cancelled) return;
+          // No valid server session — clear any stale localStorage
+          removeLS(LS_REAL_USER);
+          setRealUserState(null);
+          setSessionVerified(true);
+        });
+    });
+    return () => { cancelled = true; };
+  // Run once on mount only
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // ── Mock user state (demo switcher) ───────────────────────────────────────
   const [mockUserId, setMockUserIdRaw] = React.useState<string>(() =>
@@ -219,9 +254,19 @@ export function BuyerProvider({ children }: { children: React.ReactNode }) {
       setAccent,
       hasPermission: (p) => permissions.includes(p),
       clearRealSession,
+      setRealUser: setRealSession,
+      refreshUser: async () => {
+        try {
+          const { authApi } = await import("./api");
+          const au = await authApi.me();
+          setRealSession(au);
+        } catch (err) {
+          console.error("Failed to refresh user:", err);
+        }
+      },
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [tenant, user, role, permissions, themeId, accent, isRealSession, setUser, setThemeId, setAccent, clearRealSession],
+    [tenant, user, role, permissions, themeId, accent, isRealSession, setUser, setThemeId, setAccent, clearRealSession, setRealSession],
   );
 
   return <BuyerCtx.Provider value={value}>{children}</BuyerCtx.Provider>;

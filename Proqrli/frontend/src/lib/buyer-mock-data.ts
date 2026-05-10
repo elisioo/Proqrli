@@ -119,6 +119,8 @@ export type BuyerTeamMember = {
   email: string;
   role: BuyerRole;
   department: string;
+  position?: string;
+  contactNumber?: string;
   active: boolean;
   joinedAt: string;
   initials: string;

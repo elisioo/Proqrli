@@ -65,7 +65,7 @@ function exportCsv(logs: AuditLogEntryDto[]) {
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 function SettingsPage() {
-  const { tenant, themeId, setThemeId, accent, setAccent, hasPermission } = useBuyer();
+  const { user, tenant, themeId, setThemeId, accent, setAccent, hasPermission, refreshUser } = useBuyer();
   const queryClient = useQueryClient();
 
   // Debounced audit log search (400 ms) — avoids an API call per keystroke
@@ -135,6 +135,67 @@ function SettingsPage() {
     onError: (err: Error) => toast.error(`Failed to update settings: ${err.message}`),
   });
 
+  // ── Profile form ─────────────────────────────────────────────────────────
+  const [profileForm, setProfileForm] = React.useState({
+    fullName: user.name || "",
+    position: user.department || "", // using department as position placeholder if not specific
+    contactNumber: "",
+  });
+
+  // Since useBuyer().user might change after refreshUser, sync form if needed
+  React.useEffect(() => {
+    setProfileForm({
+      fullName: user.name || "",
+      position: user.position || "",
+      contactNumber: user.contactNumber || "",
+    });
+  }, [user]);
+
+  const updateProfileMutation = useMutation({
+    mutationFn: (body: { fullName: string; position: string; contactNumber: string }) => 
+        import("@/lib/api").then(m => m.authApi.updateProfile(body)),
+    onSuccess: () => {
+      refreshUser(); // Re-fetch me to update global context
+      toast.success("Profile updated successfully");
+    },
+    onError: (err: Error) => toast.error(`Failed to update profile: ${err.message}`),
+  });
+
+  // ── Password form ────────────────────────────────────────────────────────
+  const [pwForm, setPwForm] = React.useState({
+    oldPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
+
+  const updatePasswordMutation = useMutation({
+    mutationFn: (body: any) => import("@/lib/api").then(m => m.authApi.updatePassword(body)),
+    onSuccess: () => {
+      setPwForm({ oldPassword: "", newPassword: "", confirmPassword: "" });
+      toast.success("Password updated successfully");
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+
+  const handlePasswordSubmit = () => {
+    if (!pwForm.oldPassword || !pwForm.newPassword) {
+      toast.error("Please fill in all password fields.");
+      return;
+    }
+    if (pwForm.newPassword !== pwForm.confirmPassword) {
+      toast.error("New passwords do not match.");
+      return;
+    }
+    if (pwForm.newPassword.length < 12) {
+      toast.error("New password must be at least 12 characters.");
+      return;
+    }
+    updatePasswordMutation.mutate({
+      oldPassword: pwForm.oldPassword,
+      newPassword: pwForm.newPassword,
+    });
+  };
+
   if (isSettingsLoading)
     return (
       <div className="flex h-96 items-center justify-center">
@@ -154,7 +215,11 @@ function SettingsPage() {
 
       <Tabs defaultValue="profile" className="w-full">
         <TabsList className="flex w-full justify-start gap-2 bg-transparent p-0">
-          <TabsTrigger value="profile" className="rounded-sm border border-border data-[state=active]:bg-foreground data-[state=active]:text-background">Profile</TabsTrigger>
+          <TabsTrigger value="profile" className="rounded-sm border border-border data-[state=active]:bg-foreground data-[state=active]:text-background">My Profile</TabsTrigger>
+          {hasPermission("settings:edit") && (
+             <TabsTrigger value="workspace" className="rounded-sm border border-border data-[state=active]:bg-foreground data-[state=active]:text-background">Workspace</TabsTrigger>
+          )}
+          <TabsTrigger value="security" className="rounded-sm border border-border data-[state=active]:bg-foreground data-[state=active]:text-background">Security</TabsTrigger>
           {hasPermission("team:view") && (
             <TabsTrigger value="team" className="rounded-sm border border-border data-[state=active]:bg-foreground data-[state=active]:text-background">Team &amp; RBAC</TabsTrigger>
           )}
@@ -167,8 +232,72 @@ function SettingsPage() {
           )}
         </TabsList>
 
-        {/* ── Profile ── */}
+        {/* ── My Profile ── */}
         <TabsContent value="profile" className="mt-6">
+          <div className="rounded-md border border-border bg-card p-6">
+            <div className="t-label mb-4">Personal Information</div>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <Field label="Full name" value={profileForm.fullName} onChange={(e) => setProfileForm((f) => ({ ...f, fullName: e.target.value }))} />
+              <Field label="Email address" value={user.email} disabled className="opacity-60 grayscale cursor-not-allowed" />
+              <Field label="Position" value={profileForm.position} onChange={(e) => setProfileForm((f) => ({ ...f, position: e.target.value }))} />
+              <Field label="Contact number" value={profileForm.contactNumber} onChange={(e) => setProfileForm((f) => ({ ...f, contactNumber: e.target.value }))} />
+            </div>
+            <p className="mt-4 text-xs text-muted-foreground">
+               Your name is used as the requester on all purchase requisitions you create.
+            </p>
+            <button
+              onClick={() => updateProfileMutation.mutate(profileForm)}
+              disabled={updateProfileMutation.isPending}
+              className="mt-6 inline-flex h-10 items-center gap-2 rounded-sm bg-foreground px-4 text-sm font-semibold text-background hover:opacity-85 disabled:opacity-50"
+            >
+              {updateProfileMutation.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+              Update profile
+            </button>
+          </div>
+        </TabsContent>
+
+        {/* ── Security ── */}
+        <TabsContent value="security" className="mt-6">
+          <div className="rounded-md border border-border bg-card p-6">
+            <div className="t-label mb-4">Update Password</div>
+            <p className="mb-6 text-sm text-muted-foreground">
+              Ensure your account is secure by using a long, random password.
+            </p>
+            <div className="flex max-w-md flex-col gap-4">
+              <Field 
+                label="Current password" 
+                type="password" 
+                value={pwForm.oldPassword} 
+                onChange={(e) => setPwForm(f => ({ ...f, oldPassword: e.target.value }))} 
+              />
+              <div className="h-px bg-border my-2" />
+              <Field 
+                label="New password" 
+                type="password" 
+                placeholder="Min 12 chars, upper, digit, special"
+                value={pwForm.newPassword} 
+                onChange={(e) => setPwForm(f => ({ ...f, newPassword: e.target.value }))} 
+              />
+              <Field 
+                label="Confirm new password" 
+                type="password" 
+                value={pwForm.confirmPassword} 
+                onChange={(e) => setPwForm(f => ({ ...f, confirmPassword: e.target.value }))} 
+              />
+            </div>
+            <button
+              onClick={handlePasswordSubmit}
+              disabled={updatePasswordMutation.isPending}
+              className="mt-6 inline-flex h-10 items-center gap-2 rounded-sm bg-foreground px-4 text-sm font-semibold text-background hover:opacity-85 disabled:opacity-50"
+            >
+              {updatePasswordMutation.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+              Update password
+            </button>
+          </div>
+        </TabsContent>
+
+        {/* ── Workspace ── */}
+        <TabsContent value="workspace" className="mt-6">
           <div className="rounded-md border border-border bg-card p-6">
             <div className="t-label mb-4">Company profile</div>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
