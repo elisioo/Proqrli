@@ -8,7 +8,7 @@ import { formatBuyerCurrency } from "@/lib/buyer-mock-data";
 import { useBuyer } from "@/lib/buyer-context";
 import { ArrowLeft, Send, Award, Calendar, Clock, FileText, Users, X, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { rfqsApi, vendorsApi } from "@/lib/api";
+import { rfqsApi, vendorsApi, type SuggestedVendorDto } from "@/lib/api";
 import { useApiCollection } from "@/lib/use-api-collection";
 
 export const Route = createFileRoute("/buyer/rfqs/$rfqId")({
@@ -41,8 +41,8 @@ function BuyerRFQDetail() {
 
     const [activeVendorId, setActiveVendorId] = React.useState<string>(invitations[0]?.vendorId ?? "");
 
-    const activeInvite = invitations.find((i) => i.vendorId === activeVendorId);
-    const activeQuote = quotes.find((q) => q.vendorId === activeVendorId);
+    const activeInvite = invitations.find((i: import("@/lib/api").RfqInvitationDto) => i.vendorId === activeVendorId);
+    const activeQuote = quotes.find((q: import("@/lib/api").RfqQuoteDto) => q.vendorId === activeVendorId);
 
     const [draft, setDraft] = React.useState("");
     const [messages, setMessages] = React.useState<{ from: string, text: string, at: string }[]>([]);
@@ -51,12 +51,22 @@ function BuyerRFQDetail() {
     const [isInviting, setIsInviting] = React.useState(false);
     const [isAwarding, setIsAwarding] = React.useState(false);
     
-    // Fetch accredited vendors
-    const vendorsStore = useApiCollection(vendorsApi);
-    const accreditedVendors = vendorsStore.items.filter(v => v.status === "Accredited");
+    // Suggested vendors state
+    const [suggestedVendors, setSuggestedVendors] = React.useState<SuggestedVendorDto[]>([]);
+    const [isLoadingSuggestions, setIsLoadingSuggestions] = React.useState(false);
     
     // Set of selected vendor IDs to invite
     const [selectedVendors, setSelectedVendors] = React.useState<Set<number>>(new Set());
+
+    React.useEffect(() => {
+        if (inviteModalOpen) {
+            setIsLoadingSuggestions(true);
+            rfqsApi.getSuggestedVendors(rfq.id)
+                .then(res => setSuggestedVendors(res))
+                .catch(console.error)
+                .finally(() => setIsLoadingSuggestions(false));
+        }
+    }, [inviteModalOpen, rfq.id]);
 
     const send = () => {
         if (!draft.trim()) return;
@@ -141,7 +151,7 @@ function BuyerRFQDetail() {
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
-                        {lines.length > 0 ? lines.map((l) => (
+                        {lines.length > 0 ? lines.map((l: import("@/lib/api").RfqLineDto) => (
                             <tr key={l.id}>
                                 <td className="px-4 py-3 font-mono text-xs">{l.sku || "—"}</td>
                                 <td className="px-4 py-3">
@@ -186,8 +196,8 @@ function BuyerRFQDetail() {
                         </div>
                     ) : (
                         <ul className="divide-y divide-border">
-                            {invitations.map((inv) => {
-                                const q = quotes.find((qq) => qq.vendorId === inv.vendorId);
+                            {invitations.map((inv: import("@/lib/api").RfqInvitationDto) => {
+                                const q = quotes.find((qq: import("@/lib/api").RfqQuoteDto) => qq.vendorId === inv.vendorId);
                                 const isActive = inv.vendorId === activeVendorId;
                                 return (
                                     <li key={inv.id}>
@@ -229,7 +239,7 @@ function BuyerRFQDetail() {
                             <div className="flex items-center justify-between border-b border-border px-5 py-3">
                                 <div className="flex items-center gap-3">
                                     <span className="flex h-9 w-9 items-center justify-center rounded-full bg-foreground font-mono text-xs font-bold text-background">
-                                        {activeInvite.vendorName.split(" ").slice(0, 2).map((w) => w[0]).join("")}
+                                        {activeInvite.vendorName.split(" ").slice(0, 2).map((w: string) => w[0]).join("")}
                                     </span>
                                     <div>
                                         <div className="font-semibold">{activeInvite.vendorName}</div>
@@ -295,35 +305,42 @@ function BuyerRFQDetail() {
                             Select accredited vendors to invite to this Request for Quotation.
                         </p>
 
-                        <div className="flex-1 overflow-y-auto min-h-0 border rounded-md divide-y divide-border mb-4">
-                            {accreditedVendors.length === 0 ? (
+                        <div className="flex-1 overflow-y-auto min-h-0 border rounded-md divide-y divide-border mb-4 bg-muted/20">
+                            {isLoadingSuggestions ? (
+                                <div className="p-12 flex flex-col items-center justify-center text-sm text-muted-foreground">
+                                    <Loader2 className="h-6 w-6 animate-spin mb-2" />
+                                    Finding matching suppliers...
+                                </div>
+                            ) : suggestedVendors.length === 0 ? (
                                 <div className="p-8 text-center text-sm text-muted-foreground">
                                     No accredited vendors available.
                                 </div>
                             ) : (
-                                accreditedVendors.map(vendor => {
-                                    const vId = parseInt(vendor.id, 10);
-                                    const isInvitedAlready = invitations.some(i => i.vendorId === vendor.id);
-                                    const isSelected = selectedVendors.has(vId);
+                                suggestedVendors.map(vendor => {
+                                    const isSelected = selectedVendors.has(vendor.vendorTenantId);
 
                                     return (
-                                        <div key={vendor.id} 
-                                            className={cn("flex items-center gap-3 p-3", isInvitedAlready ? "opacity-50 bg-muted/50" : "hover:bg-muted/30 cursor-pointer")}
-                                            onClick={() => !isInvitedAlready && toggleVendor(vId)}
+                                        <div key={vendor.vendorTenantId} 
+                                            className={cn("flex items-center gap-3 p-3 transition-colors", 
+                                                vendor.alreadyInvited ? "opacity-50 bg-muted/50" : 
+                                                vendor.isMatch ? "hover:bg-emerald-50/50 cursor-pointer" : "hover:bg-muted/30 cursor-pointer"
+                                            )}
+                                            onClick={() => !vendor.alreadyInvited && toggleVendor(vendor.vendorTenantId)}
                                         >
                                             <input 
                                                 type="checkbox" 
                                                 className="h-4 w-4 rounded-sm border-border text-foreground focus:ring-foreground cursor-pointer"
-                                                checked={isSelected || isInvitedAlready}
-                                                disabled={isInvitedAlready}
+                                                checked={isSelected || vendor.alreadyInvited}
+                                                disabled={vendor.alreadyInvited}
                                                 readOnly
                                             />
                                             <div className="flex-1 min-w-0">
                                                 <div className="font-semibold text-sm truncate flex items-center gap-2">
                                                     {vendor.companyName}
-                                                    {isInvitedAlready && <span className="text-[10px] font-mono bg-border px-1.5 py-0.5 rounded-sm">INVITED</span>}
+                                                    {vendor.alreadyInvited && <span className="text-[10px] font-mono bg-border px-1.5 py-0.5 rounded-sm">INVITED</span>}
+                                                    {vendor.isMatch && !vendor.alreadyInvited && <span className="text-[10px] font-mono bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded-sm">RECOMMENDED</span>}
                                                 </div>
-                                                <div className="text-xs text-muted-foreground truncate">{vendor.category} · Rating: {vendor.rating}/5.0</div>
+                                                <div className="text-xs text-muted-foreground truncate">{vendor.industry}</div>
                                             </div>
                                         </div>
                                     )

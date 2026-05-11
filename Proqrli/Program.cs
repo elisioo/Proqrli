@@ -45,6 +45,7 @@ builder.Services.AddHttpClient();
 builder.Services.AddScoped<IPasswordHasher<TenantUser>, PasswordHasher<TenantUser>>();
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<OtpService>();
+builder.Services.AddScoped<CloudinaryService>();
 
 
 builder.Services.AddControllers(options =>

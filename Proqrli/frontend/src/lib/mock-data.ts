@@ -115,6 +115,8 @@ export type VendorTenant = {
   tagline: string;
   storeBio: string;
   certifiedBadge: boolean;
+  logoPath?: string;
+  bannerPath?: string;
 };
 
 export const CURRENT_TENANT: VendorTenant = {
@@ -164,7 +166,7 @@ export type ProductListing = {
   views: number;
   orders: number;
   rating: number;
-  image: string; // emoji as placeholder
+  image: string; // emoji or Cloudinary URL
 };
 
 export const PRODUCTS: ProductListing[] = [

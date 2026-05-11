@@ -591,6 +591,34 @@ export type RfqDetailDto = {
     quotes: RfqQuoteDto[];
 };
 
+export type SuggestedVendorDto = {
+    vendorTenantId: number;
+    linkId: number;
+    companyName: string;
+    industry: string;
+    isMatch: boolean;
+    alreadyInvited: boolean;
+};
+
+export type VendorInboxRfqDto = {
+    rfqId: string;
+    rfqNumber: string;
+    title: string;
+    category: string;
+    closesAt: string;
+    rfqStatus: string;
+    inviteStatus: string;
+    notes: string;
+    buyerName: string;
+    myQuote: {
+        responseId: string;
+        totalAmount: number;
+        status: string;
+        submittedAt: string;
+        remarks: string;
+    } | null;
+};
+
 export const rfqsApi = {
     getAll: (page: number = 1, pageSize: number = 10, search: string = "", status: string = "") => {
         const query = new URLSearchParams({ page: page.toString(), pageSize: pageSize.toString(), search, status });
@@ -604,6 +632,9 @@ export const rfqsApi = {
     archive: (id: string) => req<void>(`/rfqs/${id}`, { method: "DELETE" }),
     inviteVendors: (id: string, vendorIds: number[]) => req<{ message: string }>(`/rfqs/${id}/invite`, { method: "POST", body: JSON.stringify({ vendorIds }) }),
     awardQuote: (id: string, responseId: string) => req<{ poId: string, poNumber: string }>(`/rfqs/${id}/award/${responseId}`, { method: "POST" }),
+    getSuggestedVendors: (id: string) => req<SuggestedVendorDto[]>(`/rfqs/${id}/suggested-vendors`),
+    getVendorInbox: () => req<VendorInboxRfqDto[]>("/rfqs/vendor-inbox"),
+    respond: (id: string, body: { totalAmount: number; remarks?: string }) => req<{ message: string }>(`/rfqs/${id}/respond`, { method: "POST", body: JSON.stringify(body) })
 };
 
 export type MarketplaceProduct = {
@@ -726,4 +757,33 @@ export const settingsApi = {
         qs.set("pageSize", pageSize.toString());
         return req<{ data: AuditLogEntryDto[], total: number, page: number, pageSize: number }>(`/settings/audit-logs?${qs.toString()}`);
     },
+};
+
+export type VendorStoreProfileDto = {
+    storeName: string;
+    storeSlug: string | null;
+    storeDescription: string | null;
+    logoPath: string | null;
+    bannerPath: string | null;
+    businessAddress: string | null;
+    overallRating: number;
+    isVerified: boolean;
+    isActive: boolean;
+};
+
+export type UpdateVendorStorePayload = {
+    storeName?: string;
+    storeSlug?: string;
+    storeDescription?: string;
+    businessAddress?: string;
+};
+
+export const vendorStoreApi = {
+    getProfile: () => req<VendorStoreProfileDto>("/settings/vendor-store"),
+    updateProfile: (body: UpdateVendorStorePayload) =>
+        req<{ message: string; profileId: number }>("/settings/vendor-store", { method: "PATCH", body: JSON.stringify(body) }),
+    updateLogo: (logoUrl: string) =>
+        req<{ message: string; logoPath: string }>("/settings/vendor-logo", { method: "POST", body: JSON.stringify({ logoUrl }) }),
+    updateBanner: (bannerUrl: string) =>
+        req<{ message: string; bannerPath: string }>("/settings/vendor-banner", { method: "POST", body: JSON.stringify({ bannerUrl }) }),
 };

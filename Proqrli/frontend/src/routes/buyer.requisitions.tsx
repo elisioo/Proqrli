@@ -70,7 +70,7 @@ const EMPTY = {
     department: DEFAULT_DEPTS[0],
     amount: 0,
     itemCount: 1,
-    status: "Draft" as const,
+    status: "Draft" as "Draft" | "Pending Approval" | "Approved" | "Rejected" | "Converted to RFQ" | "Converted to PO" | "Cancelled",
     neededBy: new Date().toISOString().slice(0, 10),
     isArchived: false,
 };

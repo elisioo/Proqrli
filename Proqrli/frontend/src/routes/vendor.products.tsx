@@ -15,6 +15,7 @@ import {
     type ProductListing,
 } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
+import { CloudinaryUploadWidget } from "@/components/CloudinaryUploadWidget";
 
 export const Route = createFileRoute("/vendor/products")({
     component: () => (
@@ -167,8 +168,12 @@ function ProductsPage() {
                         key={p.id}
                         className="group relative flex flex-col rounded-md border border-border bg-card p-4 transition-shadow hover:shadow-md"
                     >
-                        <div className="mb-3 flex aspect-square items-center justify-center rounded-sm bg-paper-mid text-6xl">
-                            {p.image}
+                        <div className="mb-3 flex aspect-square items-center justify-center rounded-sm bg-paper-mid overflow-hidden">
+                            {p.image.startsWith("http") ? (
+                                <img src={p.image} alt={p.name} className="h-full w-full object-cover" />
+                            ) : (
+                                <span className="text-6xl">{p.image}</span>
+                            )}
                         </div>
                         <div className="flex items-start justify-between gap-2">
                             <div className="min-w-0">
@@ -250,12 +255,27 @@ function ProductsPage() {
                             placeholder="ACM-XXX-0000"
                         />
                     </Field>
-                    <Field label="Image (emoji)">
-                        <input
-                            className={inputCls}
-                            value={draft.image}
-                            onChange={(e) => setDraft({ ...draft, image: e.target.value })}
-                        />
+                    <Field label="Product Image">
+                        <div className="flex items-center gap-3">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-sm border border-border bg-muted overflow-hidden">
+                                {draft.image.startsWith("http") ? (
+                                    <img src={draft.image} alt="Preview" className="h-full w-full object-cover" />
+                                ) : (
+                                    <span className="text-xl">{draft.image}</span>
+                                )}
+                            </div>
+                            <CloudinaryUploadWidget
+                                preset="proqrli_products"
+                                onUpload={(url) => setDraft({ ...draft, image: url })}
+                                label="Upload Image"
+                            />
+                            <input
+                                className={cn(inputCls, "flex-1")}
+                                value={draft.image}
+                                onChange={(e) => setDraft({ ...draft, image: e.target.value })}
+                                placeholder="Emoji or URL"
+                            />
+                        </div>
                     </Field>
                 </div>
 

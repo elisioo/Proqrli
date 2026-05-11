@@ -291,11 +291,191 @@ namespace ProqrLi.Controllers.Procure
             return Ok(new { message = "Vendors invited successfully" });
         }
 
+        // ─────────────────────────────────────────────────────────────────────
+        // GET /api/rfqs/{id}/suggested-vendors
+        // Returns accredited vendors filtered by category relevance.
+        // Vendors whose Industry matches the RFQ category rank first.
+        // Already-invited vendors are flagged so the UI can show them greyed out.
+        // ─────────────────────────────────────────────────────────────────────
+        [HttpGet("{id:int}/suggested-vendors")]
+        public async Task<IActionResult> GetSuggestedVendors(int id)
+        {
+            var rfq = await _db.RequestForQuotations
+                .Include(r => r.VendorInvitations)
+                .FirstOrDefaultAsync(r => r.RFQID == id);
+
+            if (rfq == null) return NotFound();
+
+            var buyerTenantId = rfq.TenantID;
+
+            // All accredited vendor links for this buyer
+            var links = await _db.AccreditationLinks
+                .Include(a => a.VendorTenant)
+                .Where(a => a.BuyerTenantID == buyerTenantId && a.Status == "Accredited")
+                .ToListAsync();
+
+            var alreadyInvited = rfq.VendorInvitations
+                .Select(vi => vi.VendorTenantID)
+                .ToHashSet();
+
+            // Simple category mapping: RFQ category → vendor industry keywords
+            var rfqCategory = (rfq.Category ?? "").ToLower();
+            var matchKeywords = rfqCategory switch
+            {
+                "industrial equipment" => new[] { "industrial", "manufacturing", "equipment" },
+                "hydraulics"           => new[] { "hydraulics", "fluid", "industrial" },
+                "chemicals"            => new[] { "chemical", "industrial" },
+                "fasteners"            => new[] { "fastener", "hardware", "industrial" },
+                "electrical"           => new[] { "electrical", "electronics", "industrial" },
+                "mro"                  => new[] { "mro", "industrial", "maintenance" },
+                "raw materials"        => new[] { "raw", "materials", "manufacturing" },
+                "safety"               => new[] { "safety", "industrial", "mro" },
+                _                      => new[] { rfqCategory }
+            };
+
+            var result = links
+                .Select(l =>
+                {
+                    var industry = (l.VendorTenant?.Industry ?? "").ToLower();
+                    var isMatch = matchKeywords.Any(kw => industry.Contains(kw))
+                                  || industry == rfqCategory;
+                    return new
+                    {
+                        vendorTenantId = l.VendorTenantID,
+                        linkId         = l.LinkID,
+                        companyName    = l.VendorTenant?.CompanyName ?? "",
+                        industry       = l.VendorTenant?.Industry ?? "",
+                        isMatch,
+                        alreadyInvited = alreadyInvited.Contains(l.VendorTenantID),
+                    };
+                })
+                // Best matches first, then alphabetical
+                .OrderByDescending(v => v.isMatch)
+                .ThenBy(v => v.companyName)
+                .ToList();
+
+            return Ok(result);
+        }
+
+        // ─────────────────────────────────────────────────────────────────────
+        // POST /api/rfqs/{id}/respond   (vendor-side: submit a quotation)
+        // Body: { totalAmount, remarks }
+        // ─────────────────────────────────────────────────────────────────────
+        public record RespondToRfqRequest(decimal TotalAmount, string? Remarks);
+
+        [HttpPost("{id:int}/respond")]
+        public async Task<IActionResult> RespondToRfq(int id, [FromBody] RespondToRfqRequest req)
+        {
+            // Identify the vendor from the session claim (vendor tenant_id)
+            var tenantIdStr = User.FindFirst("tenant_id")?.Value;
+            if (!int.TryParse(tenantIdStr, out var vendorTenantId))
+                return Unauthorized(new { error = "Invalid session." });
+
+            var rfq = await _db.RequestForQuotations
+                .Include(r => r.VendorInvitations)
+                .FirstOrDefaultAsync(r => r.RFQID == id);
+
+            if (rfq == null) return NotFound(new { error = "RFQ not found." });
+
+            // Must be invited
+            var invitation = rfq.VendorInvitations
+                .FirstOrDefault(vi => vi.VendorTenantID == vendorTenantId);
+            if (invitation == null)
+                return StatusCode(403, new { error = "You were not invited to this RFQ." });
+
+            if (rfq.Status == "Awarded" || rfq.Status == "Cancelled")
+                return BadRequest(new { error = "This RFQ is no longer accepting responses." });
+
+            // Upsert response
+            var existing = await _db.RfqResponses
+                .FirstOrDefaultAsync(r => r.RFQID == id && r.VendorTenantID == vendorTenantId);
+
+            if (existing == null)
+            {
+                _db.RfqResponses.Add(new RfqResponse
+                {
+                    RFQID          = id,
+                    VendorTenantID = vendorTenantId,
+                    TotalAmount    = req.TotalAmount,
+                    SubmittedAt    = DateTime.UtcNow,
+                    Status         = "Submitted",
+                    Remarks        = req.Remarks ?? "",
+                });
+            }
+            else
+            {
+                existing.TotalAmount = req.TotalAmount;
+                existing.Remarks     = req.Remarks ?? existing.Remarks;
+                existing.SubmittedAt = DateTime.UtcNow;
+                existing.Status      = "Submitted";
+            }
+
+            // Mark invitation as responded
+            invitation.HasResponded = true;
+            invitation.Status = "Quoted";
+
+            await _db.SaveChangesAsync();
+            return Ok(new { message = "Quotation submitted successfully." });
+        }
+
+        // ─────────────────────────────────────────────────────────────────────
+        // GET /api/rfqs/vendor-inbox
+        // Vendor-side: returns RFQs the current vendor tenant has been invited to.
+        // ─────────────────────────────────────────────────────────────────────
+        [HttpGet("vendor-inbox")]
+        public async Task<IActionResult> GetVendorInbox()
+        {
+            var tenantIdStr = User.FindFirst("tenant_id")?.Value;
+            if (!int.TryParse(tenantIdStr, out var vendorTenantId))
+                return Unauthorized(new { error = "Invalid session." });
+
+            var invitations = await _db.RfqVendorInvitations
+                .Include(vi => vi.RequestForQuotation)
+                    .ThenInclude(r => r.Tenant)
+                .Where(vi => vi.VendorTenantID == vendorTenantId)
+                .OrderByDescending(vi => vi.InvitedAt)
+                .ToListAsync();
+
+            var rfqIds = invitations.Select(vi => vi.RFQID).ToList();
+
+            // Get this vendor's existing responses
+            var responses = await _db.RfqResponses
+                .Where(r => rfqIds.Contains(r.RFQID) && r.VendorTenantID == vendorTenantId)
+                .ToDictionaryAsync(r => r.RFQID);
+
+            var result = invitations.Select(vi =>
+            {
+                var rfq = vi.RequestForQuotation;
+                responses.TryGetValue(vi.RFQID, out var myResponse);
+                return new
+                {
+                    rfqId          = rfq.RFQID.ToString(),
+                    rfqNumber      = rfq.RFQNumber ?? $"RFQ-{rfq.RFQID:D4}",
+                    title          = rfq.Title,
+                    category       = rfq.Category ?? "",
+                    closesAt       = rfq.ClosesAt.ToString("yyyy-MM-dd"),
+                    rfqStatus      = rfq.Status,
+                    inviteStatus   = vi.Status,
+                    notes          = rfq.Notes ?? "",
+                    buyerName      = rfq.Tenant?.CompanyName ?? "Buyer",
+                    myQuote        = myResponse == null ? null : new
+                    {
+                        responseId  = myResponse.ResponseID.ToString(),
+                        totalAmount = myResponse.TotalAmount,
+                        status      = myResponse.Status,
+                        submittedAt = myResponse.SubmittedAt.ToString("yyyy-MM-dd"),
+                        remarks     = myResponse.Remarks,
+                    },
+                };
+            }).ToList();
+
+            return Ok(result);
+        }
+
         // POST /api/rfqs/5/award/10
         [HttpPost("{id:int}/award/{responseId:int}")]
         public async Task<IActionResult> AwardQuote(int id, int responseId)
-        {
-            var rfq = await _db.RequestForQuotations
+        {            var rfq = await _db.RequestForQuotations
                 .Include(r => r.PurchaseRequisition)
                 .Include(r => r.VendorInvitations)
                 .FirstOrDefaultAsync(r => r.RFQID == id);

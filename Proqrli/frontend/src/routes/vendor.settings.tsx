@@ -3,9 +3,11 @@ import * as React from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { PermissionGate } from "@/components/PermissionGate";
 import { useVendor } from "@/lib/vendor-context";
+import { CloudinaryUploadWidget } from "@/components/CloudinaryUploadWidget";
 import { TEAM_MEMBERS, ROLE_LABELS, ROLE_DESCRIPTIONS, type VendorRole } from "@/lib/mock-data";
 import { THEME_PRESETS } from "@/lib/themes";
 import { cn } from "@/lib/utils";
+import { vendorStoreApi } from "@/lib/api";
 
 export const Route = createFileRoute("/vendor/settings")({
   component: () => (
@@ -49,8 +51,57 @@ function SettingsPage() {
 
 function ProfileTab() {
   const { tenant } = useVendor();
+  const [logoPath, setLogoPath] = React.useState<string | null | undefined>(tenant.logoPath);
+  const [isUploading, setIsUploading] = React.useState(false);
+
+  React.useEffect(() => {
+    let cancelled = false;
+    vendorStoreApi
+      .getProfile()
+      .then((profile) => {
+        if (!cancelled) setLogoPath(profile.logoPath ?? tenant.logoPath);
+      })
+      .catch(() => {
+        // Silently fall back to mock data if the endpoint is unavailable
+      });
+    return () => { cancelled = true; };
+  }, [tenant.logoPath]);
+
+  async function handleLogoUpload(url: string) {
+    setIsUploading(true);
+    try {
+      const result = await vendorStoreApi.updateLogo(url);
+      setLogoPath(result.logoPath);
+    } catch (err) {
+      console.error("Failed to save logo URL:", err);
+      alert("Logo uploaded to Cloudinary but failed to save. Please try again.");
+    } finally {
+      setIsUploading(false);
+    }
+  }
+
   return (
     <div className="rounded-md border border-border bg-card p-6">
+
+      <div className="mb-6 flex items-end gap-6">
+          <div className="flex h-24 w-24 items-center justify-center rounded-md border border-dashed border-border bg-muted/40 overflow-hidden">
+              {logoPath ? (
+                  <img src={logoPath} alt="Logo" className="h-full w-full object-contain" />
+              ) : (
+                  <span className="text-xs text-muted-foreground">No logo</span>
+              )}
+          </div>
+          <div className="flex flex-col gap-2">
+              <label className="t-label">Company Logo</label>
+              <CloudinaryUploadWidget
+                  preset="proqrli_vendor_profiles"
+                  onUpload={handleLogoUpload}
+                  label={isUploading ? "Saving…" : "Upload Logo"}
+              />
+              <p className="text-[11px] text-muted-foreground">JPG, PNG, or WebP. Max 5MB.</p>
+          </div>
+      </div>
+
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <Field label="Company name" value={tenant.companyName} />
         <Field label="Industry" value={tenant.industry} />

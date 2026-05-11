@@ -5,6 +5,7 @@ import { AutoStatus } from "@/components/StatusPill";
 import { PermissionGate } from "@/components/PermissionGate";
 import { useVendor } from "@/lib/vendor-context";
 import { COMPLIANCE_DOCS } from "@/lib/mock-data";
+import { CloudinaryUploadWidget } from "@/components/CloudinaryUploadWidget";
 
 export const Route = createFileRoute("/vendor/compliance")({
   component: () => (
@@ -16,6 +17,13 @@ export const Route = createFileRoute("/vendor/compliance")({
 
 function CompliancePage() {
   const { hasPermission } = useVendor();
+
+  const handleUploadSuccess = (url: string) => {
+      console.log("Document uploaded:", url);
+      alert("Document uploaded successfully! URL: " + url);
+      // In a real app, you would send this URL + metadata to your backend.
+  };
+
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-6">
       <PageHeader
@@ -24,9 +32,16 @@ function CompliancePage() {
         description="Permits, ISO certs, and BIR / DTI registration. Verified vendors get the Certified Badge."
         actions={
           hasPermission("compliance:upload") && (
-            <button className="inline-flex h-10 items-center gap-2 rounded-sm bg-foreground px-4 text-sm font-medium text-background hover:opacity-85">
-              <Upload className="h-4 w-4" /> Upload document
-            </button>
+            <CloudinaryUploadWidget
+                preset="proqrli_vendor_docs"
+                onUpload={handleUploadSuccess}
+                label={
+                    <span className="flex items-center gap-2">
+                        <Upload className="h-4 w-4" /> Upload document
+                    </span>
+                }
+                className="inline-flex h-10 items-center gap-2 rounded-sm bg-foreground px-4 text-sm font-medium text-background hover:opacity-85"
+            />
           )
         }
       />
