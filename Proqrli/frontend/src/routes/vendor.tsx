@@ -1,30 +1,41 @@
-import { createFileRoute, Outlet } from "@tanstack/react-router";
+import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { VendorProvider } from "@/lib/vendor-context";
 import { VendorSidebar } from "@/components/vendor/VendorSidebar";
 import { VendorTopbar } from "@/components/vendor/VendorTopbar";
+import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 
 export const Route = createFileRoute("/vendor")({
+  beforeLoad: async () => {
+    if (typeof window === "undefined") return;
+
+    try {
+      const res = await fetch("/api/auth/me", { credentials: "include" });
+      if (!res.ok) {
+        throw redirect({ to: "/login" });
+      }
+
+      const user = await res.json();
+      window.localStorage.setItem("procurli:vendor:realUser", JSON.stringify(user));
+    } catch (err: unknown) {
+      if (err && typeof err === "object" && "isRedirect" in err) throw err;
+      throw redirect({ to: "/login" });
+    }
+  },
   component: VendorLayout,
 });
 
 function VendorLayout() {
   return (
     <VendorProvider>
-      <div className="flex min-h-screen w-full bg-paper text-foreground">
-        {/* Desktop sidebar */}
-        <div className="hidden w-[260px] flex-shrink-0 md:block">
-          <div className="fixed inset-y-0 w-[260px]">
-            <VendorSidebar />
-          </div>
-        </div>
-        {/* Main */}
-        <div className="flex min-w-0 flex-1 flex-col">
+      <SidebarProvider>
+        <VendorSidebar />
+        <SidebarInset>
           <VendorTopbar />
-          <main className="flex-1 px-4 py-6 md:px-8 md:py-8">
+          <main className="flex-1 px-4 py-6 md:px-8 md:py-8 bg-paper">
             <Outlet />
           </main>
-        </div>
-      </div>
+        </SidebarInset>
+      </SidebarProvider>
     </VendorProvider>
   );
 }

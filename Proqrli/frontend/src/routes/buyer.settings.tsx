@@ -62,13 +62,13 @@ function exportCsv(logs: AuditLogEntryDto[]) {
   URL.revokeObjectURL(url);
 }
 
-// ─── Main Page ────────────────────────────────────────────────────────────────
+
 
 function SettingsPage() {
   const { user, tenant, themeId, setThemeId, accent, setAccent, hasPermission, refreshUser } = useBuyer();
   const queryClient = useQueryClient();
 
-  // Debounced audit log search (400 ms) — avoids an API call per keystroke
+
   const [logSearchInput, setLogSearchInput] = React.useState("");
   const [logSearch, setLogSearch] = React.useState("");
   const [logPage, setLogPage] = React.useState(1);
@@ -82,7 +82,7 @@ function SettingsPage() {
     return () => clearTimeout(t);
   }, [logSearchInput]);
 
-  // ── Queries ──────────────────────────────────────────────────────────────
+  
 
   const { data: settings, isLoading: isSettingsLoading } = useQuery({
     queryKey: ["tenant-settings"],

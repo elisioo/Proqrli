@@ -17,8 +17,7 @@ namespace ProqrLi.Controllers
 
         public PurchaseRequisitionsController(ApplicationDbContext db) => _db = db;
 
-        // Resolve the authenticated user's ID from the session cookie.
-        // This is the ONLY correct way to identify who is creating a PR.
+      
         private int? GetSessionUserId()
         {
             var idStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -44,7 +43,7 @@ namespace ProqrLi.Controllers
             };
         }
 
-        // GET /api/purchaserequisitions
+        
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
@@ -54,7 +53,7 @@ namespace ProqrLi.Controllers
                 .OrderByDescending(r => r.RequestDate)
                 .ToListAsync();
 
-            // Count line items per PR
+           
             var prIds = list.Select(r => r.PRID).ToList();
             var counts = await _db.RequisitionItems
                 .Where(ri => prIds.Contains(ri.PRID))
@@ -66,7 +65,6 @@ namespace ProqrLi.Controllers
             return Ok(dtos);
         }
 
-        // GET /api/purchaserequisitions/5
         [HttpGet("{id:int}")]
         public async Task<IActionResult> GetById(int id)
         {
@@ -80,23 +78,21 @@ namespace ProqrLi.Controllers
             return Ok(ToDto(pr, itemCount));
         }
 
-        // POST /api/purchaserequisitions
+       
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] CreateRequisitionDto dto)
         {
-            // ── Resolve tenant ──────────────────────────────────────────────────
+          
             var tenantId = await _db.Tenants.Select(t => t.TenantID).FirstOrDefaultAsync();
             if (tenantId == 0) tenantId = 1;
 
-            // ── Resolve the requesting user from the AUTHENTICATED SESSION ──────
-            // NEVER use FullName string-matching — names can collide across users.
-            // The session cookie is the authoritative source of identity.
+
             var sessionUserId = GetSessionUserId();
             int requestedByID;
 
             if (sessionUserId.HasValue)
             {
-                // Verify the session user actually belongs to this tenant
+                
                 var sessionUser = await _db.TenantUsers
                     .FirstOrDefaultAsync(u => u.UserID == sessionUserId.Value && u.TenantID == tenantId);
                 requestedByID = sessionUser?.UserID
@@ -104,7 +100,7 @@ namespace ProqrLi.Controllers
             }
             else
             {
-                // Fallback (unauthenticated legacy path — should not happen with [Authorize])
+               
                 requestedByID = await _db.TenantUsers.Where(u => u.TenantID == tenantId).Select(u => u.UserID).FirstOrDefaultAsync();
             }
 
@@ -130,7 +126,6 @@ namespace ProqrLi.Controllers
             {
                 foreach (var dtoItem in dto.Items)
                 {
-                    // Map to a local Item (buyer inventory) if it doesn't exist
                     var localItem = await _db.Items.FirstOrDefaultAsync(i => i.TenantID == tenantId && i.ItemName == dtoItem.Name);
                     if (localItem == null)
                     {
@@ -144,7 +139,7 @@ namespace ProqrLi.Controllers
                             UnitPrice = dtoItem.Price
                         };
                         _db.Items.Add(localItem);
-                        await _db.SaveChangesAsync(); // needed to get the new ItemID
+                        await _db.SaveChangesAsync();
                     }
 
                     _db.RequisitionItems.Add(new RequisitionItem
@@ -159,7 +154,6 @@ namespace ProqrLi.Controllers
                 await _db.SaveChangesAsync();
             }
 
-            // Reload with includes for the DTO
             var saved = await _db.PurchaseRequisitions
                 .Include(r => r.RequestedBy)
                 .FirstAsync(r => r.PRID == pr.PRID);
@@ -167,7 +161,7 @@ namespace ProqrLi.Controllers
             return CreatedAtAction(nameof(GetById), new { id = pr.PRID }, ToDto(saved, 0));
         }
 
-        // PATCH /api/purchaserequisitions/5
+       
         [HttpPatch("{id:int}")]
         public async Task<IActionResult> Update(int id, [FromBody] UpdateRequisitionDto dto)
         {
@@ -193,15 +187,14 @@ namespace ProqrLi.Controllers
             return Ok(ToDto(pr, itemCount));
         }
 
-        // PUT /api/purchaserequisitions/5  (keep for backwards compat)
+    
         [HttpPut("{id:int}")]
         public async Task<IActionResult> PutUpdate(int id, [FromBody] PurchaseRequisition pr)
         {
             if (id != pr.PRID) return BadRequest("ID mismatch.");
 
             _db.Entry(pr).State = EntityState.Modified;
-
-            // Prevent overwriting these auto-set fields
+            
             _db.Entry(pr).Property(x => x.RequestDate).IsModified = false;
             _db.Entry(pr).Property(x => x.TenantID).IsModified = false;
 
@@ -209,7 +202,7 @@ namespace ProqrLi.Controllers
             return Ok(pr);
         }
 
-        // DELETE /api/purchaserequisitions/5
+   
         [HttpDelete("{id:int}")]
         public async Task<IActionResult> Delete(int id)
         {

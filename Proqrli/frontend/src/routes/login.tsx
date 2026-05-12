@@ -141,13 +141,18 @@ function LoginForm({ portal, theme }: { portal: Portal; theme: typeof PORTAL_THE
   }, [portal, team]);
 
   const finishSession = (user: AuthUser) => {
-    if (portal === "buyer") {
+    if (portal === "vendor") {
+      try { window.localStorage.setItem("procurli:vendor:realUser", JSON.stringify(user)); } catch {}
+      try { window.localStorage.setItem("procurli:vendor:userId", `real:${user.userId}`); } catch {}
+      const setVendorSession = (window as unknown as Record<string, unknown>).__vendorSetRealSession as ((au: AuthUser) => void) | undefined;
+      if (setVendorSession) setVendorSession(user);
+      navigate({ to: "/vendor" });
+    } else {
       try { window.localStorage.setItem("procurli:buyer:realUser", JSON.stringify(user)); } catch {}
       try { window.localStorage.setItem("procurli:buyer:userId", `real:${user.userId}`); } catch {}
+      const setBuyerSession = (window as unknown as Record<string, unknown>).__buyerSetRealSession as ((au: AuthUser) => void) | undefined;
+      if (setBuyerSession) setBuyerSession(user);
       navigate({ to: "/buyer" });
-    } else {
-      try { window.localStorage.setItem("procurli:vendor:userId", `real:${user.userId}`); } catch {}
-      navigate({ to: "/vendor" });
     }
   };
 

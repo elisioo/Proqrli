@@ -98,8 +98,18 @@ function RegisterPage() {
         portal,
       });
       // Store session
-      try { window.localStorage.setItem("procurli:buyer:realUser", JSON.stringify(user)); } catch {}
-      try { window.localStorage.setItem("procurli:buyer:userId",   `real:${user.userId}`); } catch {}
+      if (portal === "vendor") {
+        try { window.localStorage.setItem("procurli:vendor:realUser", JSON.stringify(user)); } catch {}
+        try { window.localStorage.setItem("procurli:vendor:userId",   `real:${user.userId}`); } catch {}
+        // Notify vendor context if mounted
+        const setVendorSession = (window as unknown as Record<string, unknown>).__vendorSetRealSession as ((au: typeof user) => void) | undefined;
+        if (setVendorSession) setVendorSession(user);
+      } else {
+        try { window.localStorage.setItem("procurli:buyer:realUser", JSON.stringify(user)); } catch {}
+        try { window.localStorage.setItem("procurli:buyer:userId",   `real:${user.userId}`); } catch {}
+        const setBuyerSession = (window as unknown as Record<string, unknown>).__buyerSetRealSession as ((au: typeof user) => void) | undefined;
+        if (setBuyerSession) setBuyerSession(user);
+      }
       // New account → onboarding
       navigate({ to: "/onboarding", search: { portal } });
     } catch (err) {

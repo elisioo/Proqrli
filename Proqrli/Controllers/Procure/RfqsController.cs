@@ -20,7 +20,7 @@ namespace ProqrLi.Controllers.Procure
             _db = db;
         }
 
-        // GET /api/rfqs
+      
         [HttpGet]
         public async Task<IActionResult> GetAll([FromQuery] int page = 1, [FromQuery] int pageSize = 10, [FromQuery] string search = "", [FromQuery] string status = "All")
         {
@@ -184,7 +184,7 @@ namespace ProqrLi.Controllers.Procure
             return Ok(detail);
         }
 
-        // POST /api/rfqs
+       
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] CreateRfqDto dto)
         {
@@ -204,7 +204,7 @@ namespace ProqrLi.Controllers.Procure
                 Notes = dto.Notes,
                 SourcingRoute = dto.SourcingRoute ?? "rfq",
                 Status = "Draft",
-                CreatedByUserID = 1 // Simplified
+                CreatedByUserID = 1 
             };
 
             if (int.TryParse(dto.LinkedPrId, out int prId))
@@ -226,7 +226,6 @@ namespace ProqrLi.Controllers.Procure
             return CreatedAtAction(nameof(GetById), new { id = rfq.RFQID }, new { id = rfq.RFQID.ToString() });
         }
 
-        // PATCH /api/rfqs/5
         [HttpPatch("{id:int}")]
         public async Task<IActionResult> Update(int id, [FromBody] UpdateRfqDto dto)
         {
@@ -244,7 +243,6 @@ namespace ProqrLi.Controllers.Procure
             return Ok(new { id = rfq.RFQID.ToString() });
         }
 
-        // DELETE /api/rfqs/5 (archive/cancel)
         [HttpDelete("{id:int}")]
         public async Task<IActionResult> Delete(int id)
         {
@@ -256,7 +254,7 @@ namespace ProqrLi.Controllers.Procure
             return NoContent();
         }
 
-        // POST /api/rfqs/5/invite
+      
         [HttpPost("{id:int}/invite")]
         public async Task<IActionResult> InviteVendors(int id, [FromBody] InviteVendorsDto dto)
         {
@@ -281,7 +279,7 @@ namespace ProqrLi.Controllers.Procure
                 }
             }
 
-            // Update status if it was draft and we are inviting vendors
+          
             if (rfq.Status == "Draft" && dto.VendorIds.Any())
             {
                 rfq.Status = "Open";
@@ -291,12 +289,7 @@ namespace ProqrLi.Controllers.Procure
             return Ok(new { message = "Vendors invited successfully" });
         }
 
-        // ─────────────────────────────────────────────────────────────────────
-        // GET /api/rfqs/{id}/suggested-vendors
-        // Returns accredited vendors filtered by category relevance.
-        // Vendors whose Industry matches the RFQ category rank first.
-        // Already-invited vendors are flagged so the UI can show them greyed out.
-        // ─────────────────────────────────────────────────────────────────────
+     
         [HttpGet("{id:int}/suggested-vendors")]
         public async Task<IActionResult> GetSuggestedVendors(int id)
         {
@@ -308,7 +301,6 @@ namespace ProqrLi.Controllers.Procure
 
             var buyerTenantId = rfq.TenantID;
 
-            // All accredited vendor links for this buyer
             var links = await _db.AccreditationLinks
                 .Include(a => a.VendorTenant)
                 .Where(a => a.BuyerTenantID == buyerTenantId && a.Status == "Accredited")
@@ -318,7 +310,6 @@ namespace ProqrLi.Controllers.Procure
                 .Select(vi => vi.VendorTenantID)
                 .ToHashSet();
 
-            // Simple category mapping: RFQ category → vendor industry keywords
             var rfqCategory = (rfq.Category ?? "").ToLower();
             var matchKeywords = rfqCategory switch
             {
@@ -349,7 +340,7 @@ namespace ProqrLi.Controllers.Procure
                         alreadyInvited = alreadyInvited.Contains(l.VendorTenantID),
                     };
                 })
-                // Best matches first, then alphabetical
+                
                 .OrderByDescending(v => v.isMatch)
                 .ThenBy(v => v.companyName)
                 .ToList();
@@ -357,16 +348,12 @@ namespace ProqrLi.Controllers.Procure
             return Ok(result);
         }
 
-        // ─────────────────────────────────────────────────────────────────────
-        // POST /api/rfqs/{id}/respond   (vendor-side: submit a quotation)
-        // Body: { totalAmount, remarks }
-        // ─────────────────────────────────────────────────────────────────────
         public record RespondToRfqRequest(decimal TotalAmount, string? Remarks);
 
         [HttpPost("{id:int}/respond")]
         public async Task<IActionResult> RespondToRfq(int id, [FromBody] RespondToRfqRequest req)
         {
-            // Identify the vendor from the session claim (vendor tenant_id)
+          
             var tenantIdStr = User.FindFirst("tenant_id")?.Value;
             if (!int.TryParse(tenantIdStr, out var vendorTenantId))
                 return Unauthorized(new { error = "Invalid session." });
@@ -377,7 +364,7 @@ namespace ProqrLi.Controllers.Procure
 
             if (rfq == null) return NotFound(new { error = "RFQ not found." });
 
-            // Must be invited
+           
             var invitation = rfq.VendorInvitations
                 .FirstOrDefault(vi => vi.VendorTenantID == vendorTenantId);
             if (invitation == null)
@@ -386,7 +373,7 @@ namespace ProqrLi.Controllers.Procure
             if (rfq.Status == "Awarded" || rfq.Status == "Cancelled")
                 return BadRequest(new { error = "This RFQ is no longer accepting responses." });
 
-            // Upsert response
+          
             var existing = await _db.RfqResponses
                 .FirstOrDefaultAsync(r => r.RFQID == id && r.VendorTenantID == vendorTenantId);
 
@@ -410,7 +397,7 @@ namespace ProqrLi.Controllers.Procure
                 existing.Status      = "Submitted";
             }
 
-            // Mark invitation as responded
+          
             invitation.HasResponded = true;
             invitation.Status = "Quoted";
 
@@ -418,10 +405,7 @@ namespace ProqrLi.Controllers.Procure
             return Ok(new { message = "Quotation submitted successfully." });
         }
 
-        // ─────────────────────────────────────────────────────────────────────
-        // GET /api/rfqs/vendor-inbox
-        // Vendor-side: returns RFQs the current vendor tenant has been invited to.
-        // ─────────────────────────────────────────────────────────────────────
+        
         [HttpGet("vendor-inbox")]
         public async Task<IActionResult> GetVendorInbox()
         {
@@ -438,7 +422,6 @@ namespace ProqrLi.Controllers.Procure
 
             var rfqIds = invitations.Select(vi => vi.RFQID).ToList();
 
-            // Get this vendor's existing responses
             var responses = await _db.RfqResponses
                 .Where(r => rfqIds.Contains(r.RFQID) && r.VendorTenantID == vendorTenantId)
                 .ToDictionaryAsync(r => r.RFQID);
@@ -472,7 +455,6 @@ namespace ProqrLi.Controllers.Procure
             return Ok(result);
         }
 
-        // POST /api/rfqs/5/award/10
         [HttpPost("{id:int}/award/{responseId:int}")]
         public async Task<IActionResult> AwardQuote(int id, int responseId)
         {            var rfq = await _db.RequestForQuotations
@@ -485,11 +467,9 @@ namespace ProqrLi.Controllers.Procure
             var response = await _db.RfqResponses.FindAsync(responseId);
             if (response == null || response.RFQID != id) return NotFound("Response not found");
 
-            // 1. Update statuses
             response.Status = "Awarded";
             rfq.Status = "Awarded";
 
-            // 2. Generate Purchase Order
             var po = new PurchaseOrder
             {
                 TenantID = rfq.TenantID,
@@ -497,17 +477,16 @@ namespace ProqrLi.Controllers.Procure
                 VendorTenantID = response.VendorTenantID,
                 CreatedByUserID = rfq.CreatedByUserID,
                 PODate = DateTime.UtcNow,
-                Status = "Draft", // New POs start as Draft
+                Status = "Draft", 
                 TotalAmount = response.TotalAmount,
-                PaymentTerms = "Net 30" // Default
+                PaymentTerms = "Net 30" 
             };
 
             _db.PurchaseOrders.Add(po);
-            await _db.SaveChangesAsync(); // Save to get POID
+            await _db.SaveChangesAsync(); 
 
             po.PONumber = $"PO-{po.POID:D4}";
 
-            // 3. Copy items from PR to PO if possible
             if (rfq.LinkedPRID.HasValue)
             {
                 var prItems = await _db.RequisitionItems
@@ -521,12 +500,12 @@ namespace ProqrLi.Controllers.Procure
                         POID = po.POID,
                         ItemID = item.ItemID,
                         Quantity = item.Quantity,
-                        UnitPrice = item.EstimatedPrice, // Simple fallback
+                        UnitPrice = item.EstimatedPrice,
                         LineTotal = item.Quantity * item.EstimatedPrice
                     });
                 }
 
-                // If PR items exist, update PR status
+            
                 rfq.PurchaseRequisition.Status = "Converted to PO";
             }
 

@@ -1,8 +1,10 @@
+/* eslint-disable prettier/prettier */
 import * as React from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { Bell, ChevronDown, LogOut, Menu, Palette, Search, UserCog } from "lucide-react";
+import { Bell, ChevronDown, LogOut, Palette, Search, UserCog } from "lucide-react";
 import { useVendor } from "@/lib/vendor-context";
 import { TEAM_MEMBERS, ROLE_LABELS, ROLE_DESCRIPTIONS } from "@/lib/mock-data";
+import { authApi } from "@/lib/api";
 import { THEME_PRESETS } from "@/lib/themes";
 import {
   DropdownMenu,
@@ -13,29 +15,33 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { VendorSidebar } from "./VendorSidebar";
+import { SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
 
 export function VendorTopbar() {
-  const { user, role, setUser, themeId, setThemeId, accent, setAccent } = useVendor();
+  const { user, role, setUser, themeId, setThemeId, accent, setAccent, isRealSession, clearRealSession } = useVendor();
   const navigate = useNavigate();
-  const [mobileOpen, setMobileOpen] = React.useState(false);
+
+  const handleSignOut = async () => {
+    if (isRealSession) {
+      try { await authApi.logout(); } catch { /* ignore */ }
+    }
+    try {
+      window.localStorage.removeItem("procurli:vendor:realUser");
+      window.localStorage.removeItem("procurli:vendor:userId");
+    } catch { /* ignore */ }
+    clearRealSession();
+    navigate({ to: "/login" });
+  };
+
+  const { state, isMobile } = useSidebar();
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-3 border-b border-border bg-paper/85 px-4 backdrop-blur md:px-6">
       <div className="flex min-w-0 flex-1 items-center gap-3">
-        {/* Mobile sidebar trigger */}
-        <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-          <SheetTrigger asChild>
-            <Button variant="ghost" size="icon" className="md:hidden">
-              <Menu className="h-5 w-5" />
-            </Button>
-          </SheetTrigger>
-          <SheetContent side="left" className="w-[280px] p-0">
-            <VendorSidebar onNavigate={() => setMobileOpen(false)} />
-          </SheetContent>
-        </Sheet>
+        {(isMobile || state === "collapsed") && (
+          <SidebarTrigger className="-ml-1" />
+        )}
 
         {/* Search */}
         <div className="relative hidden w-full max-w-md md:block">
@@ -140,46 +146,69 @@ export function VendorTopbar() {
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-[300px]">
-          <DropdownMenuLabel className="font-mono text-[10px] uppercase tracking-widest">
-            Switch demo user (RBAC)
-          </DropdownMenuLabel>
-          <div className="max-h-[280px] overflow-y-auto p-1">
-            {TEAM_MEMBERS.filter((m) => m.active).map((m) => {
-              const active = m.id === user.id;
-              return (
-                <button
-                  key={m.id}
-                  onClick={() => setUser(m.id)}
-                  className={cn(
-                    "flex w-full items-start gap-3 rounded-sm border p-2 text-left transition-colors",
-                    active ? "border-foreground bg-muted" : "border-transparent hover:bg-muted",
-                  )}
-                >
-                  <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-foreground font-mono text-xs font-bold text-background">
-                    {m.initials}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="truncate text-sm font-semibold">{m.name}</span>
-                      <span className="rounded-sm bg-accent px-1.5 py-[1px] font-mono text-[9px] font-bold uppercase tracking-widest text-accent-foreground">
-                        {ROLE_LABELS[m.role]}
-                      </span>
-                    </div>
-                    <div className="text-[11px] leading-snug text-muted-foreground">
-                      {ROLE_DESCRIPTIONS[m.role]}
-                    </div>
+            {/* Real session badge */}
+            {isRealSession && (
+              <>
+                <div className="px-3 py-2">
+                  <div className="text-sm font-semibold">{user.name}</div>
+                  <div className="text-[11px] text-muted-foreground">{user.email}</div>
+                  <div className="mt-1 inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
+                    {ROLE_LABELS[role]}
                   </div>
-                </button>
-              );
-            })}
-          </div>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => navigate({ to: "/vendor/settings" })}>
-            <UserCog className="mr-2 h-4 w-4" /> Account settings
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => navigate({ to: "/" })}>
-            <LogOut className="mr-2 h-4 w-4" /> Sign out
-          </DropdownMenuItem>
+                </div>
+                <DropdownMenuSeparator />
+              </>
+            )}
+
+            {/* Demo user-switcher (mock mode only) */}
+            {!isRealSession && (
+              <>
+                <DropdownMenuLabel className="font-mono text-[10px] uppercase tracking-widest">
+                  Switch demo user (RBAC)
+                </DropdownMenuLabel>
+                <div className="max-h-[280px] overflow-y-auto p-1">
+                  {TEAM_MEMBERS.filter((m) => m.active).map((m) => {
+                    const active = m.id === user.id;
+                    return (
+                      <button
+                        key={m.id}
+                        onClick={() => setUser(m.id)}
+                        className={cn(
+                          "flex w-full items-start gap-3 rounded-sm border p-2 text-left transition-colors",
+                          active ? "border-foreground bg-muted" : "border-transparent hover:bg-muted",
+                        )}
+                      >
+                        <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-foreground font-mono text-xs font-bold text-background">
+                          {m.initials}
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="truncate text-sm font-semibold">{m.name}</span>
+                            <span className="rounded-sm bg-accent px-1.5 py-[1px] font-mono text-[9px] font-bold uppercase tracking-widest text-accent-foreground">
+                              {ROLE_LABELS[m.role]}
+                            </span>
+                          </div>
+                          <div className="text-[11px] leading-snug text-muted-foreground">
+                            {ROLE_DESCRIPTIONS[m.role]}
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+                <DropdownMenuSeparator />
+              </>
+            )}
+
+            <DropdownMenuItem onClick={() => navigate({ to: "/vendor/settings" })}>
+              <UserCog className="mr-2 h-4 w-4" /> Account settings
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={handleSignOut}
+              className="text-rose-600 focus:text-rose-600"
+            >
+              <LogOut className="mr-2 h-4 w-4" /> Sign out
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
