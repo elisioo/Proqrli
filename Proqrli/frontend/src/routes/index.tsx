@@ -428,7 +428,7 @@ function LandingPage() {
                             dashboard.
                         </p>
                         <div className="mt-8 flex flex-wrap gap-3">
-                            <Link to="/vendor">
+                            <Link to="/login">
                                 <button className="rounded-full bg-paper px-7 py-3.5 text-[14px] font-medium text-foreground hover:opacity-85">
                                     Open vendor portal
                                 </button>
@@ -484,7 +484,7 @@ function LandingPage() {
                         </p>
                     </div>
                     <div className="relative flex flex-shrink-0 flex-col gap-3">
-                        <Link to="/buyer">
+                        <Link to="/login">
                             <button className="w-full rounded-full bg-paper px-9 py-3.5 text-center text-[14px] font-medium text-foreground hover:opacity-88">
                                 Open buyer portal
                             </button>
@@ -511,8 +511,8 @@ function LandingPage() {
                     <li><a href="#how" className="text-[13px] text-ink-muted hover:text-foreground">How it works</a></li>
                     <li><a href="#roles" className="text-[13px] text-ink-muted hover:text-foreground">Roles</a></li>
                     <li><a href="#faq" className="text-[13px] text-ink-muted hover:text-foreground">FAQ</a></li>
-                    <li><Link to="/vendor" className="text-[13px] text-ink-muted hover:text-foreground">Vendor portal</Link></li>
-                    <li><Link to="/buyer" className="text-[13px] text-ink-muted hover:text-foreground">Buyer portal</Link></li>
+                    <li><Link to="/login" className="text-[13px] text-ink-muted hover:text-foreground">Vendor portal</Link></li>
+                    <li><Link to="/login" className="text-[13px] text-ink-muted hover:text-foreground">Buyer portal</Link></li>
                 </ul>
                 <div className="text-[12.5px] text-ink-muted">© {new Date().getFullYear()} ProcurLi</div>
             </footer>
