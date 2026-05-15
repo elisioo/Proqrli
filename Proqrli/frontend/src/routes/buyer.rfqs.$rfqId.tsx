@@ -1,4 +1,3 @@
-/* eslint-disable prettier/prettier */
 import { createFileRoute, Link, notFound, useRouter } from "@tanstack/react-router";
 import * as React from "react";
 import { PageHeader } from "@/components/PageHeader";
@@ -8,8 +7,18 @@ import { formatBuyerCurrency } from "@/lib/buyer-mock-data";
 import { useBuyer } from "@/lib/buyer-context";
 import { ArrowLeft, Send, Award, Calendar, Clock, FileText, Users, X, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { rfqsApi, vendorsApi, type SuggestedVendorDto } from "@/lib/api";
-import { useApiCollection } from "@/lib/use-api-collection";
+import { rfqsApi, type SuggestedVendorDto, type RfqMessageDto } from "@/lib/api";
+import { toast } from "sonner";
+import {
+    AlertDialog,
+    AlertDialogContent,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogCancel,
+    AlertDialogAction,
+} from "@/components/ui/alert-dialog";
 
 export const Route = createFileRoute("/buyer/rfqs/$rfqId")({
     loader: async ({ params }) => {
@@ -45,12 +54,64 @@ function BuyerRFQDetail() {
     const activeQuote = quotes.find((q: import("@/lib/api").RfqQuoteDto) => q.vendorId === activeVendorId);
 
     const [draft, setDraft] = React.useState("");
-    const [messages, setMessages] = React.useState<{ from: string, text: string, at: string }[]>([]);
+    const [messages, setMessages] = React.useState<RfqMessageDto[]>([]);
+    const [msgLoading, setMsgLoading] = React.useState(false);
+    const [msgError, setMsgError] = React.useState<string | null>(null);
+    const [sending, setSending] = React.useState(false);
+    const scrollRef = React.useRef<HTMLDivElement>(null);
+    const isPolling = React.useRef(false);   // prevents overlapping poll requests
+
+    // Load thread whenever the active vendor changes
+    const loadMessages = React.useCallback(async (silent = false) => {
+        if (!activeVendorId) return;
+        const vendorTenantId = Number(activeVendorId);
+        if (!vendorTenantId) return;
+        if (!silent) setMsgLoading(true);
+        try {
+            const msgs = await rfqsApi.getMessages(rfq.id, vendorTenantId);
+            setMessages(msgs);
+            setMsgError(null);
+        } catch (err) {
+            console.error("Failed to load messages:", err);
+            // Only show the error on the first (non-silent) load so polling
+            // failures don't flash an error after messages were already shown.
+            if (!silent) setMsgError(err instanceof Error ? err.message : "Could not load messages.");
+        } finally {
+            if (!silent) setMsgLoading(false);
+        }
+    }, [rfq.id, activeVendorId]);
+
+    // Initial load whenever active vendor changes
+    React.useEffect(() => { loadMessages(); }, [loadMessages]);
+
+    // Poll every 6 s for new messages — silent so the UI doesn't flicker
+    React.useEffect(() => {
+        if (!activeVendorId) return;
+        const id = setInterval(async () => {
+            if (isPolling.current) return;
+            isPolling.current = true;
+            await loadMessages(true);
+            isPolling.current = false;
+        }, 6000);
+        return () => clearInterval(id);
+    }, [activeVendorId, loadMessages]);
+
+    // Auto-scroll to bottom
+    React.useEffect(() => {
+        if (scrollRef.current) {
+            scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+        }
+    }, [messages]);
 
     const [inviteModalOpen, setInviteModalOpen] = React.useState(false);
     const [isInviting, setIsInviting] = React.useState(false);
     const [isAwarding, setIsAwarding] = React.useState(false);
-    
+    const [confirmState, setConfirmState] = React.useState<{
+        title: string;
+        desc: string;
+        onConfirm: () => void;
+    } | null>(null);
+
     // Suggested vendors state
     const [suggestedVendors, setSuggestedVendors] = React.useState<SuggestedVendorDto[]>([]);
     const [isLoadingSuggestions, setIsLoadingSuggestions] = React.useState(false);
@@ -68,10 +129,30 @@ function BuyerRFQDetail() {
         }
     }, [inviteModalOpen, rfq.id]);
 
-    const send = () => {
-        if (!draft.trim()) return;
-        setMessages((m) => [...m, { from: "buyer", text: draft, at: "Now" }]);
+    const send = async () => {
+        if (!draft.trim() || sending) return;
+        const vendorTenantId = Number(activeVendorId);
+        if (!vendorTenantId) return;
+        setSending(true);
+        const optimistic: RfqMessageDto = {
+            messageId: `tmp-${Date.now()}`,
+            senderType: "buyer",
+            body: draft.trim(),
+            sentAt: new Date().toLocaleTimeString(),
+        };
+        setMessages((m) => [...m, optimistic]);
         setDraft("");
+        try {
+            await rfqsApi.sendMessage(rfq.id, { vendorTenantId, body: optimistic.body });
+            await loadMessages();
+        } catch (err) {
+            console.error("Failed to send message:", err);
+            setMessages((m) => m.filter((msg) => msg.messageId !== optimistic.messageId));
+            setDraft(optimistic.body);
+            alert("Failed to send message.");
+        } finally {
+            setSending(false);
+        }
     };
 
     const handleInvite = async () => {
@@ -91,19 +172,24 @@ function BuyerRFQDetail() {
 
     const handleAward = async () => {
         if (!activeQuote) return;
-        if (!confirm(`Are you sure you want to award this RFQ to ${activeQuote.vendorName} for ${formatBuyerCurrency(activeQuote.total)}? This will generate a Purchase Order.`)) return;
-        
-        setIsAwarding(true);
-        try {
-            const res = await rfqsApi.awardQuote(rfq.id, activeQuote.id);
-            alert(`RFQ awarded! Purchase Order ${res.poNumber} has been generated.`);
-            router.navigate({ to: "/buyer/purchase-orders" }); // Or to the specific PO if we have a detail page
-        } catch (err) {
-            console.error(err);
-            alert("Failed to award RFQ: " + err);
-        } finally {
-            setIsAwarding(false);
-        }
+
+        setConfirmState({
+            title: "Award RFQ",
+            desc: `Are you sure you want to award this RFQ to ${activeQuote.vendorName} for ${formatBuyerCurrency(activeQuote.total)}? This will generate a Purchase Order.`,
+            onConfirm: async () => {
+                setIsAwarding(true);
+                try {
+                    const res = await rfqsApi.awardQuote(rfq.id, activeQuote.id);
+                    toast.success(`RFQ awarded! Purchase Order ${res.poNumber} has been generated.`);
+                    router.navigate({ to: "/buyer/purchase-orders" }); // Or to the specific PO if we have a detail page
+                } catch (err) {
+                    console.error(err);
+                    toast.error("Failed to award RFQ: " + err);
+                } finally {
+                    setIsAwarding(false);
+                }
+            }
+        });
     };
 
     const toggleVendor = (id: number) => {
@@ -257,15 +343,25 @@ function BuyerRFQDetail() {
                                     </button>
                                 )}
                             </div>
-                            <div className="flex-1 space-y-3 overflow-y-auto p-5">
-                                {messages.length === 0 && (
+                            <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto p-5">
+                                {msgLoading ? (
+                                    <div className="flex justify-center pt-8">
+                                        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                                    </div>
+                                ) : msgError ? (
+                                    <div className="flex flex-col items-center gap-2 pt-8 text-center text-xs text-muted-foreground">
+                                        <span className="rounded-sm bg-red-50 border border-red-200 px-3 py-2 text-red-700 text-[11px]">
+                                            ⚠ {msgError}
+                                        </span>
+                                        <button onClick={() => loadMessages()} className="underline hover:no-underline">Retry</button>
+                                    </div>
+                                ) : messages.length === 0 ? (
                                     <p className="text-center text-xs text-muted-foreground">No messages yet. Start the conversation below.</p>
-                                )}
-                                {messages.map((m, i) => (
-                                    <div key={i} className={cn("flex", m.from === "buyer" ? "justify-end" : "justify-start")}>
-                                        <div className={cn("max-w-[75%] rounded-md px-3 py-2 text-sm", m.from === "buyer" ? "bg-foreground text-background" : "bg-muted")}>
-                                            <div>{m.text}</div>
-                                            <div className={cn("mt-1 text-[10px]", m.from === "buyer" ? "opacity-60" : "text-muted-foreground")}>{m.at}</div>
+                                ) : messages.map((m) => (
+                                    <div key={m.messageId} className={cn("flex", m.senderType === "buyer" ? "justify-end" : "justify-start")}>
+                                        <div className={cn("max-w-[75%] rounded-md px-3 py-2 text-sm", m.senderType === "buyer" ? "bg-foreground text-background" : "bg-muted")}>
+                                            <div>{m.body}</div>
+                                            <div className={cn("mt-1 text-[10px]", m.senderType === "buyer" ? "opacity-60" : "text-muted-foreground")}>{m.sentAt}</div>
                                         </div>
                                     </div>
                                 ))}
@@ -274,13 +370,13 @@ function BuyerRFQDetail() {
                                 <input
                                     value={draft}
                                     onChange={(e) => setDraft(e.target.value)}
-                                    onKeyDown={(e) => e.key === "Enter" && send()}
-                                    disabled={!canChat}
+                                    onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && send()}
+                                    disabled={!canChat || sending}
                                     className="h-10 flex-1 rounded-sm border border-border bg-card px-3 text-sm outline-none focus:border-foreground disabled:opacity-60"
                                     placeholder={`Ask ${activeInvite.vendorName.split(" ")[0]} a clarification…`}
                                 />
-                                <button onClick={send} disabled={!canChat} className="inline-flex h-10 items-center gap-1 rounded-sm bg-foreground px-4 text-sm font-semibold text-background hover:opacity-85 disabled:opacity-50">
-                                    <Send className="h-3 w-3" /> Send
+                                <button onClick={send} disabled={!canChat || !draft.trim() || sending} className="inline-flex h-10 items-center gap-1 rounded-sm bg-foreground px-4 text-sm font-semibold text-background hover:opacity-85 disabled:opacity-50">
+                                    {sending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Send className="h-3 w-3" />} Send
                                 </button>
                             </div>
                         </>
@@ -302,7 +398,7 @@ function BuyerRFQDetail() {
                         </div>
                         
                         <p className="text-sm text-muted-foreground mb-4">
-                            Select accredited vendors to invite to this Request for Quotation.
+                            Select vendors to invite to this Request for Quotation.
                         </p>
 
                         <div className="flex-1 overflow-y-auto min-h-0 border rounded-md divide-y divide-border mb-4 bg-muted/20">
@@ -313,7 +409,7 @@ function BuyerRFQDetail() {
                                 </div>
                             ) : suggestedVendors.length === 0 ? (
                                 <div className="p-8 text-center text-sm text-muted-foreground">
-                                    No accredited vendors available.
+                                    No vendors available.
                                 </div>
                             ) : (
                                 suggestedVendors.map(vendor => {
@@ -367,6 +463,21 @@ function BuyerRFQDetail() {
                     </div>
                 </div>
             )}
+
+            <AlertDialog open={!!confirmState} onOpenChange={(o) => { if (!o) setConfirmState(null); }}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>{confirmState?.title}</AlertDialogTitle>
+                        <AlertDialogDescription>{confirmState?.desc}</AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => { confirmState?.onConfirm(); setConfirmState(null); }}>
+                            Confirm
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }

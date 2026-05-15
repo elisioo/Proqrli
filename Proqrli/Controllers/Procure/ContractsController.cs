@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ProqrLi.Data;
@@ -113,8 +114,8 @@ namespace ProqrLi.Controllers.Procure
             if (vendor == null)
                 return BadRequest(new { error = $"Vendor with ID {dto.VendorTenantID} does not exist. Please select a valid vendor." });
 
-            var tenantId = await _db.Tenants.Where(t => t.TenantType == "Buyer").Select(t => t.TenantID).FirstOrDefaultAsync();
-            if (tenantId == 0) tenantId = 1;
+            var tenantIdStr = User.FindFirstValue("tenant_id");
+            if (!int.TryParse(tenantIdStr, out var tenantId)) return Unauthorized();
             var userId = await _db.TenantUsers.Select(u => u.UserID).FirstOrDefaultAsync();
 
             var contract = new Contract
@@ -178,3 +179,5 @@ namespace ProqrLi.Controllers.Procure
         }
     }
 }
+
+

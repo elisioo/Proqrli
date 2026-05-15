@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ProqrLi.Data;
@@ -38,9 +39,13 @@ namespace ProqrLi.Controllers
 
         // GET /api/invoices
         [HttpGet]
-        public async Task<IActionResult> GetAll()
+        public async Task<IActionResult> GetAll([FromQuery] DateTime? startDate = null, [FromQuery] DateTime? endDate = null)
         {
+            var tenantIdStr = User.FindFirstValue("tenant_id");
+            if (!int.TryParse(tenantIdStr, out var tenantId)) return Unauthorized();
+
             var list = await _db.Invoices
+                .Where(x => x.TenantID == tenantId || x.VendorTenantID == tenantId)
                 .Include(i => i.VendorTenant)
                 .Include(i => i.PurchaseOrder)
                 .OrderByDescending(i => i.InvoiceDate)
@@ -212,3 +217,7 @@ namespace ProqrLi.Controllers
         }
     }
 }
+
+
+
+

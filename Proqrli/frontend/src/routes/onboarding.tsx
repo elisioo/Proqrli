@@ -74,6 +74,7 @@ function OnboardingPage() {
   // ── Plan step (Subscription & Billing) ────────────────────────────────────
   const plans = isVendor ? VENDOR_PLANS : BUYER_PLANS;
   const [selectedPlan, setSelectedPlan] = React.useState(plans[1].id);
+  const [paymentMethod, setPaymentMethod] = React.useState<"card" | "gcash" | "maya">("card");
   const selectedPlanDetails = plans.find((p) => p.id === selectedPlan);
 
   // ── Navigation ────────────────────────────────────────────────────────────
@@ -90,7 +91,7 @@ function OnboardingPage() {
   // ── Validation per step ───────────────────────────────────────────────────
   const canNext = () => {
     if (stepId === "company") return companyName.trim().length > 0;
-    if (stepId === "profile") return fullName.trim().length > 0 && contactNum.trim().length > 0;
+    if (stepId === "profile") return fullName.trim().length > 0 && isValidPhNumber(contactNum);
     return true;
   };
 
@@ -103,14 +104,14 @@ function OnboardingPage() {
         companyName:     companyName.trim(),
         companySize,
         fullName:        fullName.trim(),
-        contactNumber:   contactNum.trim(),
+        contactNumber:   contactNum ? `+63${contactNum}` : "",
         position,
         industry,
         hasBuyerProfile: hasBuyer,
         buyerCompanyName: hasBuyer ? buyerCompanyName.trim() : undefined,
         buyerContactName: hasBuyer ? buyerContact.trim()     : undefined,
         buyerEmail:       hasBuyer ? buyerEmail.trim()       : undefined,
-        buyerPhone:       hasBuyer ? buyerPhone.trim()       : undefined,
+        buyerPhone:       hasBuyer && buyerPhone ? `+63${buyerPhone}` : undefined,
         planId:           selectedPlan,
       };
 
@@ -262,19 +263,13 @@ function OnboardingPage() {
                   onChange={(e) => setFullName(e.target.value)}
                 />
 
-                <div>
-                  <label className="t-label mb-2 block text-xs font-semibold text-foreground">
-                    <Phone className="mb-0.5 mr-1 inline h-3.5 w-3.5" />Contact number
-                  </label>
-                  <input
-                    id="ob-phone"
-                    type="tel"
-                    placeholder="Enter your contact number"
-                    value={contactNum}
-                    onChange={(e) => setContactNum(e.target.value)}
-                    className="h-11 w-full rounded-sm border border-border bg-card px-3 text-sm outline-none focus:border-foreground"
-                  />
-                </div>
+                <PhilippinePhoneInput
+                  id="ob-phone"
+                  label="Contact number"
+                  value={contactNum}
+                  onChange={setContactNum}
+                  required
+                />
 
                 <div>
                   <label className="t-label mb-2 block text-xs font-semibold text-foreground">
@@ -358,13 +353,11 @@ function OnboardingPage() {
                     value={buyerEmail}
                     onChange={(e) => setBuyerEmail(e.target.value)}
                   />
-                  <Field
+                  <PhilippinePhoneInput
                     id="ob-buyer-phone"
                     label="Buyer phone"
-                    type="tel"
-                    placeholder="Enter buyer phone number"
                     value={buyerPhone}
-                    onChange={(e) => setBuyerPhone(e.target.value)}
+                    onChange={setBuyerPhone}
                   />
                 </div>
               )}
@@ -418,29 +411,57 @@ function OnboardingPage() {
                     </div>
                   </div>
                   
-                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                    <div className="md:col-span-2">
-                      <Field id="ob-card-name" label="Name on card" placeholder="Enter name on card" />
-                    </div>
-                    <div className="md:col-span-2">
-                      <label className="t-label mb-2 block text-xs font-semibold text-foreground">Card number</label>
-                      <div className="relative">
-                        <input type="text" placeholder="Enter card number" className="h-11 w-full rounded-sm border border-border bg-card px-3 pr-12 text-sm outline-none focus:border-foreground" />
-                        <div className="absolute right-3 top-1/2 -translate-y-1/2 flex gap-1">
-                          <div className="h-5 w-8 rounded-sm bg-gray-200"></div>
-                          <div className="h-5 w-8 rounded-sm bg-gray-200"></div>
+                  {/* Payment Method Selector */}
+                  <div className="mb-6 flex gap-2 border-b border-border pb-4">
+                    <button
+                      onClick={() => setPaymentMethod("card")}
+                      className={cn("px-4 py-2 flex-1 text-sm font-semibold rounded-md transition-colors", paymentMethod === "card" ? "bg-foreground text-background" : "bg-card hover:bg-muted text-muted-foreground")}
+                    >Credit / Debit Card</button>
+                    <button
+                      onClick={() => setPaymentMethod("gcash")}
+                      className={cn("px-4 py-2 flex-1 text-sm font-semibold rounded-md transition-colors", paymentMethod === "gcash" ? "bg-blue-600 text-white" : "bg-card hover:bg-muted text-muted-foreground")}
+                    >GCash</button>
+                    <button
+                      onClick={() => setPaymentMethod("maya")}
+                      className={cn("px-4 py-2 flex-1 text-sm font-semibold rounded-md transition-colors", paymentMethod === "maya" ? "bg-emerald-600 text-white" : "bg-card hover:bg-muted text-muted-foreground")}
+                    >Maya / E-Wallet</button>
+                  </div>
+
+                  {paymentMethod === "card" ? (
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                      <div className="md:col-span-2">
+                        <Field id="ob-card-name" label="Name on card" placeholder="Enter name on card" />
+                      </div>
+                      <div className="md:col-span-2">
+                        <label className="t-label mb-2 block text-xs font-semibold text-foreground">Card number</label>
+                        <div className="relative">
+                          <input type="text" placeholder="Enter card number" className="h-11 w-full rounded-sm border border-border bg-card px-3 pr-12 text-sm outline-none focus:border-foreground" />
+                          <div className="absolute right-3 top-1/2 -translate-y-1/2 flex gap-1">
+                            <div className="h-5 w-8 rounded-sm bg-gray-200"></div>
+                            <div className="h-5 w-8 rounded-sm bg-gray-200"></div>
+                          </div>
                         </div>
                       </div>
+                      <div>
+                        <Field id="ob-card-exp" label="Expiry (MM/YY)" placeholder="MM/YY" />
+                      </div>
+                      <div>
+                        <Field id="ob-card-cvc" label="CVC" placeholder="CVC" />
+                      </div>
                     </div>
-                    <div>
-                      <Field id="ob-card-exp" label="Expiry (MM/YY)" placeholder="MM/YY" />
+                  ) : (
+                    <div className="rounded-md border border-dashed border-border bg-muted/50 p-6 text-center">
+                      <p className="text-sm font-semibold text-foreground">
+                        You will be securely redirected to the {paymentMethod === "gcash" ? "GCash" : "Maya"} portal.
+                      </p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Continue the setup below to proceed to the secure checkout environment.
+                      </p>
                     </div>
-                    <div>
-                      <Field id="ob-card-cvc" label="CVC" placeholder="CVC" />
-                    </div>
-                  </div>
+                  )}
+
                   <p className="mt-4 text-xs text-muted-foreground italic">
-                    Note: This is a placeholder for the PayMongo integration. Your card will not be charged.
+                    Note: This is currently a dummy simulation for the PayMongo integration. Real transactions are not yet processed.
                   </p>
                 </div>
               )}
@@ -512,6 +533,124 @@ function Field({ label, id, ...props }: FieldProps) {
         {...props}
         className="h-11 w-full rounded-sm border border-border bg-card px-3 text-sm outline-none focus:border-foreground"
       />
+    </div>
+  );
+}
+
+// ─── Philippine phone input ───────────────────────────────────────────────────
+// Stores value as the raw local digits (e.g. "9171234567").
+// Emits the full +63 number to onChange as a synthetic event value.
+
+
+function isValidPhNumber(digits: string): boolean {
+  // Must be exactly 10 digits starting with 9
+  return /^9\d{9}$/.test(digits);
+}
+
+function formatPhDisplay(digits: string): string {
+  // digits = up to 10 raw digits after stripping country/zero prefix
+  // Display as: 9XX XXX XXXX
+  const d = digits.slice(0, 10);
+  if (d.length <= 3) return d;
+  if (d.length <= 6) return `${d.slice(0, 3)} ${d.slice(3)}`;
+  return `${d.slice(0, 3)} ${d.slice(3, 6)} ${d.slice(6)}`;
+}
+
+type PhoneInputProps = {
+  id?: string;
+  label?: string;
+  value: string;           // raw digits (9XXXXXXXXX)
+  onChange: (raw: string) => void;
+  required?: boolean;
+};
+
+function PhilippinePhoneInput({ id, label = "Contact number", value, onChange, required }: PhoneInputProps) {
+  const isValid  = isValidPhNumber(value);
+  const isEmpty  = value.length === 0;
+  const isDirty  = value.length > 0;
+  const isTooShort = isDirty && !isValid;
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value.replace(/\D/g, ""); // strip non-digits
+
+    // Handle paste of full number: 09171234567 or +639171234567 or 9171234567
+    let cleaned = raw;
+    if (cleaned.startsWith("63") && cleaned.length > 10) {
+      cleaned = cleaned.slice(2);          // strip country code digits
+    } else if (cleaned.startsWith("0") && cleaned.length > 1) {
+      cleaned = cleaned.slice(1);          // strip leading 0
+    }
+
+    onChange(cleaned.slice(0, 10));
+  };
+
+  const displayValue = formatPhDisplay(value);
+
+  return (
+    <div>
+      <label htmlFor={id} className="t-label mb-2 block text-xs font-semibold text-foreground">
+        <Phone className="mb-0.5 mr-1 inline h-3.5 w-3.5" />
+        {label}
+        {required && <span className="ml-0.5 text-rose-500">*</span>}
+      </label>
+
+      <div className={cn(
+        "flex h-11 overflow-hidden rounded-sm border bg-card transition-colors",
+        isTooShort   ? "border-rose-400 ring-1 ring-rose-200" :
+        isValid      ? "border-emerald-500 ring-1 ring-emerald-100" :
+                       "border-border focus-within:border-foreground",
+      )}>
+        {/* Country prefix */}
+        <div className="flex flex-shrink-0 items-center gap-1.5 border-r border-border bg-paper px-3">
+          <span className="text-base leading-none" role="img" aria-label="Philippines flag">🇵🇭</span>
+          <span className="font-mono text-xs font-semibold text-foreground">+63</span>
+        </div>
+
+        {/* Number input — user types the 10-digit local number (starting with 9) */}
+        <input
+          id={id}
+          type="tel"
+          inputMode="numeric"
+          placeholder="9XX XXX XXXX"
+          value={displayValue}
+          onChange={handleChange}
+          autoComplete="tel-national"
+          className="h-full flex-1 bg-transparent px-3 text-sm font-mono outline-none placeholder:text-muted-foreground/60"
+        />
+
+        {/* Validation indicator */}
+        {isDirty && (
+          <div className="flex items-center pr-3">
+            {isValid ? (
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
+                <svg viewBox="0 0 12 12" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2">
+                  <polyline points="2,6 5,9 10,3" />
+                </svg>
+              </span>
+            ) : (
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-rose-100 text-rose-500">
+                <svg viewBox="0 0 12 12" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2">
+                  <line x1="3" y1="3" x2="9" y2="9" /><line x1="9" y1="3" x2="3" y2="9" />
+                </svg>
+              </span>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Helper / error text */}
+      <p className={cn(
+        "mt-1.5 text-[11px] transition-all",
+        isTooShort   ? "text-rose-500" :
+        isValid      ? "text-emerald-600" :
+                       "text-muted-foreground",
+      )}>
+        {isTooShort && value.length < 10
+          ? `${10 - value.length} more digit${10 - value.length === 1 ? "" : "s"} needed`
+          : isValid
+          ? `✓ +63 ${displayValue}`
+          : "Enter your 10-digit mobile number (e.g. 917 123 4567)"}
+      </p>
     </div>
   );
 }

@@ -76,8 +76,102 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    var hasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher<TenantUser>>();
     context.Database.Migrate();
     DbSeeder.Seed(context);
+
+    // Initialize Demo Accounts
+    var demoBuyerEmail = "demo_buyer@procurli.com";
+    var demoVendorEmail = "demo_vendor@procurli.com";
+
+    if (!context.TenantUsers.Any(u => u.Email == demoBuyerEmail))
+    {
+        var buyerTenant = context.Tenants.FirstOrDefault(t => t.TenantType == "Buyer");
+        if (buyerTenant != null)
+        {
+            var u = new TenantUser
+            {
+                TenantID = buyerTenant.TenantID,
+                Email = demoBuyerEmail,
+                FullName = "Demo Buyer",
+                IsActive = true,
+                OnboardingComplete = true,
+                CreatedAt = DateTime.UtcNow
+            };
+            u.PasswordHash = hasher.HashPassword(u, "Password123!");
+            context.TenantUsers.Add(u);
+        }
+    }
+
+    if (!context.TenantUsers.Any(u => u.Email == demoVendorEmail))
+    {
+        var vendorTenant = context.Tenants.FirstOrDefault(t => t.TenantType == "Vendor" && t.CompanyName == "Acme Industrial Supply");
+        if (vendorTenant == null) 
+        {
+             vendorTenant = new Tenant
+             {
+                 TenantType = "Vendor",
+                 CompanyName = "Acme Industrial Supply",
+                 Industry = "Industrial Equipment",
+                 Status = "Active",
+                 CreatedAt = DateTime.UtcNow
+             };
+             context.Tenants.Add(vendorTenant);
+             context.SaveChanges();
+        }
+        else
+        {
+             vendorTenant.Industry = "Industrial Equipment";
+             context.SaveChanges();
+        }
+
+        var u = new TenantUser
+        {
+            TenantID = vendorTenant.TenantID,
+            Email = demoVendorEmail,
+            FullName = "Demo Vendor",
+            IsActive = true,
+            OnboardingComplete = true,
+            CreatedAt = DateTime.UtcNow
+        };
+        u.PasswordHash = hasher.HashPassword(u, "Password123!");
+        context.TenantUsers.Add(u);
+    }
+    else
+    {
+        // Just in case the user already exists but the tenant industry wasn't set
+        var existingAcme = context.Tenants.FirstOrDefault(t => t.TenantType == "Vendor" && t.CompanyName == "Acme Industrial Supply");
+        if (existingAcme != null && string.IsNullOrEmpty(existingAcme.Industry))
+        {
+             existingAcme.Industry = "Industrial Equipment";
+             context.SaveChanges();
+        }
+    }
+
+    context.SaveChanges();
+
+    var demoBuyerUser = context.TenantUsers.Include(u => u.Tenant).FirstOrDefault(u => u.Email == demoBuyerEmail);
+    var demoVendorUser = context.TenantUsers.Include(u => u.Tenant).FirstOrDefault(u => u.Email == demoVendorEmail);
+
+    if (demoBuyerUser != null && demoVendorUser != null)
+    {
+        var existingLink = context.AccreditationLinks.FirstOrDefault(l =>
+            l.BuyerTenantID == demoBuyerUser.TenantID && 
+            l.VendorTenantID == demoVendorUser.TenantID);
+
+        if (existingLink == null)
+        {
+            context.AccreditationLinks.Add(new AccreditationLink
+            {
+                BuyerTenantID = demoBuyerUser.TenantID,
+                VendorTenantID = demoVendorUser.TenantID,
+                Status = "Accredited",
+                AppliedAt = DateTime.UtcNow,
+                ApprovedAt = DateTime.UtcNow
+            });
+            context.SaveChanges();
+        }
+    }
 }
 
 

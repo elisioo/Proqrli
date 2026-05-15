@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable prettier/prettier */
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { PageHeader } from "@/components/PageHeader";
 import { StatCard } from "@/components/StatCard";
@@ -59,19 +59,38 @@ export const Route = createFileRoute("/buyer/")({
 
 function BuyerDashboard() {
   const { user, tenant } = useBuyer();
-  const { realRequisitions, realPOs, realBills, realInventory, liveSettings } = Route.useLoaderData();
+  const rawData = Route.useLoaderData();
+  
+  const [dateRange, setDateRange] = useState({ start: "", end: "" });
+  
+  const filterByDate = (dateStr?: string | null) => {
+    if (!dateStr) return true;
+    const d = new Date(dateStr);
+    const endPlusOne = dateRange.end ? new Date(dateRange.end) : null;
+    if (endPlusOne) endPlusOne.setDate(endPlusOne.getDate() + 1); // include the end day
+
+    if (dateRange.start && d < new Date(dateRange.start)) return false;
+    if (endPlusOne && d >= endPlusOne) return false;
+    return true;
+  };
+
+  const realRequisitions = useMemo(() => rawData.realRequisitions.filter((x: any) => filterByDate(x.requestDate || x.createdAt)), [rawData.realRequisitions, dateRange]);
+  const realPOs = useMemo(() => rawData.realPOs.filter((x: any) => filterByDate(x.poDate || x.createdAt)), [rawData.realPOs, dateRange]);
+  const realBills = useMemo(() => rawData.realBills.filter((x: any) => filterByDate(x.invoiceDate || x.createdAt)), [rawData.realBills, dateRange]);
+  const realInventory = rawData.realInventory;
+  const liveSettings = rawData.liveSettings;
   
   const displayCompanyName = liveSettings?.companyName || tenant.companyName;
   const displayUserName = user.name.includes("@") ? user.name.split("@")[0] : user.name.split(" ")[0];
 
-  const openPRs = realRequisitions.filter(r => r.status === "Pending Approval" || r.status === "Draft").length;
-  const openPOs = realPOs.filter(p => !["Closed", "Cancelled", "Received"].includes(p.status)).length;
-  const billsDue = realBills.filter(b => ["Pending", "Approved", "Scheduled", "Overdue"].includes(b.status))
-    .reduce((s, b) => s + (b.amount || 0), 0);
-  
+  const openPRs = realRequisitions.filter((r: any) => r.status === "Pending Approval" || r.status === "Draft").length;
+  const openPOs = realPOs.filter((p: any) => !["Closed", "Cancelled", "Received"].includes(p.status)).length;
+  const billsDue = realBills.filter((b: any) => ["Pending", "Approved", "Scheduled", "Overdue"].includes(b.status))
+    .reduce((s: number, b: any) => s + (b.amount || 0), 0);
+
   const realRiskAlerts = realPOs
-    .filter(po => po.status !== "Closed" && po.status !== "Received" && po.expectedDelivery && new Date(po.expectedDelivery) < new Date())
-    .map(po => ({
+    .filter((po: any) => po.status !== "Closed" && po.status !== "Received" && po.expectedDelivery && new Date(po.expectedDelivery) < new Date())
+    .map((po: any) => ({
       id: po.id,
       vendorName: po.vendorName || "Unknown Vendor",
       level: "Medium",
@@ -122,11 +141,45 @@ function BuyerDashboard() {
         }
       />
 
+      {/* Date Range Filter */}
+      <div className="flex items-center gap-4 rounded-md border border-border bg-card p-4">
+        <span className="text-sm font-semibold">Filter dashboard:</span>
+        <input 
+          type="date" 
+          value={dateRange.start}
+          onChange={(e) => setDateRange(prev => ({ ...prev, start: e.target.value }))}
+          className="h-9 rounded-sm border border-border bg-transparent px-3 text-sm outline-none focus:border-foreground"
+        />
+        <span className="text-xs text-muted-foreground">to</span>
+        <input 
+          type="date" 
+          value={dateRange.end}
+          onChange={(e) => setDateRange(prev => ({ ...prev, end: e.target.value }))}
+          className="h-9 rounded-sm border border-border bg-transparent px-3 text-sm outline-none focus:border-foreground"
+        />
+        {(dateRange.start || dateRange.end) && (
+          <button 
+            onClick={() => setDateRange({ start: "", end: "" })}
+            className="text-xs font-semibold text-rose-600 hover:text-rose-700"
+          >
+            Clear dates
+          </button>
+        )}
+      </div>
+
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <StatCard label="Open requisitions" value={openPRs} icon={ClipboardList} delta="+1 vs last week" tone="default" />
-        <StatCard label="Active POs" value={openPOs} icon={FileText} delta="3 awaiting GRN" />
-        <StatCard label="Bills due" value={formatBuyerCurrency(billsDue)} icon={Wallet} delta="2 within 7 days" tone="ink" />
-        <StatCard label="Risk alerts" value={openRisks} icon={ShieldAlert} delta="1 high · 2 medium" tone="accent" />
+        <Link to="/buyer/requisitions" className="block transition-transform hover:scale-[1.02]">
+          <StatCard label="Open requisitions" value={openPRs} icon={ClipboardList} delta="+1 vs last week" tone="default" />
+        </Link>
+        <Link to="/buyer/purchase-orders" className="block transition-transform hover:scale-[1.02]">
+          <StatCard label="Active POs" value={openPOs} icon={FileText} delta="3 awaiting GRN" />
+        </Link>
+        <Link to="/buyer/bills" className="block transition-transform hover:scale-[1.02]">
+          <StatCard label="Bills due" value={formatBuyerCurrency(billsDue)} icon={Wallet} delta="2 within 7 days" tone="ink" />
+        </Link>
+        <Link to="/buyer/vendors" className="block transition-transform hover:scale-[1.02]">
+          <StatCard label="Risk alerts" value={openRisks} icon={ShieldAlert} delta="1 high · 2 medium" tone="accent" />
+        </Link>
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">

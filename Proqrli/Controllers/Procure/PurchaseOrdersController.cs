@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ProqrLi.Data;
@@ -36,9 +37,13 @@ namespace ProqrLi.Controllers
 
         // GET /api/purchaseorders
         [HttpGet]
-        public async Task<IActionResult> GetAll()
+        public async Task<IActionResult> GetAll([FromQuery] DateTime? startDate = null, [FromQuery] DateTime? endDate = null)
         {
+            var tenantIdStr = User.FindFirstValue(System.Security.Claims.ClaimTypes.NameIdentifier) ?? User.FindFirstValue("tenant_id");
+            if (!int.TryParse(tenantIdStr, out var tenantId)) return Unauthorized();
+
             var list = await _db.PurchaseOrders
+                .Where(x => x.TenantID == tenantId || x.VendorTenantID == tenantId)
                 .Include(p => p.Tenant)
                 .Include(p => p.VendorTenant)
                 .Include(p => p.PurchaseRequisition)
@@ -61,12 +66,15 @@ namespace ProqrLi.Controllers
         [HttpGet("{id:int}")]
         public async Task<IActionResult> GetById(int id)
         {
+            var tenantIdStr = User.FindFirstValue("tenant_id") ?? User.FindFirstValue(System.Security.Claims.ClaimTypes.NameIdentifier);
+            if (!int.TryParse(tenantIdStr, out var tenantId)) return Unauthorized();
+
             var po = await _db.PurchaseOrders
                 .Include(p => p.Tenant)
                 .Include(p => p.VendorTenant)
                 .Include(p => p.PurchaseRequisition)
                 .Include(p => p.CreatedByUser)
-                .FirstOrDefaultAsync(p => p.POID == id);
+                .FirstOrDefaultAsync(p => p.POID == id && (p.TenantID == tenantId || p.VendorTenantID == tenantId));
 
             if (po == null) return NotFound();
             var itemCount = await _db.POItems.CountAsync(pi => pi.POID == id);
@@ -77,10 +85,13 @@ namespace ProqrLi.Controllers
         [HttpGet("pr-lookup")]
         public async Task<IActionResult> GetPRLookup()
         {
+            var tenantIdStr = User.FindFirstValue("tenant_id") ?? User.FindFirstValue(System.Security.Claims.ClaimTypes.NameIdentifier);
+            if (!int.TryParse(tenantIdStr, out var tenantId)) return Unauthorized();
+
             var prs = await _db.PurchaseRequisitions
-                .Where(pr => pr.Status == "Approved")
+                .Where(pr => pr.Status == "Approved" && pr.TenantID == tenantId)
                 .OrderByDescending(pr => pr.RequestDate)
-                .Select(pr => new { id = pr.PRID, label = pr.PRNumber + " — " + pr.Purpose })
+                .Select(pr => new { id = pr.PRID, label = pr.PRNumber + " — " + pr.Title })
                 .ToListAsync();
             return Ok(prs);
         }
@@ -89,9 +100,12 @@ namespace ProqrLi.Controllers
         [HttpGet("vendor-lookup")]
         public async Task<IActionResult> GetVendorLookup()
         {
-            var vendors = await _db.Tenants
-                .Where(t => t.TenantType == "Vendor" && t.Status != "Archived")
-                .Select(t => new { id = t.TenantID, label = t.CompanyName })
+            var tenantIdStr = User.FindFirstValue("tenant_id") ?? User.FindFirstValue(System.Security.Claims.ClaimTypes.NameIdentifier);
+            if (!int.TryParse(tenantIdStr, out var tenantId)) return Unauthorized();
+
+            var vendors = await _db.AccreditationLinks
+                .Where(a => a.BuyerTenantID == tenantId && a.Status == "Accredited")
+                .Select(a => new { id = a.VendorTenantID, label = a.VendorTenant.CompanyName })
                 .ToListAsync();
             return Ok(vendors);
         }
@@ -110,12 +124,15 @@ namespace ProqrLi.Controllers
                 var pr = await _db.PurchaseRequisitions.FindAsync(dto.PRID);
                 if (pr == null)
                     return BadRequest(new { error = $"Purchase Requisition with ID {dto.PRID} does not exist." });
+                
+                pr.Status = "Converted to PO";
             }
 
-            var tenantId = await _db.Tenants.Where(t => t.TenantType == "Buyer").Select(t => t.TenantID).FirstOrDefaultAsync();
-            if (tenantId == 0) tenantId = 1;
+            var tenantIdStr = User.FindFirstValue("tenant_id");
+            if (!int.TryParse(tenantIdStr, out var tenantId)) return Unauthorized();
 
-            var userId = await _db.TenantUsers.Select(u => u.UserID).FirstOrDefaultAsync();
+            var userIdStr = User.FindFirstValue(System.Security.Claims.ClaimTypes.NameIdentifier);
+            int.TryParse(userIdStr ?? "1", out var userId);
 
             var po = new PurchaseOrder
             {
@@ -147,11 +164,14 @@ namespace ProqrLi.Controllers
         [HttpPatch("{id:int}")]
         public async Task<IActionResult> Update(int id, [FromBody] UpdatePurchaseOrderDto dto)
         {
+            var tenantIdStr = User.FindFirstValue("tenant_id") ?? User.FindFirstValue(System.Security.Claims.ClaimTypes.NameIdentifier);
+            if (!int.TryParse(tenantIdStr, out var tenantId)) return Unauthorized();
+
             var po = await _db.PurchaseOrders
                 .Include(p => p.VendorTenant)
                 .Include(p => p.PurchaseRequisition)
                 .Include(p => p.CreatedByUser)
-                .FirstOrDefaultAsync(p => p.POID == id);
+                .FirstOrDefaultAsync(p => p.POID == id && p.TenantID == tenantId);
 
             if (po == null) return NotFound();
 
@@ -185,7 +205,10 @@ namespace ProqrLi.Controllers
         [HttpDelete("{id:int}")]
         public async Task<IActionResult> Delete(int id)
         {
-            var po = await _db.PurchaseOrders.FindAsync(id);
+            var tenantIdStr = User.FindFirstValue("tenant_id") ?? User.FindFirstValue(System.Security.Claims.ClaimTypes.NameIdentifier);
+            if (!int.TryParse(tenantIdStr, out var tenantId)) return Unauthorized();
+
+            var po = await _db.PurchaseOrders.FirstOrDefaultAsync(p => p.POID == id && p.TenantID == tenantId);
             if (po == null) return NotFound();
 
             po.Status = "Archived";
@@ -195,3 +218,7 @@ namespace ProqrLi.Controllers
         }
     }
 }
+
+
+
+

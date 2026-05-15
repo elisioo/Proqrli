@@ -186,7 +186,7 @@ function TeamTab() {
       <div className="rounded-md border border-border bg-card p-6">
         <h3 className="font-display text-lg font-extrabold mb-3">Roles</h3>
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-          {(["vendor_owner", "vendor_admin", "vendor_staff", "vendor_finance"] as VendorRole[]).map((r) => (
+          {(["vendor_admin", "vendor_staff"] as VendorRole[]).map((r) => (
             <div key={r} className="rounded-sm border border-border bg-paper-mid p-4">
               <RoleBadge role={r} />
               <div className="mt-2 font-display text-base font-extrabold">{ROLE_LABELS[r]}</div>

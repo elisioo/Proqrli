@@ -4,17 +4,20 @@ import * as React from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { PermissionGate } from "@/components/PermissionGate";
 import { AutoStatus } from "@/components/StatusPill";
-import { INCOMING_RFQS, formatCurrency, type IncomingRFQ } from "@/lib/mock-data";
 import { useVendor } from "@/lib/vendor-context";
-import { ArrowLeft, Send, Calendar, Clock, FileText, ShieldCheck, Trophy } from "lucide-react";
+import { ArrowLeft, Send, Calendar, Clock, FileText, ShieldCheck, Trophy, Loader2 } from "lucide-react";
 import { NumberInput, Field } from "@/components/CrudDrawer";
 import { cn } from "@/lib/utils";
+import { rfqsApi, type RfqDetailDto, type RfqMessageDto } from "@/lib/api";
+import { formatCurrency } from "@/lib/mock-data";
 
 export const Route = createFileRoute("/vendor/rfqs/$rfqId")({
-    loader: ({ params }) => {
-        const rfq = INCOMING_RFQS.find((r) => r.id === params.rfqId);
-        if (!rfq) throw notFound();
-        return rfq;
+    loader: async ({ params }) => {
+        try {
+            return await rfqsApi.getDetail(params.rfqId);
+        } catch {
+            throw notFound();
+        }
     },
     component: () => (
         <PermissionGate permission="rfq:view">
@@ -30,27 +33,111 @@ export const Route = createFileRoute("/vendor/rfqs/$rfqId")({
 });
 
 function RFQDetail() {
-    const rfq = Route.useLoaderData() as IncomingRFQ;
-    const { hasPermission } = useVendor();
+    const detail = Route.useLoaderData() as RfqDetailDto;
+    const { rfq, lines, invitations, quotes } = detail;
+    const { hasPermission, vendor } = useVendor();
     const canRespond = hasPermission("rfq:respond");
 
-    // Local UI state for quote builder & chat
-    const [lineQuotes, setLineQuotes] = React.useState(() =>
-        rfq.lines.map((l) => ({ unitPrice: l.targetPrice ?? 0, qty: l.qty })),
-    );
-    const [leadTime, setLeadTime] = React.useState(rfq.myQuote?.leadTimeDays ?? 7);
-    const [validity, setValidity] = React.useState(30);
+    // Resolve this vendor's own invitation & quote from the detail
+    const myInvitation = invitations[0];          // vendor only sees their own invitation
+    const myQuote      = quotes[0] ?? null;       // vendor only sees their own quote
 
+    // ── Quote builder ────────────────────────────────────────────────────────
+    const [lineQuotes, setLineQuotes] = React.useState(() =>
+        lines.map((l) => ({ unitPrice: l.targetPrice ?? 0, qty: l.qty })),
+    );
+    const [leadTime, setLeadTime]   = React.useState(7);
+    const [validity, setValidity]   = React.useState(30);
+    const [isSubmitting, setIsSubmitting] = React.useState(false);
     const total = lineQuotes.reduce((s, l) => s + l.unitPrice * l.qty, 0);
 
-    const [draft, setDraft] = React.useState("");
-    const [thread, setThread] = React.useState(rfq.thread);
-
-    const sendMessage = () => {
-        if (!draft.trim()) return;
-        setThread((t) => [...t, { from: "vendor", text: draft, at: "Now" }]);
-        setDraft("");
+    const submitQuote = async () => {
+        if (!canRespond || total <= 0) return;
+        setIsSubmitting(true);
+        try {
+            await rfqsApi.respond(rfq.id, { totalAmount: total, remarks: "" });
+            alert("Quotation submitted successfully!");
+        } catch (err) {
+            alert("Failed to submit quotation: " + err);
+        } finally {
+            setIsSubmitting(false);
+        }
     };
+
+    // ── Messaging ────────────────────────────────────────────────────────────
+    const [thread, setThread]       = React.useState<RfqMessageDto[]>([]);
+    const [msgLoading, setMsgLoading] = React.useState(true);
+    const [msgError, setMsgError]   = React.useState<string | null>(null);
+    const [draft, setDraft]         = React.useState("");
+    const [sending, setSending]     = React.useState(false);
+    const scrollRef = React.useRef<HTMLDivElement>(null);
+    const isPolling = React.useRef(false);
+
+    const loadMessages = React.useCallback(async (silent = false) => {
+        try {
+            // Vendor side — backend derives tenantId from session, so we pass 0 and the backend ignores it
+            const msgs = await rfqsApi.getMessages(rfq.id);
+            setThread(msgs);
+            setMsgError(null);
+        } catch (err) {
+            console.error("Failed to load messages:", err);
+            if (!silent) setMsgError(err instanceof Error ? err.message : "Could not load messages.");
+        } finally {
+            if (!silent) setMsgLoading(false);
+        }
+    }, [rfq.id]);
+
+    React.useEffect(() => { loadMessages(); }, [loadMessages]);
+
+    // Poll every 6 s for new messages from the buyer
+    React.useEffect(() => {
+        const id = setInterval(async () => {
+            if (isPolling.current) return;
+            isPolling.current = true;
+            await loadMessages(true);
+            isPolling.current = false;
+        }, 6000);
+        return () => clearInterval(id);
+    }, [loadMessages]);
+
+    // Auto-scroll to bottom when new messages arrive
+    React.useEffect(() => {
+        if (scrollRef.current) {
+            scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+        }
+    }, [thread]);
+
+    const sendMessage = async () => {
+        if (!draft.trim() || !canRespond) return;
+        setSending(true);
+        const optimistic: RfqMessageDto = {
+            messageId: `tmp-${Date.now()}`,
+            senderType: "vendor",
+            body: draft.trim(),
+            sentAt: new Date().toLocaleTimeString(),
+        };
+        setThread((t) => [...t, optimistic]);
+        setDraft("");
+        try {
+            await rfqsApi.sendMessage(rfq.id, { vendorTenantId: 0, body: optimistic.body });
+            // Reload to get the server-assigned ID and timestamp
+            await loadMessages();
+        } catch (err) {
+            console.error("Failed to send message:", err);
+            // Roll back optimistic message
+            setThread((t) => t.filter((m) => m.messageId !== optimistic.messageId));
+            setDraft(optimistic.body);
+            alert("Failed to send message.");
+        } finally {
+            setSending(false);
+        }
+    };
+
+    const isLocked = rfq.status === "Awarded" || rfq.status === "Cancelled";
+    const buyerName = myInvitation?.vendorName ? rfq.title : (rfq.category || "Buyer");
+    // We show buyer name from the rfq (notes field carries buyer info from vendor inbox but not here)
+    // Fall back gracefully
+    const buyerInitials = rfq.rfqNumber?.slice(0, 2).toUpperCase() ?? "B";
 
     return (
         <div className="mx-auto flex max-w-7xl flex-col gap-6">
@@ -59,18 +146,18 @@ function RFQDetail() {
             </Link>
 
             <PageHeader
-                eyebrow={`From ${rfq.buyerName}`}
+                eyebrow={`${rfq.category} · ${rfq.rfqNumber}`}
                 title={rfq.title}
-                description={`RFQ ${rfq.rfqNumber} · ${rfq.category}`}
+                description={`Closes ${rfq.closesAt}`}
                 actions={<AutoStatus status={rfq.status} />}
             />
 
             {/* Meta strip */}
             <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-                <Meta icon={<Calendar className="h-3 w-3" />} label="Received" value={rfq.receivedAt} />
-                <Meta icon={<Clock className="h-3 w-3" />} label="Closes" value={rfq.closesAt} />
-                <Meta icon={<FileText className="h-3 w-3" />} label="Lines" value={`${rfq.lines.length}`} />
-                <Meta icon={<ShieldCheck className="h-3 w-3" />} label="Competitors" value={`${rfq.competingVendors} vendors`} />
+                <Meta icon={<Calendar className="h-3 w-3" />} label="Closes" value={rfq.closesAt} />
+                <Meta icon={<FileText className="h-3 w-3" />} label="Lines" value={`${lines.length}`} />
+                <Meta icon={<ShieldCheck className="h-3 w-3" />} label="Competitors" value={`${rfq.invitedVendors} vendors`} />
+                <Meta icon={<Clock className="h-3 w-3" />} label="My status" value={myInvitation?.vendorStatus ?? "—"} />
             </div>
 
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_400px]">
@@ -91,11 +178,17 @@ function RFQDetail() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-border">
-                                {rfq.lines.map((line, i) => {
+                                {lines.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={7} className="px-4 py-8 text-center text-sm text-muted-foreground">
+                                            No line items on this RFQ.
+                                        </td>
+                                    </tr>
+                                ) : lines.map((line, i) => {
                                     const lq = lineQuotes[i];
                                     return (
-                                        <tr key={i}>
-                                            <td className="px-4 py-3 font-mono text-xs">{line.sku ?? "—"}</td>
+                                        <tr key={line.id}>
+                                            <td className="px-4 py-3 font-mono text-xs">{line.sku || "—"}</td>
                                             <td className="px-4 py-3">
                                                 <div className="font-medium">{line.description}</div>
                                                 {line.notes && <div className="mt-0.5 text-[11px] text-muted-foreground">{line.notes}</div>}
@@ -108,7 +201,7 @@ function RFQDetail() {
                                             <td className="px-4 py-3 text-right">
                                                 <NumberInput
                                                     value={lq.unitPrice}
-                                                    disabled={!canRespond || rfq.status === "Awarded" || rfq.status === "Lost"}
+                                                    disabled={!canRespond || isLocked}
                                                     onChange={(val) => setLineQuotes((arr) => arr.map((it, idx) => idx === i ? { ...it, unitPrice: val } : it))}
                                                     className="h-8 w-24 rounded-sm border border-border bg-background px-2 text-right font-mono text-xs outline-none focus:border-foreground disabled:opacity-60"
                                                 />
@@ -134,15 +227,15 @@ function RFQDetail() {
                         <div className="t-label mb-3">Quote terms</div>
                         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                             <Field label="Lead time (days)">
-                                <NumberInput value={leadTime} disabled={!canRespond} onChange={(val) => setLeadTime(val)}
+                                <NumberInput value={leadTime} disabled={!canRespond || isLocked} onChange={setLeadTime}
                                     className="h-10 w-full rounded-sm border border-border bg-background px-3 font-mono text-sm outline-none focus:border-foreground disabled:opacity-60" />
                             </Field>
                             <Field label="Quote valid (days)">
-                                <NumberInput value={validity} disabled={!canRespond} onChange={(val) => setValidity(val)}
+                                <NumberInput value={validity} disabled={!canRespond || isLocked} onChange={setValidity}
                                     className="h-10 w-full rounded-sm border border-border bg-background px-3 font-mono text-sm outline-none focus:border-foreground disabled:opacity-60" />
                             </Field>
                             <Field label="Payment terms">
-                                <select disabled={!canRespond} className="h-10 w-full rounded-sm border border-border bg-background px-3 text-sm outline-none focus:border-foreground disabled:opacity-60" defaultValue="Net30">
+                                <select disabled={!canRespond || isLocked} className="h-10 w-full rounded-sm border border-border bg-background px-3 text-sm outline-none focus:border-foreground disabled:opacity-60" defaultValue="Net30">
                                     <option>COD</option>
                                     <option>Net15</option>
                                     <option>Net30</option>
@@ -152,17 +245,19 @@ function RFQDetail() {
                         </div>
 
                         <div className="mt-4 flex flex-col items-end gap-2">
-                            {rfq.myQuote && (
+                            {myQuote && (
                                 <div className="t-label flex items-center gap-2">
-                                    <Trophy className="h-3 w-3" /> Last submitted {rfq.myQuote.submittedAt}
-                                    {rfq.myQuote.rank && <span>· Currently rank #{rfq.myQuote.rank}</span>}
+                                    <Trophy className="h-3 w-3" /> Last submitted {myQuote.submittedAt}
+                                    {myQuote.rank && <span>· Currently rank #{myQuote.rank}</span>}
                                 </div>
                             )}
                             <button
-                                disabled={!canRespond || rfq.status === "Awarded" || rfq.status === "Lost"}
+                                onClick={submitQuote}
+                                disabled={!canRespond || isLocked || total <= 0 || isSubmitting}
                                 className="inline-flex h-10 items-center gap-2 rounded-sm bg-foreground px-5 text-sm font-semibold text-background hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-50"
                             >
-                                {rfq.myQuote ? "Update quotation" : "Submit quotation"} · {formatCurrency(total)}
+                                {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                                {myQuote ? "Update quotation" : "Submit quotation"} · {formatCurrency(total)}
                             </button>
                             {!canRespond && <p className="text-[11px] text-muted-foreground">Your role can view RFQs but cannot submit quotes.</p>}
                         </div>
@@ -174,34 +269,56 @@ function RFQDetail() {
                     <div className="border-b border-border bg-muted px-4 py-3">
                         <div className="t-label">Private discussion</div>
                         <div className="mt-1 flex items-center gap-2">
-                            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-foreground font-mono text-[10px] font-bold text-background">{rfq.buyerInitials}</span>
+                            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-foreground font-mono text-[10px] font-bold text-background">
+                                {buyerInitials}
+                            </span>
                             <div>
-                                <div className="text-sm font-semibold">{rfq.buyerName}</div>
+                                <div className="text-sm font-semibold">Buyer</div>
                                 <div className="text-[10px] text-muted-foreground">Only you and this buyer can see this thread</div>
                             </div>
                         </div>
                     </div>
-                    <div className="flex-1 space-y-3 overflow-y-auto p-4">
-                        {thread.map((m, i) => (
-                            <div key={i} className={cn("flex", m.from === "vendor" ? "justify-end" : "justify-start")}>
-                                <div className={cn("max-w-[85%] rounded-md px-3 py-2 text-sm", m.from === "vendor" ? "bg-foreground text-background" : "bg-muted")}>
-                                    <div>{m.text}</div>
-                                    <div className={cn("mt-1 text-[10px]", m.from === "vendor" ? "opacity-60" : "text-muted-foreground")}>{m.at}</div>
+
+                    <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto p-4">
+                        {msgLoading ? (
+                            <div className="flex justify-center pt-8">
+                                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                            </div>
+                        ) : msgError ? (
+                            <div className="flex flex-col items-center gap-2 pt-8 text-center">
+                                <span className="rounded-sm bg-red-50 border border-red-200 px-3 py-2 text-red-700 text-[11px]">
+                                    ⚠ {msgError}
+                                </span>
+                                <button onClick={() => loadMessages()} className="text-xs underline text-muted-foreground hover:no-underline">Retry</button>
+                            </div>
+                        ) : thread.length === 0 ? (
+                            <p className="text-center text-xs text-muted-foreground pt-6">No messages yet. Ask the buyer a question below.</p>
+                        ) : thread.map((m) => (
+                            <div key={m.messageId} className={cn("flex", m.senderType === "vendor" ? "justify-end" : "justify-start")}>
+                                <div className={cn("max-w-[85%] rounded-md px-3 py-2 text-sm", m.senderType === "vendor" ? "bg-foreground text-background" : "bg-muted")}>
+                                    <div>{m.body}</div>
+                                    <div className={cn("mt-1 text-[10px]", m.senderType === "vendor" ? "opacity-60" : "text-muted-foreground")}>{m.sentAt}</div>
                                 </div>
                             </div>
                         ))}
                     </div>
+
                     <div className="flex items-center gap-2 border-t border-border p-3">
                         <input
                             value={draft}
                             onChange={(e) => setDraft(e.target.value)}
-                            onKeyDown={(e) => e.key === "Enter" && sendMessage()}
-                            disabled={!canRespond}
+                            onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && sendMessage()}
+                            disabled={!canRespond || sending}
                             className="h-10 flex-1 rounded-sm border border-border bg-card px-3 text-sm outline-none focus:border-foreground disabled:opacity-60"
                             placeholder="Ask the buyer for clarification…"
                         />
-                        <button onClick={sendMessage} disabled={!canRespond} className="inline-flex h-10 items-center gap-1 rounded-sm bg-foreground px-3 text-xs font-semibold text-background hover:opacity-85 disabled:opacity-50">
-                            <Send className="h-3 w-3" /> Send
+                        <button
+                            onClick={sendMessage}
+                            disabled={!canRespond || !draft.trim() || sending}
+                            className="inline-flex h-10 items-center gap-1 rounded-sm bg-foreground px-3 text-xs font-semibold text-background hover:opacity-85 disabled:opacity-50"
+                        >
+                            {sending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Send className="h-3 w-3" />}
+                            Send
                         </button>
                     </div>
                 </aside>
@@ -218,5 +335,3 @@ function Meta({ icon, label, value }: { icon: React.ReactNode; label: string; va
         </div>
     );
 }
-
-

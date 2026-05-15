@@ -42,6 +42,7 @@ namespace ProqrLi.Data
         public DbSet<RequestForQuotation> RequestForQuotations { get; set; }
         public DbSet<RfqVendorInvitation> RfqVendorInvitations { get; set; }
         public DbSet<RfqResponse> RfqResponses { get; set; }
+        public DbSet<RfqMessage> RfqMessages { get; set; }
 
         // ── Module 3: Supplier Evaluation
         public DbSet<EvaluationCriteria> EvaluationCriterias { get; set; }
@@ -268,6 +269,20 @@ namespace ProqrLi.Data
                 .HasOne(r => r.VendorTenant)
                 .WithMany()
                 .HasForeignKey(r => r.VendorTenantID)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // RfqMessage — two paths back to Tenant: via RFQID→RequestForQuotation→TenantID
+            //              and direct VendorTenantID, so both must be Restrict.
+            modelBuilder.Entity<RfqMessage>()
+                .HasOne(m => m.RequestForQuotation)
+                .WithMany(r => r.Messages)
+                .HasForeignKey(m => m.RFQID)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<RfqMessage>()
+                .HasOne(m => m.VendorTenant)
+                .WithMany()
+                .HasForeignKey(m => m.VendorTenantID)
                 .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<Contract>()

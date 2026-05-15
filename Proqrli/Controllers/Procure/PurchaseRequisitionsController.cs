@@ -45,9 +45,13 @@ namespace ProqrLi.Controllers
 
         
         [HttpGet]
-        public async Task<IActionResult> GetAll()
+        public async Task<IActionResult> GetAll([FromQuery] DateTime? startDate = null, [FromQuery] DateTime? endDate = null)
         {
+            var tenantIdStr = User.FindFirstValue("tenant_id");
+            if (!int.TryParse(tenantIdStr, out var tenantId)) return Unauthorized();
+
             var list = await _db.PurchaseRequisitions
+                .Where(x => x.TenantID == tenantId)
                 .Include(r => r.RequestedBy)
                 .Include(r => r.Tenant)
                 .OrderByDescending(r => r.RequestDate)
@@ -68,10 +72,13 @@ namespace ProqrLi.Controllers
         [HttpGet("{id:int}")]
         public async Task<IActionResult> GetById(int id)
         {
+            var tenantIdStr = User.FindFirstValue("tenant_id");
+            if (!int.TryParse(tenantIdStr, out var tenantId)) return Unauthorized();
+
             var pr = await _db.PurchaseRequisitions
                 .Include(r => r.RequestedBy)
                 .Include(r => r.Tenant)
-                .FirstOrDefaultAsync(r => r.PRID == id);
+                .FirstOrDefaultAsync(r => r.PRID == id && r.TenantID == tenantId);
 
             if (pr == null) return NotFound();
             var itemCount = await _db.RequisitionItems.CountAsync(ri => ri.PRID == id);
@@ -83,8 +90,8 @@ namespace ProqrLi.Controllers
         public async Task<IActionResult> Create([FromBody] CreateRequisitionDto dto)
         {
           
-            var tenantId = await _db.Tenants.Select(t => t.TenantID).FirstOrDefaultAsync();
-            if (tenantId == 0) tenantId = 1;
+            var tenantIdStr = User.FindFirstValue("tenant_id");
+            if (!int.TryParse(tenantIdStr, out var tenantId)) return Unauthorized();
 
 
             var sessionUserId = GetSessionUserId();
@@ -165,9 +172,12 @@ namespace ProqrLi.Controllers
         [HttpPatch("{id:int}")]
         public async Task<IActionResult> Update(int id, [FromBody] UpdateRequisitionDto dto)
         {
+            var tenantIdStr = User.FindFirstValue("tenant_id");
+            if (!int.TryParse(tenantIdStr, out var tenantId)) return Unauthorized();
+
             var pr = await _db.PurchaseRequisitions
                 .Include(r => r.RequestedBy)
-                .FirstOrDefaultAsync(r => r.PRID == id);
+                .FirstOrDefaultAsync(r => r.PRID == id && r.TenantID == tenantId);
 
             if (pr == null) return NotFound();
 
@@ -206,7 +216,10 @@ namespace ProqrLi.Controllers
         [HttpDelete("{id:int}")]
         public async Task<IActionResult> Delete(int id)
         {
-            var pr = await _db.PurchaseRequisitions.FindAsync(id);
+            var tenantIdStr = User.FindFirstValue("tenant_id");
+            if (!int.TryParse(tenantIdStr, out var tenantId)) return Unauthorized();
+
+            var pr = await _db.PurchaseRequisitions.FirstOrDefaultAsync(r => r.PRID == id && r.TenantID == tenantId);
             if (pr == null) return NotFound();
 
             // Soft delete
@@ -217,3 +230,6 @@ namespace ProqrLi.Controllers
         }
     }
 }
+
+
+

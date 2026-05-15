@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ProqrLi.Data;
@@ -33,10 +34,13 @@ namespace ProqrLi.Controllers.Procure
 
         // GET: api/inventory
         [HttpGet]
-        public async Task<IActionResult> GetAll()
+        public async Task<IActionResult> GetAll([FromQuery] DateTime? startDate = null, [FromQuery] DateTime? endDate = null)
         {
+            var tenantIdStr = User.FindFirstValue("tenant_id");
+            if (!int.TryParse(tenantIdStr, out var tenantId)) return Unauthorized();
+
             // Join Item and Inventory
-            var query = from item in _db.Items
+            var query = from item in _db.Items.Where(i => i.TenantID == tenantId)
                         join inv in _db.Inventories on item.ItemID equals inv.ItemID into invGroup
                         from inv in invGroup.DefaultIfEmpty()
                         join wh in _db.Warehouses on (inv != null ? inv.WarehouseID : 0) equals wh.WarehouseID into whGroup
@@ -66,8 +70,8 @@ namespace ProqrLi.Controllers.Procure
         public async Task<IActionResult> Create([FromBody] InventoryItemDto dto)
         {
             // simplified tenant fallback
-            var tenantId = await _db.Tenants.Select(t => t.TenantID).FirstOrDefaultAsync();
-            if (tenantId == 0) tenantId = 1;
+            var tenantIdStr = User.FindFirstValue("tenant_id");
+            if (!int.TryParse(tenantIdStr, out var tenantId)) return Unauthorized();
 
             if (string.IsNullOrWhiteSpace(dto.Sku))
             {
@@ -169,3 +173,7 @@ namespace ProqrLi.Controllers.Procure
         }
     }
 }
+
+
+
+

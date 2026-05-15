@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ProqrLi.Data;
@@ -55,13 +56,11 @@ namespace ProqrLi.Controllers.Procure
 
         // GET /api/vendors
         [HttpGet]
-        public async Task<IActionResult> GetAll()
+        public async Task<IActionResult> GetAll([FromQuery] DateTime? startDate = null, [FromQuery] DateTime? endDate = null)
         {
             // Get the current buyer tenant (simplified: first buyer tenant)
-            var buyerTenantId = await _db.Tenants
-                .Where(t => t.TenantType == "Buyer")
-                .Select(t => t.TenantID)
-                .FirstOrDefaultAsync();
+            var tenantIdStr = User.FindFirstValue("tenant_id");
+            if (!int.TryParse(tenantIdStr, out var buyerTenantId)) return Unauthorized();
 
             // Get all accreditation links for this buyer
             var links = await _db.AccreditationLinks
@@ -139,11 +138,8 @@ namespace ProqrLi.Controllers.Procure
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] CreateVendorDto dto)
         {
-            var buyerTenantId = await _db.Tenants
-                .Where(t => t.TenantType == "Buyer")
-                .Select(t => t.TenantID)
-                .FirstOrDefaultAsync();
-            if (buyerTenantId == 0) buyerTenantId = 1;
+            var tenantIdStr = User.FindFirstValue("tenant_id");
+            if (!int.TryParse(tenantIdStr, out var buyerTenantId)) return Unauthorized();
 
             // Find the vendor tenant by ID or CompanyName
             var vendorTenant = await _db.Tenants
@@ -222,12 +218,8 @@ namespace ProqrLi.Controllers.Procure
         [HttpGet("marketplace")]
         public async Task<IActionResult> GetMarketplaceVendors([FromQuery] int page = 1, [FromQuery] int pageSize = 10, [FromQuery] string search = "", [FromQuery] string category = "")
         {
-            var buyerTenantId = await _db.Tenants
-                .Where(t => t.TenantType == "Buyer")
-                .Select(t => t.TenantID)
-                .FirstOrDefaultAsync();
-            
-            if (buyerTenantId == 0) buyerTenantId = 1;
+            var tenantIdStr = User.FindFirstValue("tenant_id");
+            if (!int.TryParse(tenantIdStr, out var buyerTenantId)) return Unauthorized();
 
             var linkedVendorList = await _db.AccreditationLinks
                 .Where(a => a.BuyerTenantID == buyerTenantId)
@@ -278,3 +270,6 @@ namespace ProqrLi.Controllers.Procure
         }
     }
 }
+
+
+

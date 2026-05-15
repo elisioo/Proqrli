@@ -11,15 +11,15 @@ export type VendorRole =
   | "vendor_finance";
 
 export const ROLE_LABELS: Record<VendorRole, string> = {
-  vendor_owner: "Owner",
+  vendor_owner: "Admin",
   vendor_admin: "Admin",
-  vendor_staff: "Sales / Staff",
+  vendor_staff: "Sales",
   vendor_finance: "Finance",
 };
 
 export const ROLE_DESCRIPTIONS: Record<VendorRole, string> = {
   vendor_owner: "Full access, including billing, team, and store deletion.",
-  vendor_admin: "Manage products, orders, deliveries, team, and storefront.",
+  vendor_admin: "Full access, including billing, team, and store deletion.",
   vendor_staff: "Manage products and orders. No billing or team access.",
   vendor_finance: "Read orders. Manage invoices, payouts, and bank details.",
 };
@@ -61,23 +61,7 @@ export type Permission = (typeof PERMISSIONS)[number];
 
 export const ROLE_PERMISSIONS: Record<VendorRole, Permission[]> = {
   vendor_owner: [...PERMISSIONS],
-  vendor_admin: [
-    "dashboard:view",
-    "orders:view", "orders:fulfill",
-    "po:view", "po:acknowledge",
-    "rfq:view", "rfq:respond",
-    "products:view", "products:manage",
-    "storefront:view", "storefront:edit",
-    "deliveries:view", "deliveries:manage",
-    "invoices:view",
-    "payouts:view",
-    "compliance:view", "compliance:upload",
-    "buyers:view", "buyers:manage",
-    "messages:view", "messages:send",
-    "reviews:view",
-    "team:view", "team:manage",
-    "settings:view", "settings:edit",
-  ],
+  vendor_admin: [...PERMISSIONS],
   vendor_staff: [
     "dashboard:view",
     "orders:view", "orders:fulfill",
@@ -400,11 +384,11 @@ export const REVENUE_SERIES = [
 ];
 
 export function formatCurrency(n: number) {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
+  return new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP", maximumFractionDigits: 0 }).format(n);
 }
 
 export function formatCurrencyDecimal(n: number) {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(n);
+  return new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP" }).format(n);
 }
 
 // ─── RFQs received from buyers (vendor inbox view) ───

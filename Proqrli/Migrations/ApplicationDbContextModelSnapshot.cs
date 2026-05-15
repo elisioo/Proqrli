@@ -1894,6 +1894,41 @@ namespace Proqrli.Migrations
                     b.ToTable("RequisitionItem");
                 });
 
+            modelBuilder.Entity("ProqrLi.Models.RfqMessage", b =>
+                {
+                    b.Property<int>("MessageID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MessageID"));
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("RFQID")
+                        .HasColumnType("int");
+
+                    b.Property<string>("SenderType")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.Property<DateTime>("SentAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("VendorTenantID")
+                        .HasColumnType("int");
+
+                    b.HasKey("MessageID");
+
+                    b.HasIndex("RFQID");
+
+                    b.HasIndex("VendorTenantID");
+
+                    b.ToTable("RfqMessage");
+                });
+
             modelBuilder.Entity("ProqrLi.Models.RfqResponse", b =>
                 {
                     b.Property<int>("ResponseID")
@@ -3446,6 +3481,25 @@ namespace Proqrli.Migrations
                     b.Navigation("PurchaseRequisition");
                 });
 
+            modelBuilder.Entity("ProqrLi.Models.RfqMessage", b =>
+                {
+                    b.HasOne("ProqrLi.Models.RequestForQuotation", "RequestForQuotation")
+                        .WithMany("Messages")
+                        .HasForeignKey("RFQID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("ProqrLi.Models.Tenant", "VendorTenant")
+                        .WithMany()
+                        .HasForeignKey("VendorTenantID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("RequestForQuotation");
+
+                    b.Navigation("VendorTenant");
+                });
+
             modelBuilder.Entity("ProqrLi.Models.RfqResponse", b =>
                 {
                     b.HasOne("ProqrLi.Models.RequestForQuotation", "RequestForQuotation")
@@ -3707,6 +3761,8 @@ namespace Proqrli.Migrations
 
             modelBuilder.Entity("ProqrLi.Models.RequestForQuotation", b =>
                 {
+                    b.Navigation("Messages");
+
                     b.Navigation("VendorInvitations");
                 });
 #pragma warning restore 612, 618

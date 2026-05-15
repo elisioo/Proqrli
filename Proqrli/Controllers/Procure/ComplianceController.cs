@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ProqrLi.Data;
@@ -222,8 +223,8 @@ namespace ProqrLi.Controllers.Procure
         [HttpPost("documents")]
         public async Task<IActionResult> CreateDocument([FromBody] CreateComplianceDocDto dto)
         {
-            var tenantId = await _db.Tenants.Select(t => t.TenantID).FirstOrDefaultAsync();
-            if (tenantId == 0) tenantId = 1;
+            var tenantIdStr = User.FindFirstValue("tenant_id");
+            if (!int.TryParse(tenantIdStr, out var tenantId)) return Unauthorized();
             var userId = await _db.TenantUsers.Select(u => u.UserID).FirstOrDefaultAsync();
 
             var doc = new ComplianceDocument
@@ -300,3 +301,5 @@ namespace ProqrLi.Controllers.Procure
         }
     }
 }
+
+

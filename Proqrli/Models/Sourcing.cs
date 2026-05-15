@@ -44,6 +44,37 @@ namespace ProqrLi.Models
         public string SourcingRoute { get; set; } = "rfq"; // rfq, direct-po
 
         public ICollection<RfqVendorInvitation> VendorInvitations { get; set; } = new List<RfqVendorInvitation>();
+        public ICollection<RfqMessage> Messages { get; set; } = new List<RfqMessage>();
+    }
+
+    /// <summary>
+    /// Private per-RFQ, per-vendor message thread between buyer and one vendor.
+    /// Key: RFQID + VendorTenantID — identifies which conversation this belongs to.
+    /// SenderType is "buyer" | "vendor" so the UI can render left/right bubbles.
+    /// </summary>
+    [Table("RfqMessage")]
+    public class RfqMessage
+    {
+        [Key, DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+        public int MessageID { get; set; }
+
+        [ForeignKey("RequestForQuotation")]
+        public int RFQID { get; set; }
+        public RequestForQuotation? RequestForQuotation { get; set; }
+
+        /// <summary>The vendor side of this thread (scopes the message to one vendor).</summary>
+        public int VendorTenantID { get; set; }
+        [ForeignKey("VendorTenantID")]
+        public Tenant? VendorTenant { get; set; }
+
+        /// <summary>"buyer" or "vendor" — determines message bubble alignment in the UI.</summary>
+        [Required, MaxLength(10)]
+        public string SenderType { get; set; } = "buyer";
+
+        [Required]
+        public string Body { get; set; } = string.Empty;
+
+        public DateTime SentAt { get; set; } = DateTime.UtcNow;
     }
 
     [Table("RfqVendorInvitation")]

@@ -24,12 +24,9 @@ namespace ProqrLi.Controllers.Procure
         [HttpGet]
         public async Task<IActionResult> GetAll([FromQuery] int page = 1, [FromQuery] int pageSize = 10, [FromQuery] string search = "", [FromQuery] string status = "All")
         {
-            var buyerTenantId = await _db.Tenants
-                .Where(t => t.TenantType == "Buyer")
-                .Select(t => t.TenantID)
-                .FirstOrDefaultAsync();
-
-            if (buyerTenantId == 0) buyerTenantId = 1;
+            var tenantIdStr = User.FindFirst("tenant_id")?.Value;
+            if (!int.TryParse(tenantIdStr, out var buyerTenantId))
+                return Unauthorized(new { error = "Invalid session." });
 
             var query = _db.RequestForQuotations
                 .Include(r => r.PurchaseRequisition)
@@ -76,10 +73,14 @@ namespace ProqrLi.Controllers.Procure
         [HttpGet("{id:int}")]
         public async Task<IActionResult> GetById(int id)
         {
+            var tenantIdStr = User.FindFirst("tenant_id")?.Value;
+            if (!int.TryParse(tenantIdStr, out var buyerTenantId))
+                return Unauthorized(new { error = "Invalid session." });
+
             var rfq = await _db.RequestForQuotations
                 .Include(r => r.PurchaseRequisition)
                 .Include(r => r.VendorInvitations)
-                .FirstOrDefaultAsync(r => r.RFQID == id);
+                .FirstOrDefaultAsync(r => r.RFQID == id && r.TenantID == buyerTenantId);
 
             if (rfq == null) return NotFound();
 
@@ -103,11 +104,15 @@ namespace ProqrLi.Controllers.Procure
         [HttpGet("{id:int}/detail")]
         public async Task<IActionResult> GetDetail(int id)
         {
+            var tenantIdStr = User.FindFirst("tenant_id")?.Value;
+            if (!int.TryParse(tenantIdStr, out var buyerTenantId))
+                return Unauthorized(new { error = "Invalid session." });
+
             var rfq = await _db.RequestForQuotations
                 .Include(r => r.PurchaseRequisition)
                 .Include(r => r.VendorInvitations)
                     .ThenInclude(vi => vi.VendorTenant)
-                .FirstOrDefaultAsync(r => r.RFQID == id);
+                .FirstOrDefaultAsync(r => r.RFQID == id && r.TenantID == buyerTenantId);
 
             if (rfq == null) return NotFound();
 
@@ -188,12 +193,12 @@ namespace ProqrLi.Controllers.Procure
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] CreateRfqDto dto)
         {
-            var buyerTenantId = await _db.Tenants
-                .Where(t => t.TenantType == "Buyer")
-                .Select(t => t.TenantID)
-                .FirstOrDefaultAsync();
+            var tenantIdStr = User.FindFirst("tenant_id")?.Value;
+            if (!int.TryParse(tenantIdStr, out var buyerTenantId))
+                return Unauthorized(new { error = "Invalid session." });
 
-            if (buyerTenantId == 0) buyerTenantId = 1;
+            var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            int.TryParse(userIdStr ?? "1", out var userId);
 
             var rfq = new RequestForQuotation
             {
@@ -204,7 +209,7 @@ namespace ProqrLi.Controllers.Procure
                 Notes = dto.Notes,
                 SourcingRoute = dto.SourcingRoute ?? "rfq",
                 Status = "Draft",
-                CreatedByUserID = 1 
+                CreatedByUserID = userId 
             };
 
             if (int.TryParse(dto.LinkedPrId, out int prId))
@@ -229,7 +234,11 @@ namespace ProqrLi.Controllers.Procure
         [HttpPatch("{id:int}")]
         public async Task<IActionResult> Update(int id, [FromBody] UpdateRfqDto dto)
         {
-            var rfq = await _db.RequestForQuotations.FindAsync(id);
+            var tenantIdStr = User.FindFirst("tenant_id")?.Value;
+            if (!int.TryParse(tenantIdStr, out var buyerTenantId))
+                return Unauthorized(new { error = "Invalid session." });
+
+            var rfq = await _db.RequestForQuotations.FirstOrDefaultAsync(r => r.RFQID == id && r.TenantID == buyerTenantId);
             if (rfq == null) return NotFound();
 
             if (dto.Title != null) rfq.Title = dto.Title;
@@ -246,7 +255,11 @@ namespace ProqrLi.Controllers.Procure
         [HttpDelete("{id:int}")]
         public async Task<IActionResult> Delete(int id)
         {
-            var rfq = await _db.RequestForQuotations.FindAsync(id);
+            var tenantIdStr = User.FindFirst("tenant_id")?.Value;
+            if (!int.TryParse(tenantIdStr, out var buyerTenantId))
+                return Unauthorized(new { error = "Invalid session." });
+
+            var rfq = await _db.RequestForQuotations.FirstOrDefaultAsync(r => r.RFQID == id && r.TenantID == buyerTenantId);
             if (rfq == null) return NotFound();
 
             rfq.Status = "Cancelled";
@@ -258,9 +271,13 @@ namespace ProqrLi.Controllers.Procure
         [HttpPost("{id:int}/invite")]
         public async Task<IActionResult> InviteVendors(int id, [FromBody] InviteVendorsDto dto)
         {
+            var tenantIdStr = User.FindFirst("tenant_id")?.Value;
+            if (!int.TryParse(tenantIdStr, out var buyerTenantId))
+                return Unauthorized(new { error = "Invalid session." });
+
             var rfq = await _db.RequestForQuotations
                 .Include(r => r.VendorInvitations)
-                .FirstOrDefaultAsync(r => r.RFQID == id);
+                .FirstOrDefaultAsync(r => r.RFQID == id && r.TenantID == buyerTenantId);
 
             if (rfq == null) return NotFound();
 
@@ -293,18 +310,15 @@ namespace ProqrLi.Controllers.Procure
         [HttpGet("{id:int}/suggested-vendors")]
         public async Task<IActionResult> GetSuggestedVendors(int id)
         {
+            var tenantIdStr = User.FindFirst("tenant_id")?.Value;
+            if (!int.TryParse(tenantIdStr, out var buyerTenantId))
+                return Unauthorized(new { error = "Invalid session." });
+
             var rfq = await _db.RequestForQuotations
                 .Include(r => r.VendorInvitations)
-                .FirstOrDefaultAsync(r => r.RFQID == id);
+                .FirstOrDefaultAsync(r => r.RFQID == id && r.TenantID == buyerTenantId);
 
             if (rfq == null) return NotFound();
-
-            var buyerTenantId = rfq.TenantID;
-
-            var links = await _db.AccreditationLinks
-                .Include(a => a.VendorTenant)
-                .Where(a => a.BuyerTenantID == buyerTenantId && a.Status == "Accredited")
-                .ToListAsync();
 
             var alreadyInvited = rfq.VendorInvitations
                 .Select(vi => vi.VendorTenantID)
@@ -324,23 +338,26 @@ namespace ProqrLi.Controllers.Procure
                 _                      => new[] { rfqCategory }
             };
 
-            var result = links
-                .Select(l =>
+            var allVendors = await _db.Tenants
+                .Where(t => t.TenantType == "Vendor" && t.Status == "Active")
+                .ToListAsync();
+
+            var result = allVendors
+                .Select(v =>
                 {
-                    var industry = (l.VendorTenant?.Industry ?? "").ToLower();
+                    var industry = (v.Industry ?? "").ToLower();
                     var isMatch = matchKeywords.Any(kw => industry.Contains(kw))
                                   || industry == rfqCategory;
                     return new
                     {
-                        vendorTenantId = l.VendorTenantID,
-                        linkId         = l.LinkID,
-                        companyName    = l.VendorTenant?.CompanyName ?? "",
-                        industry       = l.VendorTenant?.Industry ?? "",
+                        vendorTenantId = v.TenantID,
+                        linkId         = 0,
+                        companyName    = v.CompanyName ?? "",
+                        industry       = v.Industry ?? "",
                         isMatch,
-                        alreadyInvited = alreadyInvited.Contains(l.VendorTenantID),
+                        alreadyInvited = alreadyInvited.Contains(v.TenantID),
                     };
                 })
-                
                 .OrderByDescending(v => v.isMatch)
                 .ThenBy(v => v.companyName)
                 .ToList();
@@ -457,10 +474,15 @@ namespace ProqrLi.Controllers.Procure
 
         [HttpPost("{id:int}/award/{responseId:int}")]
         public async Task<IActionResult> AwardQuote(int id, int responseId)
-        {            var rfq = await _db.RequestForQuotations
+        {
+            var tenantIdStr = User.FindFirst("tenant_id")?.Value;
+            if (!int.TryParse(tenantIdStr, out var buyerTenantId))
+                return Unauthorized(new { error = "Invalid session." });
+
+            var rfq = await _db.RequestForQuotations
                 .Include(r => r.PurchaseRequisition)
                 .Include(r => r.VendorInvitations)
-                .FirstOrDefaultAsync(r => r.RFQID == id);
+                .FirstOrDefaultAsync(r => r.RFQID == id && r.TenantID == buyerTenantId);
 
             if (rfq == null) return NotFound("RFQ not found");
 

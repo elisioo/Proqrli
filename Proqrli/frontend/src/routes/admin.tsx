@@ -1,4 +1,4 @@
-import { createFileRoute, Outlet } from "@tanstack/react-router";
+import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
 import { AdminTopbar } from "@/components/admin/AdminTopbar";
 
@@ -11,6 +11,22 @@ export const Route = createFileRoute("/admin")({
       { name: "robots", content: "noindex, nofollow" },
     ],
   }),
+  beforeLoad: async () => {
+    if (typeof window === "undefined") return; // SSR safety
+    try {
+      const res = await fetch("/api/auth/me", { credentials: "include" });
+      if (!res.ok) {
+        throw redirect({ to: "/admin/login" });
+      }
+      const user = await res.json();
+      if (user.role !== "superadmin" && user.role !== "super_admin") {
+        throw redirect({ to: "/admin/login" });
+      }
+    } catch (err: unknown) {
+      if (err && typeof err === "object" && "isRedirect" in err) throw err;
+      throw redirect({ to: "/admin/login" });
+    }
+  },
   component: AdminLayout,
 });
 

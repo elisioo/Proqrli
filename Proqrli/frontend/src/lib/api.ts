@@ -619,6 +619,17 @@ export type VendorInboxRfqDto = {
     } | null;
 };
 
+// ─── RFQ Messaging ──────────────────────────────────────────────────────────
+// One thread per (RFQ × Vendor) pair.  Both sides share the same rows in
+// the RfqMessage table; senderType = "buyer" | "vendor" controls alignment.
+
+export type RfqMessageDto = {
+    messageId: string;
+    senderType: "buyer" | "vendor";
+    body: string;
+    sentAt: string;
+};
+
 export const rfqsApi = {
     getAll: (page: number = 1, pageSize: number = 10, search: string = "", status: string = "") => {
         const query = new URLSearchParams({ page: page.toString(), pageSize: pageSize.toString(), search, status });
@@ -630,11 +641,24 @@ export const rfqsApi = {
     update: (id: string, body: UpdateRfqDto) =>
         req<{ id: string }>(`/rfqs/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
     archive: (id: string) => req<void>(`/rfqs/${id}`, { method: "DELETE" }),
-    inviteVendors: (id: string, vendorIds: number[]) => req<{ message: string }>(`/rfqs/${id}/invite`, { method: "POST", body: JSON.stringify({ vendorIds }) }),
-    awardQuote: (id: string, responseId: string) => req<{ poId: string, poNumber: string }>(`/rfqs/${id}/award/${responseId}`, { method: "POST" }),
+    inviteVendors: (id: string, vendorIds: number[]) =>
+        req<{ message: string }>(`/rfqs/${id}/invite`, { method: "POST", body: JSON.stringify({ vendorIds }) }),
+    awardQuote: (id: string, responseId: string) =>
+        req<{ poId: string; poNumber: string }>(`/rfqs/${id}/award/${responseId}`, { method: "POST" }),
     getSuggestedVendors: (id: string) => req<SuggestedVendorDto[]>(`/rfqs/${id}/suggested-vendors`),
     getVendorInbox: () => req<VendorInboxRfqDto[]>("/rfqs/vendor-inbox"),
-    respond: (id: string, body: { totalAmount: number; remarks?: string }) => req<{ message: string }>(`/rfqs/${id}/respond`, { method: "POST", body: JSON.stringify(body) })
+    respond: (id: string, body: { totalAmount: number; remarks?: string }) =>
+        req<{ message: string }>(`/rfqs/${id}/respond`, { method: "POST", body: JSON.stringify(body) }),
+
+    // ── Messaging ──────────────────────────────────────────────────────────
+    // Buyer must pass vendorTenantId to scope the thread.
+    // Vendor call omits vendorTenantId (backend uses session tenant).
+    getMessages: (rfqId: string, vendorTenantId?: number) => {
+        const qs = vendorTenantId != null ? `?vendorTenantId=${vendorTenantId}` : "";
+        return req<RfqMessageDto[]>(`/rfqs/${rfqId}/messages${qs}`);
+    },
+    sendMessage: (rfqId: string, body: { vendorTenantId: number; body: string }) =>
+        req<RfqMessageDto>(`/rfqs/${rfqId}/messages`, { method: "POST", body: JSON.stringify(body) }),
 };
 
 export type MarketplaceProduct = {
