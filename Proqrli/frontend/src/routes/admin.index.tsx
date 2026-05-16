@@ -1,15 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { StatCard } from "@/components/StatCard";
 import { AutoStatus } from "@/components/StatusPill";
-import {
-  AUDIT_EVENTS,
-  SERVICE_HEALTH,
-  SYSTEM_METRICS,
-  TENANTS,
-  formatRelative,
-  formatUSD,
-} from "@/lib/admin-mock-data";
+import { adminApi, type AdminDashboard as AdminDashboardDto } from "@/lib/api";
+import { formatCurrency } from "@/lib/mock-data";
 import { ArrowUpRight, Building2, Server, Wallet, Users } from "lucide-react";
 
 export const Route = createFileRoute("/admin/")({
@@ -17,20 +12,24 @@ export const Route = createFileRoute("/admin/")({
 });
 
 function AdminDashboard() {
-  const activeTenants = TENANTS.filter((t) => t.status === "Active").length;
-  const trialTenants = TENANTS.filter((t) => t.status === "Trial").length;
-  const totalUsers = TENANTS.reduce((s, t) => s + t.users, 0);
-  const totalMRR = TENANTS.reduce((s, t) => s + t.mrrUSD, 0);
+  const [data, setData] = useState<AdminDashboardDto | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  const recentTenants = [...TENANTS].sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt)).slice(0, 5);
-  const recentEvents = AUDIT_EVENTS.slice(0, 6);
+  useEffect(() => {
+    adminApi.dashboard().then(setData).catch((err) => {
+      setError(err instanceof Error ? err.message : "Unable to load dashboard.");
+    });
+  }, []);
+
+  if (error) return <AdminState message={error} />;
+  if (!data) return <AdminState message="Loading platform dashboard..." />;
 
   return (
     <div className="mx-auto flex max-w-7xl flex-col gap-8">
       <PageHeader
         eyebrow="Platform control plane"
         title="System overview"
-        description="The owner's view of every tenant, every user, every module — live."
+        description="The owner's view of every tenant, every user, every module - live from the database."
         actions={
           <Link
             to="/admin/system"
@@ -42,10 +41,10 @@ function AdminDashboard() {
       />
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Active tenants" value={activeTenants} delta={`${trialTenants} on trial`} icon={Building2} tone="ink" />
-        <StatCard label="Platform users" value={totalUsers.toLocaleString()} delta="across all tenants" icon={Users} />
-        <StatCard label="MRR" value={formatUSD(totalMRR)} delta="+4.1% MoM" icon={Wallet} tone="accent" />
-        <StatCard label="Open incidents" value="1" delta="ML risk · degraded" icon={Server} />
+        <StatCard label="Active tenants" value={data.activeTenants.toLocaleString()} delta={`${data.trialTenants} on trial`} icon={Building2} tone="ink" />
+        <StatCard label="Platform users" value={data.platformUsers.toLocaleString()} delta="tenant + platform users" icon={Users} />
+        <StatCard label="MRR" value={formatCurrency(data.mrr)} delta="active subscriptions" icon={Wallet} tone="accent" />
+        <StatCard label="Services" value={data.system.services.length.toLocaleString()} delta="monitored" icon={Server} />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
@@ -53,7 +52,7 @@ function AdminDashboard() {
           <div className="mb-5 flex items-center justify-between">
             <h2 className="font-display text-lg font-bold">Recent tenants</h2>
             <Link to="/admin/tenants" className="text-[12px] font-medium text-foreground underline-offset-4 hover:underline">
-              View all →
+              View all
             </Link>
           </div>
           <div className="overflow-x-auto">
@@ -68,11 +67,11 @@ function AdminDashboard() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {recentTenants.map((t) => (
+                {data.recentTenants.map((t) => (
                   <tr key={t.id} className="hover:bg-muted/40">
                     <td className="py-3">
                       <div className="font-medium">{t.name}</div>
-                      <div className="text-[11px] text-ink-muted">{t.industry} · {t.region}</div>
+                      <div className="text-[11px] text-ink-muted">{t.industry} · {t.type}</div>
                     </td>
                     <td className="py-3">
                       <span className="rounded-sm border border-border bg-muted px-2 py-[2px] font-mono text-[10px] font-semibold uppercase tracking-[0.1em]">
@@ -80,8 +79,8 @@ function AdminDashboard() {
                       </span>
                     </td>
                     <td className="py-3"><AutoStatus status={t.status} /></td>
-                    <td className="py-3 text-right font-mono text-[12.5px]">{formatUSD(t.spendYTD)}</td>
-                    <td className="py-3 text-right text-[12px] text-ink-muted">{t.createdAt}</td>
+                    <td className="py-3 text-right font-mono text-[12.5px]">{formatCurrency(t.spendYtd)}</td>
+                    <td className="py-3 text-right text-[12px] text-ink-muted">{formatDate(t.createdAt)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -93,11 +92,11 @@ function AdminDashboard() {
           <div className="mb-5 flex items-center justify-between">
             <h2 className="font-display text-lg font-bold">System pulse</h2>
             <Link to="/admin/system" className="text-[12px] font-medium text-foreground underline-offset-4 hover:underline">
-              Health →
+              Health
             </Link>
           </div>
           <ul className="space-y-3">
-            {SYSTEM_METRICS.slice(0, 5).map((m) => (
+            {data.system.metrics.map((m) => (
               <li key={m.name} className="flex items-center justify-between gap-4">
                 <div>
                   <div className="text-[12px] text-ink-muted">{m.name}</div>
@@ -110,10 +109,10 @@ function AdminDashboard() {
           <div className="mt-5 border-t border-border pt-4">
             <div className="mb-2 font-mono text-[10px] uppercase tracking-[0.14em] text-ink-muted">Services</div>
             <ul className="space-y-1.5 text-[12.5px]">
-              {SERVICE_HEALTH.slice(0, 4).map((s) => (
+              {data.system.services.map((s) => (
                 <li key={s.service} className="flex items-center justify-between">
                   <span>{s.service}</span>
-                  <AutoStatus status={s.status === "Operational" ? "Active" : s.status === "Degraded" ? "Pending" : s.status === "Outage" ? "Failed" : "Pending Review"} />
+                  <AutoStatus status={s.status === "Operational" ? "Active" : s.status === "Degraded" ? "Pending" : "Failed"} />
                 </li>
               ))}
             </ul>
@@ -125,19 +124,15 @@ function AdminDashboard() {
         <div className="mb-5 flex items-center justify-between">
           <h2 className="font-display text-lg font-bold">Latest activity</h2>
           <Link to="/admin/audit" className="text-[12px] font-medium text-foreground underline-offset-4 hover:underline">
-            Audit log →
+            Audit log
           </Link>
         </div>
         <ul className="divide-y divide-border">
-          {recentEvents.map((e) => (
+          {data.recentAudit.map((e) => (
             <li key={e.id} className="flex items-start justify-between gap-4 py-3">
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
-                  <span
-                    className={`h-1.5 w-1.5 rounded-full ${
-                      e.severity === "critical" ? "bg-rose-500" : e.severity === "warn" ? "bg-amber-500" : "bg-emerald-500"
-                    }`}
-                  />
+                  <span className={`h-1.5 w-1.5 rounded-full ${eventTone(e.severity)}`} />
                   <span className="font-mono text-[11px] text-ink-muted">{e.action}</span>
                 </div>
                 <div className="mt-1 truncate text-sm">{e.target}</div>
@@ -150,4 +145,26 @@ function AdminDashboard() {
       </div>
     </div>
   );
+}
+
+function AdminState({ message }: { message: string }) {
+  return <div className="mx-auto max-w-7xl rounded-md border border-border bg-card p-6 text-sm text-ink-muted">{message}</div>;
+}
+
+function eventTone(severity: string) {
+  return severity === "critical" ? "bg-rose-500" : severity === "warn" ? "bg-amber-500" : "bg-emerald-500";
+}
+
+function formatDate(value: string) {
+  return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(new Date(value));
+}
+
+function formatRelative(value: string) {
+  const diffMs = Date.now() - new Date(value).getTime();
+  const minutes = Math.max(0, Math.round(diffMs / 60000));
+  if (minutes < 1) return "just now";
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  return `${Math.round(hours / 24)}d ago`;
 }

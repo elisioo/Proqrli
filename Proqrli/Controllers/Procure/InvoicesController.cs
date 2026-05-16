@@ -22,6 +22,12 @@ namespace ProqrLi.Controllers
             _httpClientFactory = httpClientFactory;
         }
 
+        private bool TryGetCurrentTenantId(out int tenantId)
+        {
+            var tenantIdStr = User.FindFirstValue("tenant_id");
+            return int.TryParse(tenantIdStr, out tenantId);
+        }
+
         private static VendorBillDto ToDto(Invoice inv)
         {
             return new VendorBillDto
@@ -41,8 +47,7 @@ namespace ProqrLi.Controllers
         [HttpGet]
         public async Task<IActionResult> GetAll([FromQuery] DateTime? startDate = null, [FromQuery] DateTime? endDate = null)
         {
-            var tenantIdStr = User.FindFirstValue("tenant_id");
-            if (!int.TryParse(tenantIdStr, out var tenantId)) return Unauthorized();
+            if (!TryGetCurrentTenantId(out var tenantId)) return Unauthorized();
 
             var list = await _db.Invoices
                 .Where(x => x.TenantID == tenantId || x.VendorTenantID == tenantId)
@@ -58,10 +63,12 @@ namespace ProqrLi.Controllers
         [HttpGet("{id:int}")]
         public async Task<IActionResult> GetById(int id)
         {
+            if (!TryGetCurrentTenantId(out var tenantId)) return Unauthorized();
+
             var invoice = await _db.Invoices
                 .Include(i => i.VendorTenant)
                 .Include(i => i.PurchaseOrder)
-                .FirstOrDefaultAsync(i => i.InvoiceID == id);
+                .FirstOrDefaultAsync(i => i.InvoiceID == id && (i.TenantID == tenantId || i.VendorTenantID == tenantId));
 
             if (invoice == null) return NotFound();
             return Ok(ToDto(invoice));
@@ -71,9 +78,11 @@ namespace ProqrLi.Controllers
         [HttpGet("po-lookup")]
         public async Task<IActionResult> GetPOLookup()
         {
+            if (!TryGetCurrentTenantId(out var tenantId)) return Unauthorized();
+
             var pos = await _db.PurchaseOrders
                 .Include(p => p.VendorTenant)
-                .Where(p => p.Status != "Cancelled")
+                .Where(p => p.TenantID == tenantId && p.Status != "Cancelled")
                 .OrderByDescending(p => p.PODate)
                 .Select(p => new { id = p.POID, label = p.PONumber + " — " + (p.VendorTenant != null ? p.VendorTenant.CompanyName : "Unknown"), vendorName = p.VendorTenant != null ? p.VendorTenant.CompanyName : "" })
                 .ToListAsync();
@@ -84,12 +93,12 @@ namespace ProqrLi.Controllers
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] CreateVendorBillDto dto)
         {
+            if (!TryGetCurrentTenantId(out var tenantId)) return Unauthorized();
             // ── FK validation ──────────────────────────────────────────────
-            var po = await _db.PurchaseOrders.FindAsync(dto.POID);
+            var po = await _db.PurchaseOrders.FirstOrDefaultAsync(p => p.POID == dto.POID && p.TenantID == tenantId);
             if (po == null)
                 return BadRequest(new { error = $"Purchase Order with ID {dto.POID} does not exist. Please select a valid PO." });
 
-            var tenantId = po.TenantID;
             var vendorTenantId = po.VendorTenantID;
 
             var invoice = new Invoice
@@ -123,10 +132,12 @@ namespace ProqrLi.Controllers
         [HttpPatch("{id:int}")]
         public async Task<IActionResult> Update(int id, [FromBody] UpdateVendorBillDto dto)
         {
+            if (!TryGetCurrentTenantId(out var tenantId)) return Unauthorized();
+
             var invoice = await _db.Invoices
                 .Include(i => i.VendorTenant)
                 .Include(i => i.PurchaseOrder)
-                .FirstOrDefaultAsync(i => i.InvoiceID == id);
+                .FirstOrDefaultAsync(i => i.InvoiceID == id && (i.TenantID == tenantId || i.VendorTenantID == tenantId));
 
             if (invoice == null) return NotFound();
 
@@ -160,7 +171,9 @@ namespace ProqrLi.Controllers
         [HttpDelete("{id:int}")]
         public async Task<IActionResult> Delete(int id)
         {
-            var invoice = await _db.Invoices.FindAsync(id);
+            if (!TryGetCurrentTenantId(out var tenantId)) return Unauthorized();
+
+            var invoice = await _db.Invoices.FirstOrDefaultAsync(i => i.InvoiceID == id && (i.TenantID == tenantId || i.VendorTenantID == tenantId));
             if (invoice == null) return NotFound();
 
             invoice.Status = "Cancelled";

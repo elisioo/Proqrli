@@ -3,8 +3,10 @@ using Microsoft.EntityFrameworkCore;
 using ProqrLi.Data;
 using ProqrLi.Models;
 using ProqrLi.DTOs;
+using ProqrLi.Services;
 using System;
 using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace ProqrLi.Controllers.Procure
@@ -14,10 +16,12 @@ namespace ProqrLi.Controllers.Procure
     public class RfqsController : ControllerBase
     {
         private readonly ApplicationDbContext _db;
+        private readonly RfqMessageBroadcaster _messageBroadcaster;
 
-        public RfqsController(ApplicationDbContext db)
+        public RfqsController(ApplicationDbContext db, RfqMessageBroadcaster messageBroadcaster)
         {
             _db = db;
+            _messageBroadcaster = messageBroadcaster;
         }
 
       
@@ -366,6 +370,7 @@ namespace ProqrLi.Controllers.Procure
         }
 
         public record RespondToRfqRequest(decimal TotalAmount, string? Remarks);
+        public record SendRfqMessageRequest(int VendorTenantId, string Body);
 
         [HttpPost("{id:int}/respond")]
         public async Task<IActionResult> RespondToRfq(int id, [FromBody] RespondToRfqRequest req)
@@ -420,6 +425,198 @@ namespace ProqrLi.Controllers.Procure
 
             await _db.SaveChangesAsync();
             return Ok(new { message = "Quotation submitted successfully." });
+        }
+
+        [HttpGet("{id:int}/messages")]
+        public async Task<IActionResult> GetMessages(int id, [FromQuery] int? vendorTenantId)
+        {
+            var tenantIdStr = User.FindFirst("tenant_id")?.Value;
+            if (!int.TryParse(tenantIdStr, out var currentTenantId))
+                return Unauthorized(new { error = "Invalid session." });
+
+            var rfq = await _db.RequestForQuotations
+                .Include(r => r.VendorInvitations)
+                .FirstOrDefaultAsync(r => r.RFQID == id);
+
+            if (rfq == null) return NotFound(new { error = "RFQ not found." });
+
+            var threadVendorTenantId = vendorTenantId.GetValueOrDefault();
+            if (threadVendorTenantId > 0)
+            {
+                if (rfq.TenantID != currentTenantId)
+                    return StatusCode(403, new { error = "You do not have access to this RFQ thread." });
+
+                var invited = rfq.VendorInvitations.Any(vi => vi.VendorTenantID == threadVendorTenantId);
+                if (!invited)
+                    return NotFound(new { error = "Vendor is not invited to this RFQ." });
+            }
+            else
+            {
+                var invitation = rfq.VendorInvitations.FirstOrDefault(vi => vi.VendorTenantID == currentTenantId);
+                if (invitation == null)
+                    return StatusCode(403, new { error = "You do not have access to this RFQ thread." });
+
+                threadVendorTenantId = currentTenantId;
+            }
+
+            var messages = await _db.RfqMessages
+                .Where(m => m.RFQID == id && m.VendorTenantID == threadVendorTenantId)
+                .OrderBy(m => m.SentAt)
+                .Select(m => new
+                {
+                    messageId = m.MessageID.ToString(),
+                    senderType = m.SenderType,
+                    body = m.Body,
+                    sentAt = m.SentAt.ToString("yyyy-MM-dd HH:mm")
+                })
+                .ToListAsync();
+
+            return Ok(messages);
+        }
+
+        [HttpGet("{id:int}/messages/stream")]
+        public async Task StreamMessages(int id, [FromQuery] int? vendorTenantId, CancellationToken cancellationToken)
+        {
+            var tenantIdStr = User.FindFirst("tenant_id")?.Value;
+            if (!int.TryParse(tenantIdStr, out var currentTenantId))
+            {
+                Response.StatusCode = StatusCodes.Status401Unauthorized;
+                await Response.WriteAsJsonAsync(new { error = "Invalid session." }, cancellationToken);
+                return;
+            }
+
+            var rfq = await _db.RequestForQuotations
+                .Include(r => r.VendorInvitations)
+                .FirstOrDefaultAsync(r => r.RFQID == id, cancellationToken);
+
+            if (rfq == null)
+            {
+                Response.StatusCode = StatusCodes.Status404NotFound;
+                await Response.WriteAsJsonAsync(new { error = "RFQ not found." }, cancellationToken);
+                return;
+            }
+
+            var threadVendorTenantId = vendorTenantId.GetValueOrDefault();
+            if (threadVendorTenantId > 0)
+            {
+                if (rfq.TenantID != currentTenantId)
+                {
+                    Response.StatusCode = StatusCodes.Status403Forbidden;
+                    await Response.WriteAsJsonAsync(new { error = "You do not have access to this RFQ thread." }, cancellationToken);
+                    return;
+                }
+
+                var invited = rfq.VendorInvitations.Any(vi => vi.VendorTenantID == threadVendorTenantId);
+                if (!invited)
+                {
+                    Response.StatusCode = StatusCodes.Status404NotFound;
+                    await Response.WriteAsJsonAsync(new { error = "Vendor is not invited to this RFQ." }, cancellationToken);
+                    return;
+                }
+            }
+            else
+            {
+                var invitation = rfq.VendorInvitations.FirstOrDefault(vi => vi.VendorTenantID == currentTenantId);
+                if (invitation == null)
+                {
+                    Response.StatusCode = StatusCodes.Status403Forbidden;
+                    await Response.WriteAsJsonAsync(new { error = "You do not have access to this RFQ thread." }, cancellationToken);
+                    return;
+                }
+
+                threadVendorTenantId = currentTenantId;
+            }
+
+            Response.Headers.CacheControl = "no-cache";
+            Response.Headers.Connection = "keep-alive";
+            Response.ContentType = "text/event-stream";
+
+            var subscription = _messageBroadcaster.Subscribe(id, threadVendorTenantId);
+            try
+            {
+                await Response.WriteAsync(": connected\n\n", cancellationToken);
+                await Response.Body.FlushAsync(cancellationToken);
+
+                await foreach (var message in subscription.Reader.ReadAllAsync(cancellationToken))
+                {
+                    var json = JsonSerializer.Serialize(message, new JsonSerializerOptions
+                    {
+                        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                    });
+                    await Response.WriteAsync($"event: message\ndata: {json}\n\n", cancellationToken);
+                    await Response.Body.FlushAsync(cancellationToken);
+                }
+            }
+            finally
+            {
+                _messageBroadcaster.Unsubscribe(id, threadVendorTenantId, subscription.SubscriptionId);
+            }
+        }
+
+        [HttpPost("{id:int}/messages")]
+        public async Task<IActionResult> SendMessage(int id, [FromBody] SendRfqMessageRequest req)
+        {
+            var tenantIdStr = User.FindFirst("tenant_id")?.Value;
+            if (!int.TryParse(tenantIdStr, out var currentTenantId))
+                return Unauthorized(new { error = "Invalid session." });
+
+            var body = req.Body?.Trim();
+            if (string.IsNullOrWhiteSpace(body))
+                return BadRequest(new { error = "Message cannot be empty." });
+
+            var rfq = await _db.RequestForQuotations
+                .Include(r => r.VendorInvitations)
+                .FirstOrDefaultAsync(r => r.RFQID == id);
+
+            if (rfq == null) return NotFound(new { error = "RFQ not found." });
+
+            var threadVendorTenantId = req.VendorTenantId;
+            var senderType = "buyer";
+
+            if (threadVendorTenantId > 0 && rfq.TenantID == currentTenantId)
+            {
+                var invited = rfq.VendorInvitations.Any(vi => vi.VendorTenantID == threadVendorTenantId);
+                if (!invited)
+                    return NotFound(new { error = "Vendor is not invited to this RFQ." });
+            }
+            else
+            {
+                var invitation = rfq.VendorInvitations.FirstOrDefault(vi => vi.VendorTenantID == currentTenantId);
+                if (invitation == null)
+                    return StatusCode(403, new { error = "You do not have access to this RFQ thread." });
+
+                threadVendorTenantId = currentTenantId;
+                senderType = "vendor";
+            }
+
+            var message = new RfqMessage
+            {
+                RFQID = id,
+                VendorTenantID = threadVendorTenantId,
+                SenderType = senderType,
+                Body = body,
+                SentAt = DateTime.UtcNow
+            };
+
+            _db.RfqMessages.Add(message);
+            await _db.SaveChangesAsync();
+
+            var result = new
+            {
+                messageId = message.MessageID.ToString(),
+                senderType = message.SenderType,
+                body = message.Body,
+                sentAt = message.SentAt.ToString("yyyy-MM-dd HH:mm")
+            };
+
+            _messageBroadcaster.Publish(id, threadVendorTenantId, new RfqMessageEvent(
+                result.messageId,
+                result.senderType,
+                result.body,
+                result.sentAt
+            ));
+
+            return Ok(result);
         }
 
         

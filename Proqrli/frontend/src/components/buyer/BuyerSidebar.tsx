@@ -29,6 +29,7 @@ import {
   ShieldAlert,
   MessageSquare,
   Settings,
+  ChartColumn,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -75,6 +76,7 @@ const SECTIONS: NavSection[] = [
   {
     title: "Govern",
     items: [
+      { to: "/buyer/analytics", label: "Procurement Analytics", icon: ChartColumn, permission: "analytics:view" },
       { to: "/buyer/risk", label: "Risk & Compliance", icon: ShieldAlert, permission: "risk:view" },
       { to: "/buyer/messages", label: "Messages", icon: MessageSquare, permission: "messages:view" },
     ],

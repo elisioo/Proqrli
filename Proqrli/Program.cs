@@ -43,9 +43,12 @@ builder.Services.AddHttpClient();
 
 
 builder.Services.AddScoped<IPasswordHasher<TenantUser>, PasswordHasher<TenantUser>>();
+builder.Services.AddScoped<IPasswordHasher<PlatformUser>, PasswordHasher<PlatformUser>>();
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<OtpService>();
 builder.Services.AddScoped<CloudinaryService>();
+builder.Services.AddHttpClient<PayMongoService>();
+builder.Services.AddSingleton<RfqMessageBroadcaster>();
 
 
 builder.Services.AddControllers(options =>
@@ -77,12 +80,28 @@ using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
     var hasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher<TenantUser>>();
+    var platformHasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher<PlatformUser>>();
     context.Database.Migrate();
     DbSeeder.Seed(context);
 
     // Initialize Demo Accounts
     var demoBuyerEmail = "demo_buyer@procurli.com";
     var demoVendorEmail = "demo_vendor@procurli.com";
+    var superAdminEmail = "admin@procurli.io"; // or anything generic
+
+    // Super Admin Account
+    if (!context.PlatformUsers.Any(u => u.Email == superAdminEmail))
+    {
+        var admin = new PlatformUser
+        {
+            Email = superAdminEmail,
+            Role = "superadmin",
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow
+        };
+        admin.PasswordHash = platformHasher.HashPassword(admin, "Admin123!");
+        context.PlatformUsers.Add(admin);
+    }
 
     if (!context.TenantUsers.Any(u => u.Email == demoBuyerEmail))
     {

@@ -1,21 +1,19 @@
 /* eslint-disable prettier/prettier */
 import { createFileRoute } from "@tanstack/react-router";
 import * as React from "react";
-import { Plus, Search, Pencil, Archive, RotateCcw } from "lucide-react";
+import { Plus, Search, Pencil, Archive, RotateCcw, LayoutGrid, List, Package } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { AutoStatus } from "@/components/StatusPill";
 import { PermissionGate } from "@/components/PermissionGate";
 import { CrudDrawer, Field, inputCls, selectCls, textareaCls, NumberInput, SelectOrCustom } from "@/components/CrudDrawer";
-import { useCollection } from "@/lib/use-collection";
 import { useVendor } from "@/lib/vendor-context";
 import {
-    PRODUCTS,
     PRODUCT_CATEGORIES,
     formatCurrencyDecimal,
-    type ProductListing,
 } from "@/lib/mock-data";
+import { vendorProductsApi, type VendorProductListing } from "@/lib/api";
+import { useApiCollection } from "@/lib/use-api-collection";
 import { cn } from "@/lib/utils";
-import { CloudinaryUploadWidget } from "@/components/CloudinaryUploadWidget";
 
 export const Route = createFileRoute("/vendor/products")({
     component: () => (
@@ -25,7 +23,7 @@ export const Route = createFileRoute("/vendor/products")({
     ),
 });
 
-type ProductRow = ProductListing & { archived?: boolean };
+type ProductRow = VendorProductListing & { archived?: boolean };
 
 const EMPTY_DRAFT: Omit<ProductRow, "id"> = {
     sku: "",
@@ -41,43 +39,81 @@ const EMPTY_DRAFT: Omit<ProductRow, "id"> = {
     image: "📦",
 };
 
+function isImageUrl(image?: string | null) {
+    return typeof image === "string" && image.startsWith("http");
+}
+
+const CLOUDINARY_CLOUD_NAME = "dnvcbxofk";
+const CLOUDINARY_UPLOAD_PRESET = "proqrli_products";
+
+function generateVendorCode(prefix: string) {
+    const datePart = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+    const randomPart = Math.random().toString(36).slice(2, 6).toUpperCase();
+    return `${prefix}-${datePart}-${randomPart}`;
+}
+
 function ProductsPage() {
     const { hasPermission } = useVendor();
     const canManage = hasPermission("products:manage");
-    const store = useCollection<ProductRow>(PRODUCTS as ProductRow[], "p");
+    const store = useApiCollection<ProductRow>(vendorProductsApi);
 
     const [view, setView] = React.useState<"active" | "archived">("active");
     const [query, setQuery] = React.useState("");
     const [category, setCategory] = React.useState<string | null>(null);
+    const [layout, setLayout] = React.useState<"grid" | "rows">("grid");
     const [drawer, setDrawer] = React.useState<{ mode: "create" | "edit"; id?: string } | null>(null);
     const [draft, setDraft] = React.useState<Omit<ProductRow, "id">>(EMPTY_DRAFT);
+    const [imageUploading, setImageUploading] = React.useState(false);
+    const [imageUploadError, setImageUploadError] = React.useState<string | null>(null);
+    const [saving, setSaving] = React.useState(false);
+    const [saveError, setSaveError] = React.useState<string | null>(null);
 
-    const list = (view === "active" ? store.items : store.archived).filter((p) => {
+    const activeProducts = store.items.filter((p) => !p.archived);
+    const archivedProducts = store.archived;
+    const list = (view === "active" ? activeProducts : archivedProducts).filter((p) => {
         const matchesQ =
             query === "" ||
-            p.sku.toLowerCase().includes(query.toLowerCase()) ||
-            p.name.toLowerCase().includes(query.toLowerCase());
+            (p.sku ?? "").toLowerCase().includes(query.toLowerCase()) ||
+            (p.name ?? "").toLowerCase().includes(query.toLowerCase());
         const matchesC = !category || p.category === category;
         return matchesQ && matchesC;
     });
 
     const openCreate = () => {
-        setDraft({ ...EMPTY_DRAFT });
+        setImageUploadError(null);
+        setSaveError(null);
+        setDraft({ ...EMPTY_DRAFT, sku: generateVendorCode("SKU"), image: "" });
         setDrawer({ mode: "create" });
     };
     const openEdit = (p: ProductRow) => {
         const { id: _id, ...rest } = p;
         void _id;
-        setDraft(rest);
+        setImageUploadError(null);
+        setSaveError(null);
+        setDraft({ ...rest, image: isImageUrl(rest.image) ? rest.image : "" });
         setDrawer({ mode: "edit", id: p.id });
     };
     const closeDrawer = () => setDrawer(null);
 
-    const handleSave = () => {
+    const handleSave = async () => {
         if (!drawer) return;
-        if (drawer.mode === "create") store.create(draft);
-        else if (drawer.id) store.update(drawer.id, draft);
-        closeDrawer();
+        setSaving(true);
+        setSaveError(null);
+        try {
+            const payload = { ...draft, image: isImageUrl(draft.image) ? draft.image : "" };
+            if (drawer.mode === "create") {
+                await store.create(payload);
+                setView("active");
+                setCategory(null);
+                setQuery("");
+            }
+            else if (drawer.id) await store.update(drawer.id, payload);
+            closeDrawer();
+        } catch (err) {
+            setSaveError(err instanceof Error ? err.message : "Failed to save product.");
+        } finally {
+            setSaving(false);
+        }
     };
 
     const handleArchive = () => {
@@ -87,7 +123,32 @@ function ProductsPage() {
         }
     };
 
-    const canSave = draft.sku.trim() !== "" && draft.name.trim() !== "";
+    const canSave = draft.sku.trim() !== "" && draft.name.trim() !== "" && !imageUploading && !saving;
+
+    const uploadImage = async (file: File) => {
+        setImageUploading(true);
+        setImageUploadError(null);
+        try {
+            const form = new FormData();
+            form.append("file", file);
+            form.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
+            form.append("folder", "proqrli_products");
+
+            const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
+                method: "POST",
+                body: form,
+            });
+            const data = await res.json();
+            if (!res.ok || !data.secure_url) {
+                throw new Error(data.error?.message ?? "Image upload failed");
+            }
+            setDraft((prev) => ({ ...prev, image: data.secure_url }));
+        } catch (err) {
+            setImageUploadError(err instanceof Error ? err.message : "Image upload failed");
+        } finally {
+            setImageUploading(false);
+        }
+    };
 
     return (
         <div className="mx-auto flex max-w-7xl flex-col gap-6">
@@ -120,7 +181,7 @@ function ProductsPage() {
                                     : "border-transparent text-muted-foreground hover:text-foreground",
                             )}
                         >
-                            {v} ({v === "active" ? store.items.length : store.archived.length})
+                            {v} ({v === "active" ? activeProducts.length : archivedProducts.length})
                         </button>
                     ))}
                 </div>
@@ -160,22 +221,60 @@ function ProductsPage() {
                         </button>
                     ))}
                 </div>
+                <div className="ml-auto inline-flex h-10 overflow-hidden rounded-sm border border-border bg-card">
+                    <button
+                        type="button"
+                        onClick={() => setLayout("grid")}
+                        title="Grid layout"
+                        aria-label="Grid layout"
+                        className={cn(
+                            "inline-flex w-10 items-center justify-center text-muted-foreground hover:text-foreground",
+                            layout === "grid" && "bg-foreground text-background hover:text-background",
+                        )}
+                    >
+                        <LayoutGrid className="h-4 w-4" />
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setLayout("rows")}
+                        title="Row layout"
+                        aria-label="Row layout"
+                        className={cn(
+                            "inline-flex w-10 items-center justify-center border-l border-border text-muted-foreground hover:text-foreground",
+                            layout === "rows" && "bg-foreground text-background hover:text-background",
+                        )}
+                    >
+                        <List className="h-4 w-4" />
+                    </button>
+                </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            <div className={cn(
+                "grid grid-cols-1 gap-3",
+                layout === "grid" && "sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4",
+            )}>
                 {list.map((p) => (
                     <div
                         key={p.id}
-                        className="group relative flex flex-col rounded-md border border-border bg-card p-4 transition-shadow hover:shadow-md"
+                        className={cn(
+                            "group relative rounded-md border border-border bg-card transition-shadow hover:shadow-md",
+                            layout === "grid" ? "flex flex-col p-4" : "flex items-center gap-3 p-3",
+                        )}
                     >
-                        <div className="mb-3 flex aspect-square items-center justify-center rounded-sm bg-paper-mid overflow-hidden">
-                            {p.image.startsWith("http") ? (
+                        <div className={cn(
+                            "flex shrink-0 items-center justify-center overflow-hidden rounded-sm bg-paper-mid",
+                            layout === "grid" ? "mb-3 aspect-square w-full" : "h-16 w-16",
+                        )}>
+                            {isImageUrl(p.image) ? (
                                 <img src={p.image} alt={p.name} className="h-full w-full object-cover" />
                             ) : (
-                                <span className="text-6xl">{p.image}</span>
+                                <Package className="h-10 w-10 text-muted-foreground/45" />
                             )}
                         </div>
-                        <div className="flex items-start justify-between gap-2">
+                        <div className={cn(
+                            "flex items-start justify-between gap-2",
+                            layout === "rows" && "min-w-0 flex-1",
+                        )}>
                             <div className="min-w-0">
                                 <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
                                     {p.sku}
@@ -184,7 +283,10 @@ function ProductsPage() {
                             </div>
                             <AutoStatus status={p.archived ? "Archived" : p.status} />
                         </div>
-                        <div className="mt-3 flex items-end justify-between border-t border-border pt-3">
+                        <div className={cn(
+                            "flex items-end justify-between",
+                            layout === "grid" ? "mt-3 border-t border-border pt-3" : "shrink-0 gap-4",
+                        )}>
                             <div>
                                 <div className="font-display text-xl font-extrabold">
                                     {formatCurrencyDecimal(p.price)}
@@ -200,7 +302,10 @@ function ProductsPage() {
                         </div>
 
                         {canManage && (
-                            <div className="mt-3 flex gap-1 border-t border-border pt-3">
+                            <div className={cn(
+                                "flex shrink-0 gap-1",
+                                layout === "grid" ? "mt-3 border-t border-border pt-3" : "",
+                            )}>
                                 {p.archived ? (
                                     <button
                                         onClick={() => store.restore(p.id)}
@@ -245,36 +350,58 @@ function ProductsPage() {
                 onSave={handleSave}
                 onArchive={drawer?.mode === "edit" ? handleArchive : undefined}
                 canSave={canSave}
+                saveLabel={saving ? "Saving..." : undefined}
             >
+                {saveError && (
+                    <div className="rounded-sm border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+                        {saveError}
+                    </div>
+                )}
                 <div className="grid grid-cols-2 gap-3">
                     <Field label="SKU">
                         <input
-                            className={inputCls}
+                            className={cn(inputCls, "cursor-not-allowed bg-muted opacity-70")}
                             value={draft.sku}
-                            onChange={(e) => setDraft({ ...draft, sku: e.target.value })}
-                            placeholder="ACM-XXX-0000"
+                            disabled
+                            readOnly
+                            placeholder="Auto-generated"
                         />
                     </Field>
                     <Field label="Product Image">
-                        <div className="flex items-center gap-3">
-                            <div className="flex h-10 w-10 items-center justify-center rounded-sm border border-border bg-muted overflow-hidden">
-                                {draft.image.startsWith("http") ? (
+                        <div className="flex flex-col gap-2">
+                            <div className="flex items-center gap-3">
+                            {isImageUrl(draft.image) && (
+                                <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-sm border border-border bg-muted">
                                     <img src={draft.image} alt="Preview" className="h-full w-full object-cover" />
-                                ) : (
-                                    <span className="text-xl">{draft.image}</span>
-                                )}
-                            </div>
-                            <CloudinaryUploadWidget
-                                preset="proqrli_products"
-                                onUpload={(url) => setDraft({ ...draft, image: url })}
-                                label="Upload Image"
-                            />
+                                </div>
+                            )}
+                            <label className={cn(
+                                "inline-flex h-10 cursor-pointer items-center rounded-sm border border-border bg-card px-4 text-sm font-medium hover:bg-muted",
+                                imageUploading && "cursor-not-allowed opacity-60",
+                            )}>
+                                {imageUploading ? "Uploading..." : "Upload Image"}
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    className="sr-only"
+                                    disabled={imageUploading}
+                                    onChange={(e) => {
+                                        const file = e.target.files?.[0];
+                                        e.target.value = "";
+                                        if (file) void uploadImage(file);
+                                    }}
+                                />
+                            </label>
                             <input
                                 className={cn(inputCls, "flex-1")}
-                                value={draft.image}
+                                value={isImageUrl(draft.image) ? draft.image : ""}
                                 onChange={(e) => setDraft({ ...draft, image: e.target.value })}
-                                placeholder="Emoji or URL"
+                                placeholder="Image URL (optional)"
                             />
+                            </div>
+                            {imageUploadError && (
+                                <p className="text-xs text-rose-600">{imageUploadError}</p>
+                            )}
                         </div>
                     </Field>
                 </div>
@@ -302,7 +429,7 @@ function ProductsPage() {
                             className={selectCls}
                             value={draft.status}
                             onChange={(e) =>
-                                setDraft({ ...draft, status: e.target.value as ProductListing["status"] })
+                                setDraft({ ...draft, status: e.target.value as VendorProductListing["status"] })
                             }
                         >
                             <option value="Active">Active</option>

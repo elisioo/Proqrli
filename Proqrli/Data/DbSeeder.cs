@@ -11,6 +11,8 @@ namespace ProqrLi.Data
         public static void Seed(ApplicationDbContext context)
         {
             var random = new Random();
+            SeedSubscriptionPlans(context);
+
             bool hasVendors = context.Tenants.Any(t => t.TenantType == "Vendor");
 
             // ── Phase 1: Vendor base data (only once) ───────────────────────
@@ -209,6 +211,63 @@ namespace ProqrLi.Data
                     context.SaveChanges();
                 }
             }
+        }
+
+        private static void SeedSubscriptionPlans(ApplicationDbContext context)
+        {
+            if (context.SubscriptionPlans.Any()) return;
+
+            context.SubscriptionPlans.AddRange(
+                new SubscriptionPlan
+                {
+                    PlanName = "Starter",
+                    ApplicableTo = "BUYER",
+                    Price = 0,
+                    MaxUsers = 5,
+                    Features = "[\"Up to 5 users\",\"PR/PO workflow\",\"Basic analytics\"]"
+                },
+                new SubscriptionPlan
+                {
+                    PlanName = "Procurement Pro",
+                    ApplicableTo = "BUYER",
+                    Price = 7900,
+                    MaxUsers = -1,
+                    Features = "[\"Unlimited users\",\"ML risk scoring\",\"Real-time dashboards\",\"PayMongo payments\"]"
+                },
+                new SubscriptionPlan
+                {
+                    PlanName = "Enterprise",
+                    ApplicableTo = "BUYER",
+                    Price = 0,
+                    MaxUsers = -1,
+                    Features = "[\"SAP / ERP integration\",\"Account manager\",\"Custom deployment\"]"
+                },
+                new SubscriptionPlan
+                {
+                    PlanName = "Free",
+                    ApplicableTo = "VENDOR",
+                    Price = 0,
+                    MaxUsers = 1,
+                    Features = "[\"Storefront\",\"Up to 25 listings\",\"Basic metrics\"]"
+                },
+                new SubscriptionPlan
+                {
+                    PlanName = "Seller Pro",
+                    ApplicableTo = "VENDOR",
+                    Price = 4900,
+                    MaxUsers = -1,
+                    Features = "[\"Unlimited listings\",\"Analytics\",\"Featured placement\",\"Priority support\"]"
+                },
+                new SubscriptionPlan
+                {
+                    PlanName = "Enterprise",
+                    ApplicableTo = "VENDOR",
+                    Price = 0,
+                    MaxUsers = -1,
+                    Features = "[\"Bulk import / API\",\"ERP integration\",\"Account manager\"]"
+                }
+            );
+            context.SaveChanges();
         }
     }
 }

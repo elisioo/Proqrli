@@ -152,7 +152,10 @@ namespace ProqrLi.Controllers.Auth
                 await SignInAsync(resp);
 
                 // Explicit audit log for login (filter won't catch it because user wasn't auth'd yet)
-                await LogAuditAsync(resp.UserId, resp.FullName, resp.Role, "Logged in", "Auth");
+                if (resp.TenantType == "Platform")
+                    await LogPlatformAuditAsync(resp.UserId, "Logged in");
+                else
+                    await LogAuditAsync(resp.UserId, resp.FullName, resp.Role, "Logged in", "Auth");
 
                 return Ok(resp);
             }
@@ -215,10 +218,15 @@ namespace ProqrLi.Controllers.Auth
             var userName = User.FindFirstValue(ClaimTypes.Name) ?? "Unknown";
             var role = User.FindFirstValue("role_name") ?? "User";
             var tenantIdStr = User.FindFirstValue("tenant_id");
+            var accountType = User.FindFirstValue("account_type");
 
             await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
 
-            if (int.TryParse(userIdStr, out var userId) && int.TryParse(tenantIdStr, out var tenantId))
+            if (accountType == "platform" && int.TryParse(userIdStr, out var platformUserId))
+            {
+                await LogPlatformAuditAsync(platformUserId, "Logged out");
+            }
+            else if (int.TryParse(userIdStr, out var userId) && int.TryParse(tenantIdStr, out var tenantId))
             {
                 _db.AuditLogs.Add(new AuditLog
                 {
@@ -247,7 +255,10 @@ namespace ProqrLi.Controllers.Auth
             if (!int.TryParse(userIdStr, out var userId))
                 return Unauthorized(new { error = "Invalid session." });
 
-            var resp = await _auth.GetByIdAsync(userId);
+            var resp = User.FindFirstValue("account_type") == "platform"
+                ? await _auth.GetPlatformByIdAsync(userId)
+                : await _auth.GetByIdAsync(userId);
+
             return resp is null
                 ? Unauthorized(new { error = "User not found." })
                 : Ok(resp);
@@ -288,6 +299,18 @@ namespace ProqrLi.Controllers.Auth
             await _db.SaveChangesAsync();
         }
 
+        private async Task LogPlatformAuditAsync(int platformUserId, string action)
+        {
+            _db.PlatformAuditLogs.Add(new PlatformAuditLog
+            {
+                PlatformUserID = platformUserId,
+                Action = action,
+                IPAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "0.0.0.0",
+                CreatedAt = DateTime.UtcNow
+            });
+            await _db.SaveChangesAsync();
+        }
+
         private async Task SignInAsync(AuthResponse resp)
         {
             var claims = new List<Claim>
@@ -299,6 +322,7 @@ namespace ProqrLi.Controllers.Auth
                 new("tenant_name",             resp.CompanyName),
                 new("tenant_type",             resp.TenantType),
                 new("role_name",               resp.Role),
+                new("account_type",            resp.TenantType == "Platform" ? "platform" : "tenant"),
             };
 
             var identity  = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);

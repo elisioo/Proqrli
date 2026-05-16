@@ -1,9 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { AutoStatus } from "@/components/StatusPill";
-import { TENANTS, formatUSD, type Tenant } from "@/lib/admin-mock-data";
-import { Search, Plus } from "lucide-react";
+import { adminApi, type AdminTenant } from "@/lib/api";
+import { formatCurrency } from "@/lib/mock-data";
+import { Search, RefreshCw } from "lucide-react";
 
 export const Route = createFileRoute("/admin/tenants")({
   component: TenantsPage,
@@ -11,24 +12,43 @@ export const Route = createFileRoute("/admin/tenants")({
 
 function TenantsPage() {
   const [q, setQ] = useState("");
-  const [status, setStatus] = useState<Tenant["status"] | "All">("All");
+  const [status, setStatus] = useState("All");
+  const [tenants, setTenants] = useState<AdminTenant[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const filtered = TENANTS.filter((t) => {
-    const matchQ = !q || (t.name + t.industry + t.slug).toLowerCase().includes(q.toLowerCase());
-    const matchS = status === "All" || t.status === status;
-    return matchQ && matchS;
-  });
+  const load = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      setTenants(await adminApi.tenants({ search: q, status }));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to load tenants.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    const id = window.setTimeout(load, 200);
+    return () => window.clearTimeout(id);
+  }, [q, status]);
+
+  const updateStatus = async (tenant: AdminTenant, nextStatus: string) => {
+    await adminApi.updateTenantStatus(tenant.id, nextStatus);
+    await load();
+  };
 
   return (
     <div className="mx-auto flex max-w-7xl flex-col gap-8">
       <PageHeader
         eyebrow="Tenants"
         title="Organizations"
-        description="Every buyer organization on the platform. Provision, suspend, change plans, or impersonate."
+        description="Every organization on the platform, loaded from the tenant database."
         actions={
-          <button className="inline-flex items-center gap-1.5 rounded-sm bg-foreground px-3 py-2 text-[12.5px] font-medium text-background hover:opacity-90">
-            <Plus className="h-3.5 w-3.5" />
-            New tenant
+          <button onClick={load} className="inline-flex items-center gap-1.5 rounded-sm bg-foreground px-3 py-2 text-[12.5px] font-medium text-background hover:opacity-90">
+            <RefreshCw className="h-3.5 w-3.5" />
+            Refresh
           </button>
         }
       />
@@ -39,12 +59,12 @@ function TenantsPage() {
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Search organization, slug, industry…"
+            placeholder="Search organization, slug, industry..."
             className="w-full rounded-sm border border-border bg-card py-2 pl-9 pr-3 text-sm focus:outline-none focus:ring-1 focus:ring-foreground"
           />
         </div>
         <div className="flex gap-1 rounded-sm border border-border bg-card p-1">
-          {(["All", "Active", "Trial", "Suspended", "Archived"] as const).map((s) => (
+          {["All", "Active", "Trial", "Suspended", "Inactive"].map((s) => (
             <button
               key={s}
               onClick={() => setStatus(s)}
@@ -63,23 +83,24 @@ function TenantsPage() {
           <thead className="border-b border-border bg-muted/40 text-left font-mono text-[10px] uppercase tracking-[0.12em] text-ink-muted">
             <tr>
               <th className="px-4 py-2 font-semibold">Organization</th>
+              <th className="px-4 py-2 font-semibold">Type</th>
               <th className="px-4 py-2 font-semibold">Plan</th>
               <th className="px-4 py-2 font-semibold">Status</th>
               <th className="px-4 py-2 text-right font-semibold">Users</th>
-              <th className="px-4 py-2 text-right font-semibold">Vendors</th>
+              <th className="px-4 py-2 text-right font-semibold">Network</th>
               <th className="px-4 py-2 text-right font-semibold">MRR</th>
               <th className="px-4 py-2 text-right font-semibold">YTD spend</th>
-              <th className="px-4 py-2 font-semibold">Region</th>
               <th className="px-4 py-2"></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {filtered.map((t) => (
+            {tenants.map((t) => (
               <tr key={t.id} className="hover:bg-muted/40">
                 <td className="px-4 py-3">
                   <div className="font-medium">{t.name}</div>
                   <div className="font-mono text-[11px] text-ink-muted">{t.slug} · {t.industry}</div>
                 </td>
+                <td className="px-4 py-3 text-[12.5px]">{t.type}</td>
                 <td className="px-4 py-3">
                   <span className="rounded-sm border border-border bg-muted px-2 py-[2px] font-mono text-[10px] font-semibold uppercase tracking-[0.1em]">
                     {t.plan}
@@ -88,18 +109,25 @@ function TenantsPage() {
                 <td className="px-4 py-3"><AutoStatus status={t.status} /></td>
                 <td className="px-4 py-3 text-right font-mono text-[12.5px]">{t.users}</td>
                 <td className="px-4 py-3 text-right font-mono text-[12.5px]">{t.vendors}</td>
-                <td className="px-4 py-3 text-right font-mono text-[12.5px]">{formatUSD(t.mrrUSD)}</td>
-                <td className="px-4 py-3 text-right font-mono text-[12.5px]">{formatUSD(t.spendYTD)}</td>
-                <td className="px-4 py-3 text-[12.5px] text-ink-soft">{t.region}</td>
+                <td className="px-4 py-3 text-right font-mono text-[12.5px]">{formatCurrency(t.mrr)}</td>
+                <td className="px-4 py-3 text-right font-mono text-[12.5px]">{formatCurrency(t.spendYtd)}</td>
                 <td className="px-4 py-3 text-right">
-                  <button className="rounded-sm border border-border px-2 py-1 text-[11px] hover:bg-muted">Manage</button>
+                  <select
+                    value={t.status === "Trial" ? "Active" : t.status}
+                    onChange={(e) => updateStatus(t, e.target.value)}
+                    className="rounded-sm border border-border bg-card px-2 py-1 text-[11px]"
+                  >
+                    <option>Active</option>
+                    <option>Suspended</option>
+                    <option>Inactive</option>
+                  </select>
                 </td>
               </tr>
             ))}
-            {filtered.length === 0 && (
+            {(loading || error || tenants.length === 0) && (
               <tr>
                 <td colSpan={9} className="px-4 py-10 text-center text-sm text-ink-muted">
-                  No tenants match your filters.
+                  {loading ? "Loading tenants..." : error ?? "No tenants match your filters."}
                 </td>
               </tr>
             )}

@@ -41,6 +41,12 @@ function MessagePanel({ rfq, canRespond, onClose }: MessagePanelProps) {
     const [sending, setSending] = React.useState(false);
     const scrollRef = React.useRef<HTMLDivElement>(null);
 
+    const appendMessage = React.useCallback((message: RfqMessageDto) => {
+        setThread((current) =>
+            current.some((m) => m.messageId === message.messageId) ? current : [...current, message],
+        );
+    }, []);
+
     const loadMessages = React.useCallback(async () => {
         try {
             const msgs = await rfqsApi.getMessages(rfq.rfqId);
@@ -53,6 +59,10 @@ function MessagePanel({ rfq, canRespond, onClose }: MessagePanelProps) {
     }, [rfq.rfqId]);
 
     React.useEffect(() => { loadMessages(); }, [loadMessages]);
+
+    React.useEffect(() => {
+        return rfqsApi.streamMessages(rfq.rfqId, undefined, appendMessage);
+    }, [appendMessage, rfq.rfqId]);
 
     // Auto-scroll to bottom whenever thread updates
     React.useEffect(() => {
@@ -74,8 +84,13 @@ function MessagePanel({ rfq, canRespond, onClose }: MessagePanelProps) {
         setDraft("");
         try {
             // vendorTenantId = 0 → backend resolves from session on vendor side
-            await rfqsApi.sendMessage(rfq.rfqId, { vendorTenantId: 0, body: optimistic.body });
-            await loadMessages();
+            const saved = await rfqsApi.sendMessage(rfq.rfqId, { vendorTenantId: 0, body: optimistic.body });
+            setThread((current) => {
+                const withoutOptimistic = current.filter((m) => m.messageId !== optimistic.messageId);
+                return withoutOptimistic.some((m) => m.messageId === saved.messageId)
+                    ? withoutOptimistic
+                    : [...withoutOptimistic, saved];
+            });
         } catch (err) {
             console.error("Failed to send message:", err);
             setThread((t) => t.filter((m) => m.messageId !== optimistic.messageId));

@@ -3,16 +3,18 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import * as React from "react";
 import {
   ArrowLeft, ArrowRight, Check, Building2, Users, User, Phone,
-  Briefcase, UserPlus, ChevronDown, CreditCard, ShieldCheck
+  Briefcase, UserPlus, ChevronDown, CreditCard, ShieldCheck, Sprout, Flame, Factory, QrCode, Wallet,
+  type LucideIcon
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { authApi, type OnboardingPayload } from "@/lib/api";
+import { authApi, payMongoApi, type OnboardingPayload, type PayMongoPaymentMethodDto, type SubscriptionPlanDto } from "@/lib/api";
 
-type PortalSearch = { portal?: "vendor" | "buyer" };
+type PortalSearch = { portal?: "vendor" | "buyer"; payment?: "success" | "cancelled" };
 
 export const Route = createFileRoute("/onboarding")({
   validateSearch: (search: Record<string, unknown>): PortalSearch => ({
     portal: (search.portal as "vendor" | "buyer") ?? "buyer",
+    payment: search.payment as "success" | "cancelled" | undefined,
   }),
   component: OnboardingPage,
 });
@@ -44,11 +46,73 @@ const BUYER_PLANS = [
 ];
 
 // ─── Step definitions ─────────────────────────────────────────────────────────
+type UiPlan = {
+  id: number;
+  icon: string | LucideIcon;
+  name: string;
+  price: number;
+  displayPrice: string;
+  note: string;
+  features: string[];
+  featured?: boolean;
+};
+
+function toUiPlan(plan: SubscriptionPlanDto): UiPlan {
+  return {
+    id: plan.id,
+    icon: plan.price <= 0 ? "ðŸŒ±" : plan.featured ? "ðŸ”¥" : "ðŸ­",
+    name: plan.name,
+    price: plan.price,
+    displayPrice: plan.price <= 0 ? "Free" : new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP", maximumFractionDigits: 0 }).format(plan.price),
+    note: plan.price <= 0 ? (plan.name === "Enterprise" ? "Contact sales" : "No checkout required") : "Paid through PayMongo",
+    features: parsePlanFeatures(plan.features),
+    featured: plan.featured,
+  };
+}
+
+function parsePlanFeatures(features: string | null) {
+  if (!features) return [];
+  try {
+    const parsed = JSON.parse(features);
+    return Array.isArray(parsed) ? parsed.map(String) : [];
+  } catch {
+    return features.split(",").map((item) => item.trim()).filter(Boolean);
+  }
+}
+
+function getUiPlanIcon(plan: Pick<UiPlan, "name" | "featured">): LucideIcon {
+  if (plan.name.toLowerCase().includes("enterprise")) return Factory;
+  if (plan.featured || plan.name.toLowerCase().includes("pro")) return Flame;
+  return Sprout;
+}
+
+type PaymentMethod = "card" | "gcash" | "maya" | "qrph";
+
+const PAYMENT_METHODS: Array<{
+  id: PaymentMethod;
+  payMongoType: string;
+  label: string;
+  icon: LucideIcon;
+  activeClass: string;
+}> = [
+  { id: "card", payMongoType: "card", label: "Credit / Debit Card", icon: CreditCard, activeClass: "border-foreground bg-foreground text-background" },
+  { id: "gcash", payMongoType: "gcash", label: "GCash", icon: Phone, activeClass: "border-blue-600 bg-blue-600 text-white" },
+  { id: "maya", payMongoType: "paymaya", label: "Maya", icon: Wallet, activeClass: "border-emerald-600 bg-emerald-600 text-white" },
+  { id: "qrph", payMongoType: "qrph", label: "QR Ph", icon: QrCode, activeClass: "border-sky-600 bg-sky-600 text-white" },
+];
+
+function toPaymentMethodId(method: string): PaymentMethod | null {
+  const normalized = method.trim().toLowerCase();
+  if (normalized === "card" || normalized === "gcash" || normalized === "qrph") return normalized;
+  if (normalized === "maya" || normalized === "paymaya") return "maya";
+  return null;
+}
+
 type StepId = "company" | "profile" | "buyer-profile" | "plan" | "done";
 
 function OnboardingPage() {
   const navigate               = useNavigate();
-  const { portal = "buyer" }   = Route.useSearch();
+  const { portal = "buyer", payment } = Route.useSearch();
   const isVendor               = portal === "vendor";
 
   const industries = isVendor ? VENDOR_INDUSTRIES : BUYER_INDUSTRIES;
@@ -72,10 +136,21 @@ function OnboardingPage() {
   const [buyerPhone,       setBuyerPhone]       = React.useState("");
 
   // ── Plan step (Subscription & Billing) ────────────────────────────────────
-  const plans = isVendor ? VENDOR_PLANS : BUYER_PLANS;
-  const [selectedPlan, setSelectedPlan] = React.useState(plans[1].id);
-  const [paymentMethod, setPaymentMethod] = React.useState<"card" | "gcash" | "maya">("card");
+  const [plans, setPlans] = React.useState<UiPlan[]>([]);
+  const [plansLoading, setPlansLoading] = React.useState(true);
+  const [selectedPlan, setSelectedPlan] = React.useState<number | null>(null);
+  const [paymentMethod, setPaymentMethod] = React.useState<PaymentMethod>("card");
+  const [paymentMethods, setPaymentMethods] = React.useState<PayMongoPaymentMethodDto[]>([]);
+  const [paymentMethodsLoading, setPaymentMethodsLoading] = React.useState(true);
   const selectedPlanDetails = plans.find((p) => p.id === selectedPlan);
+  const availablePaymentMethods = React.useMemo(() => {
+    const enabled = new Set<PaymentMethod>();
+    paymentMethods.forEach((method) => {
+      const id = toPaymentMethodId(method.id || method.payMongoType);
+      if (id) enabled.add(id);
+    });
+    return PAYMENT_METHODS.filter((method) => enabled.has(method.id));
+  }, [paymentMethods]);
 
   // ── Navigation ────────────────────────────────────────────────────────────
   const steps: StepId[] = ["company", "profile", "buyer-profile", "plan", "done"];
@@ -84,6 +159,87 @@ function OnboardingPage() {
 
   const [loading, setLoading] = React.useState(false);
   const [error,   setError]   = React.useState<string | null>(null);
+  const pendingCheckoutKey = `procurli:onboarding:${portal}:pendingCheckout`;
+
+  React.useEffect(() => {
+    let active = true;
+    setPlansLoading(true);
+    payMongoApi.getPlans(portal)
+      .then((items) => {
+        if (!active) return;
+        const mapped = items.map(toUiPlan);
+        setPlans(mapped);
+        setSelectedPlan(mapped.find((p) => p.featured)?.id ?? mapped[0]?.id ?? null);
+      })
+      .catch((err) => setError(err instanceof Error ? err.message : "Failed to load subscription plans."))
+      .finally(() => { if (active) setPlansLoading(false); });
+    return () => { active = false; };
+  }, [portal]);
+
+  React.useEffect(() => {
+    let active = true;
+    setPaymentMethodsLoading(true);
+    payMongoApi.getPaymentMethods()
+      .then(({ paymentMethods: methods }) => {
+        if (!active) return;
+        setPaymentMethods(methods);
+
+        const enabled = new Set<PaymentMethod>();
+        methods.forEach((method) => {
+          const id = toPaymentMethodId(method.id || method.payMongoType);
+          if (id) enabled.add(id);
+        });
+        const firstEnabled = PAYMENT_METHODS.find((method) => enabled.has(method.id));
+        if (firstEnabled) {
+          setPaymentMethod((current) => enabled.has(current) ? current : firstEnabled.id);
+        }
+      })
+      .catch((err) => setError(err instanceof Error ? err.message : "Failed to load PayMongo payment methods."))
+      .finally(() => { if (active) setPaymentMethodsLoading(false); });
+    return () => { active = false; };
+  }, []);
+
+  React.useEffect(() => {
+    if (payment === "cancelled") {
+      const pendingRaw = window.localStorage.getItem(pendingCheckoutKey);
+      if (!pendingRaw) {
+        setStepId("plan");
+        setError("PayMongo checkout was cancelled. Choose a plan and try again when you're ready.");
+        return;
+      }
+
+      const pending = JSON.parse(pendingRaw) as { checkoutSessionId: string; onboarding: OnboardingPayload };
+      setStepId("plan");
+      setLoading(true);
+      setError(null);
+      completeWithoutPayMongo(pending.onboarding)
+        .catch((err) => setError(err instanceof Error ? err.message : "PayMongo failed and account setup could not be completed."))
+        .finally(() => setLoading(false));
+      return;
+    }
+    if (payment !== "success") return;
+
+    const pendingRaw = window.localStorage.getItem(pendingCheckoutKey);
+    if (!pendingRaw) {
+      setStepId("plan");
+      setError("Payment returned from PayMongo, but the pending onboarding session was not found in this browser.");
+      return;
+    }
+
+    const pending = JSON.parse(pendingRaw) as { checkoutSessionId: string; onboarding: OnboardingPayload };
+    setStepId("plan");
+    setLoading(true);
+    setError(null);
+    payMongoApi.confirmOnboardingCheckout(pending)
+      .then((user) => {
+        window.localStorage.removeItem(pendingCheckoutKey);
+        finishLocalSession(user);
+        navigate({ to: isVendor ? "/vendor" : "/buyer" });
+      })
+      .catch(() => completeWithoutPayMongo(pending.onboarding)
+        .catch((err) => setError(err instanceof Error ? err.message : "PayMongo payment could not be verified, and account setup could not be completed.")))
+      .finally(() => setLoading(false));
+  }, [payment, pendingCheckoutKey, navigate, isVendor]);
 
   const next = () => setStepId(steps[stepIdx + 1]);
   const back = () => setStepId(steps[stepIdx - 1]);
@@ -92,40 +248,80 @@ function OnboardingPage() {
   const canNext = () => {
     if (stepId === "company") return companyName.trim().length > 0;
     if (stepId === "profile") return fullName.trim().length > 0 && isValidPhNumber(contactNum);
+    if (stepId === "plan") return selectedPlan !== null;
     return true;
+  };
+
+  const buildPayload = (): OnboardingPayload => ({
+    companyName:     companyName.trim(),
+    companySize,
+    fullName:        fullName.trim(),
+    contactNumber:   contactNum ? `+63${contactNum}` : "",
+    position,
+    industry,
+    hasBuyerProfile: hasBuyer,
+    buyerCompanyName: hasBuyer ? buyerCompanyName.trim() : undefined,
+    buyerContactName: hasBuyer ? buyerContact.trim()     : undefined,
+    buyerEmail:       hasBuyer ? buyerEmail.trim()       : undefined,
+    buyerPhone:       hasBuyer && buyerPhone ? `+63${buyerPhone}` : undefined,
+    planId:           selectedPlan ?? undefined,
+  });
+
+  const finishLocalSession = (user: Awaited<ReturnType<typeof authApi.onboarding>>) => {
+    if (isVendor) {
+      try { window.localStorage.setItem("procurli:vendor:realUser", JSON.stringify(user)); } catch {}
+      const setVendorSession = (window as unknown as Record<string, unknown>).__vendorSetRealSession as ((au: typeof user) => void) | undefined;
+      if (setVendorSession) setVendorSession(user);
+    } else {
+      try { window.localStorage.setItem("procurli:buyer:realUser", JSON.stringify(user)); } catch {}
+      const setBuyerSession = (window as unknown as Record<string, unknown>).__buyerSetRealSession as ((au: typeof user) => void) | undefined;
+      if (setBuyerSession) setBuyerSession(user);
+    }
+  };
+
+  const completeWithoutPayMongo = async (payload: OnboardingPayload) => {
+    const user = await authApi.onboarding({ ...payload, planId: undefined });
+    window.localStorage.removeItem(pendingCheckoutKey);
+    finishLocalSession(user);
+    navigate({ to: isVendor ? "/vendor" : "/buyer" });
   };
 
   // ── Submit final onboarding ───────────────────────────────────────────────
   const handleFinish = async () => {
     setError(null);
+    if (!selectedPlanDetails) {
+      setError("Please select a subscription plan.");
+      return;
+    }
+    if (selectedPlanDetails.price > 0 && paymentMethodsLoading) {
+      setError("PayMongo payment methods are still loading. Please try again in a moment.");
+      return;
+    }
+    if (selectedPlanDetails.price > 0 && availablePaymentMethods.length === 0) {
+      setError("No PayMongo payment methods are enabled for this account yet.");
+      return;
+    }
+
     setLoading(true);
     try {
-      const payload: OnboardingPayload = {
-        companyName:     companyName.trim(),
-        companySize,
-        fullName:        fullName.trim(),
-        contactNumber:   contactNum ? `+63${contactNum}` : "",
-        position,
-        industry,
-        hasBuyerProfile: hasBuyer,
-        buyerCompanyName: hasBuyer ? buyerCompanyName.trim() : undefined,
-        buyerContactName: hasBuyer ? buyerContact.trim()     : undefined,
-        buyerEmail:       hasBuyer ? buyerEmail.trim()       : undefined,
-        buyerPhone:       hasBuyer && buyerPhone ? `+63${buyerPhone}` : undefined,
-        planId:           selectedPlan,
-      };
+      const payload = buildPayload();
+
+      if (selectedPlanDetails.price > 0) {
+        try {
+          const checkout = await payMongoApi.createOnboardingCheckout({ onboarding: payload, paymentMethod });
+          window.localStorage.setItem(pendingCheckoutKey, JSON.stringify({
+            checkoutSessionId: checkout.checkoutSessionId,
+            onboarding: payload,
+          }));
+          window.location.href = checkout.checkoutUrl;
+        } catch {
+          await completeWithoutPayMongo(payload);
+        }
+        return;
+      }
 
       const user = await authApi.onboarding(payload);
-      // Update local session
-      if (isVendor) {
-        try { window.localStorage.setItem("procurli:vendor:realUser", JSON.stringify(user)); } catch {}
-        const setVendorSession = (window as unknown as Record<string, unknown>).__vendorSetRealSession as ((au: typeof user) => void) | undefined;
-        if (setVendorSession) setVendorSession(user);
-      } else {
-        try { window.localStorage.setItem("procurli:buyer:realUser", JSON.stringify(user)); } catch {}
-        const setBuyerSession = (window as unknown as Record<string, unknown>).__buyerSetRealSession as ((au: typeof user) => void) | undefined;
-        if (setBuyerSession) setBuyerSession(user);
-      }
+      finishLocalSession(user);
 
       navigate({ to: isVendor ? "/vendor" : "/buyer" });
     } catch (err) {
@@ -375,8 +571,15 @@ function OnboardingPage() {
                 <p className="mt-2 text-sm text-muted-foreground">Start free. Upgrade anytime.</p>
               </div>
 
+              {plansLoading ? (
+                <div className="mt-8 rounded-md border border-border bg-paper p-8 text-center text-sm text-muted-foreground">
+                  Loading real subscription plans...
+                </div>
+              ) : (
               <div className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-3">
-                {plans.map((p) => (
+                {plans.map((p) => {
+                  const PlanIcon = getUiPlanIcon(p);
+                  return (
                   <button
                     key={p.id}
                     onClick={() => setSelectedPlan(p.id)}
@@ -390,7 +593,12 @@ function OnboardingPage() {
                         Most popular
                       </span>
                     )}
-                    <span className="text-3xl">{p.icon}</span>
+                    <span className={cn(
+                      "flex h-10 w-10 items-center justify-center rounded-sm border",
+                      selectedPlan === p.id ? "border-foreground bg-card text-foreground" : "border-border bg-paper text-muted-foreground"
+                    )}>
+                      <PlanIcon className="h-5 w-5" />
+                    </span>
                     <span className="font-display text-xl font-extrabold">{p.name}</span>
                     <span className="font-display text-3xl font-extrabold">{p.displayPrice}<span className="ml-1 text-base font-normal text-muted-foreground">/mo</span></span>
                     <span className="text-[11px] text-muted-foreground">{p.note}</span>
@@ -398,71 +606,61 @@ function OnboardingPage() {
                       {p.features.map((f) => <li key={f} className="flex items-start gap-2"><Check className="mt-[2px] h-3 w-3 text-emerald-600" /> {f}</li>)}
                     </ul>
                   </button>
-                ))}
+                  );
+                })}
               </div>
+              )}
 
-              {/* Dummy PayMongo Billing Form */}
               {selectedPlanDetails && selectedPlanDetails.price > 0 && (
                 <div className="mt-10 rounded-md border border-border bg-paper p-6">
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-display text-lg font-bold">Payment Details</h3>
+                    <h3 className="font-display text-lg font-bold">PayMongo checkout</h3>
                     <div className="flex items-center gap-1.5 rounded-sm bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-700">
                       <ShieldCheck className="h-4 w-4" /> Secured by PayMongo
                     </div>
                   </div>
                   
-                  {/* Payment Method Selector */}
-                  <div className="mb-6 flex gap-2 border-b border-border pb-4">
-                    <button
-                      onClick={() => setPaymentMethod("card")}
-                      className={cn("px-4 py-2 flex-1 text-sm font-semibold rounded-md transition-colors", paymentMethod === "card" ? "bg-foreground text-background" : "bg-card hover:bg-muted text-muted-foreground")}
-                    >Credit / Debit Card</button>
-                    <button
-                      onClick={() => setPaymentMethod("gcash")}
-                      className={cn("px-4 py-2 flex-1 text-sm font-semibold rounded-md transition-colors", paymentMethod === "gcash" ? "bg-blue-600 text-white" : "bg-card hover:bg-muted text-muted-foreground")}
-                    >GCash</button>
-                    <button
-                      onClick={() => setPaymentMethod("maya")}
-                      className={cn("px-4 py-2 flex-1 text-sm font-semibold rounded-md transition-colors", paymentMethod === "maya" ? "bg-emerald-600 text-white" : "bg-card hover:bg-muted text-muted-foreground")}
-                    >Maya / E-Wallet</button>
+                  <div className="mb-6 border-b border-border pb-4">
+                    {paymentMethodsLoading ? (
+                      <div className="rounded-md border border-border bg-card px-4 py-3 text-sm font-semibold text-muted-foreground">
+                        Checking PayMongo methods...
+                      </div>
+                    ) : availablePaymentMethods.length > 0 ? (
+                      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                        {availablePaymentMethods.map((method) => {
+                          const MethodIcon = method.icon;
+                          const isSelected = paymentMethod === method.id;
+                          return (
+                            <button
+                              key={method.id}
+                              type="button"
+                              onClick={() => setPaymentMethod(method.id)}
+                              className={cn(
+                                "inline-flex h-11 items-center justify-center gap-2 rounded-md border px-3 text-sm font-semibold transition-colors",
+                                isSelected ? method.activeClass : "border-border bg-card text-muted-foreground hover:bg-muted"
+                              )}
+                            >
+                              <MethodIcon className="h-4 w-4" />
+                              <span>{method.label}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">
+                        No enabled PayMongo payment methods found.
+                      </div>
+                    )}
                   </div>
 
-                  {paymentMethod === "card" ? (
-                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                      <div className="md:col-span-2">
-                        <Field id="ob-card-name" label="Name on card" placeholder="Enter name on card" />
-                      </div>
-                      <div className="md:col-span-2">
-                        <label className="t-label mb-2 block text-xs font-semibold text-foreground">Card number</label>
-                        <div className="relative">
-                          <input type="text" placeholder="Enter card number" className="h-11 w-full rounded-sm border border-border bg-card px-3 pr-12 text-sm outline-none focus:border-foreground" />
-                          <div className="absolute right-3 top-1/2 -translate-y-1/2 flex gap-1">
-                            <div className="h-5 w-8 rounded-sm bg-gray-200"></div>
-                            <div className="h-5 w-8 rounded-sm bg-gray-200"></div>
-                          </div>
-                        </div>
-                      </div>
-                      <div>
-                        <Field id="ob-card-exp" label="Expiry (MM/YY)" placeholder="MM/YY" />
-                      </div>
-                      <div>
-                        <Field id="ob-card-cvc" label="CVC" placeholder="CVC" />
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="rounded-md border border-dashed border-border bg-muted/50 p-6 text-center">
-                      <p className="text-sm font-semibold text-foreground">
-                        You will be securely redirected to the {paymentMethod === "gcash" ? "GCash" : "Maya"} portal.
-                      </p>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        Continue the setup below to proceed to the secure checkout environment.
-                      </p>
-                    </div>
-                  )}
-
-                  <p className="mt-4 text-xs text-muted-foreground italic">
-                    Note: This is currently a dummy simulation for the PayMongo integration. Real transactions are not yet processed.
-                  </p>
+                  <div className="rounded-md border border-dashed border-border bg-muted/50 p-6 text-center">
+                    <p className="text-sm font-semibold text-foreground">
+                      You will be redirected to PayMongo to pay {selectedPlanDetails.displayPrice} for {selectedPlanDetails.name}.
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      ProqrLi completes your workspace only after the backend verifies the paid Checkout Session with PayMongo.
+                    </p>
+                  </div>
                 </div>
               )}
             </div>
@@ -500,10 +698,10 @@ function OnboardingPage() {
           ) : stepId === "plan" ? (
             <button
               onClick={handleFinish}
-              disabled={loading}
+              disabled={loading || plansLoading || !selectedPlanDetails || (selectedPlanDetails.price > 0 && (paymentMethodsLoading || availablePaymentMethods.length === 0))}
               className="inline-flex h-11 items-center gap-2 rounded-sm bg-foreground px-6 text-sm font-semibold text-background hover:opacity-85 disabled:opacity-60"
             >
-              {loading ? "Saving…" : <>Complete setup <Check className="h-4 w-4" /></>}
+              {loading ? "Processing..." : selectedPlanDetails?.price ? <>Continue to PayMongo <ArrowRight className="h-4 w-4" /></> : <>Complete setup <Check className="h-4 w-4" /></>}
             </button>
           ) : (
             <button

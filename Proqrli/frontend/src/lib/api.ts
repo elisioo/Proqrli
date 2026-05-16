@@ -61,6 +61,27 @@ export type OnboardingPayload = {
     planId?: number;
 };
 
+export type SubscriptionPlanDto = {
+    id: number;
+    name: string;
+    price: number;
+    applicableTo: "BUYER" | "VENDOR" | string;
+    maxUsers: number;
+    features: string | null;
+    featured: boolean;
+};
+
+export type PayMongoCheckoutResponse = {
+    checkoutSessionId: string;
+    checkoutUrl: string;
+};
+
+export type PayMongoPaymentMethodDto = {
+    id: "card" | "gcash" | "maya" | "qrph" | string;
+    payMongoType: string;
+    label: string;
+};
+
 export type LoginPayload = {
     email: string;
     password: string;
@@ -93,6 +114,17 @@ export const authApi = {
         req<AuthUser>("/auth/profile", { method: "PATCH", body: JSON.stringify(body) }),
     updatePassword: (body: UpdatePasswordPayload) =>
         req<{ message: string }>("/auth/update-password", { method: "POST", body: JSON.stringify(body) }),
+};
+
+export const payMongoApi = {
+    getPlans: (portal: "buyer" | "vendor") =>
+        req<SubscriptionPlanDto[]>(`/paymongo/plans?portal=${portal}`),
+    getPaymentMethods: () =>
+        req<{ paymentMethods: PayMongoPaymentMethodDto[] }>("/paymongo/payment-methods"),
+    createOnboardingCheckout: (body: { onboarding: OnboardingPayload; paymentMethod: "card" | "gcash" | "maya" | "qrph" }) =>
+        req<PayMongoCheckoutResponse>("/paymongo/onboarding-checkout", { method: "POST", body: JSON.stringify(body) }),
+    confirmOnboardingCheckout: (body: { checkoutSessionId: string; onboarding: OnboardingPayload }) =>
+        req<AuthUser>("/paymongo/onboarding-confirm", { method: "POST", body: JSON.stringify(body) }),
 };
 
 export type UpdateProfilePayload = {
@@ -357,6 +389,7 @@ export const vendorsApi = {
     update: (id: string, body: UpdateVendorPayload) =>
         req<VendorRecord>(`/vendors/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
     archive: (id: string) => req<void>(`/vendors/${id}`, { method: "DELETE" }),
+    invite: (vendorId: string) => req<{ success: boolean; id: number }>("/vendors/invite", { method: "POST", body: JSON.stringify({ vendorId }) }),
     getMarketplace: (page: number = 1, pageSize: number = 10, search: string = "", category: string = "") => {
         const query = new URLSearchParams({ page: page.toString(), pageSize: pageSize.toString(), search, category });
         return req<{ data: MarketplaceVendorDto[], total: number, page: number, pageSize: number }>(`/vendors/marketplace?${query.toString()}`);
@@ -657,6 +690,20 @@ export const rfqsApi = {
         const qs = vendorTenantId != null ? `?vendorTenantId=${vendorTenantId}` : "";
         return req<RfqMessageDto[]>(`/rfqs/${rfqId}/messages${qs}`);
     },
+    streamMessages: (
+        rfqId: string,
+        vendorTenantId: number | undefined,
+        onMessage: (message: RfqMessageDto) => void,
+        onError?: () => void,
+    ) => {
+        const qs = vendorTenantId != null ? `?vendorTenantId=${vendorTenantId}` : "";
+        const source = new EventSource(`${BASE}/rfqs/${rfqId}/messages/stream${qs}`, { withCredentials: true });
+        source.addEventListener("message", (event) => {
+            onMessage(JSON.parse(event.data) as RfqMessageDto);
+        });
+        if (onError) source.onerror = onError;
+        return () => source.close();
+    },
     sendMessage: (rfqId: string, body: { vendorTenantId: number; body: string }) =>
         req<RfqMessageDto>(`/rfqs/${rfqId}/messages`, { method: "POST", body: JSON.stringify(body) }),
 };
@@ -686,6 +733,29 @@ export type PaginatedProducts = {
     totalCount: number;
     page: number;
     pageSize: number;
+};
+
+export type VendorProductListing = {
+    id: string;
+    sku: string;
+    name: string;
+    category: string;
+    price: number;
+    uom: string;
+    stock: number;
+    status: "Active" | "Draft" | "Out of stock" | "Archived";
+    views: number;
+    orders: number;
+    rating: number;
+    image: string;
+    archived?: boolean;
+};
+
+export const vendorProductsApi = {
+    getAll: () => req<VendorProductListing[]>("/vendorproducts"),
+    create: (body: Partial<VendorProductListing>) => req<VendorProductListing>("/vendorproducts", { method: "POST", body: JSON.stringify(body) }),
+    update: (id: string, body: Partial<VendorProductListing>) => req<VendorProductListing>(`/vendorproducts/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
+    archive: (id: string) => req<void>(`/vendorproducts/${id}`, { method: "DELETE" }),
 };
 
 export const marketplaceApi = {
@@ -802,6 +872,23 @@ export type UpdateVendorStorePayload = {
     businessAddress?: string;
 };
 
+export type VendorBuyerDto = {
+    id: string;
+    companyName: string;
+    industry: string;
+    status: "Pending" | "Approved" | "Rejected" | "Blocked";
+    appliedAt: string;
+    orderCount: number;
+    totalSpend: number;
+    initials: string;
+};
+
+export const vendorBuyersApi = {
+    getAll: () => req<VendorBuyerDto[]>("/vendorbuyers"),
+    accept: (id: string) => req<{ success: boolean }>(`/vendorbuyers/${id}/accept`, { method: "POST" }),
+    reject: (id: string) => req<{ success: boolean }>(`/vendorbuyers/${id}/reject`, { method: "POST" }),
+};
+
 export const vendorStoreApi = {
     getProfile: () => req<VendorStoreProfileDto>("/settings/vendor-store"),
     updateProfile: (body: UpdateVendorStorePayload) =>
@@ -810,4 +897,118 @@ export const vendorStoreApi = {
         req<{ message: string; logoPath: string }>("/settings/vendor-logo", { method: "POST", body: JSON.stringify({ logoUrl }) }),
     updateBanner: (bannerUrl: string) =>
         req<{ message: string; bannerPath: string }>("/settings/vendor-banner", { method: "POST", body: JSON.stringify({ bannerUrl }) }),
+};
+
+export type AdminTenant = {
+    id: number;
+    type: string;
+    name: string;
+    slug: string;
+    industry: string;
+    plan: string;
+    status: string;
+    users: number;
+    vendors: number;
+    mrr: number;
+    spendYtd: number;
+    email: string;
+    phone: string;
+    createdAt: string;
+};
+
+export type AdminUser = {
+    id: string;
+    userId: number;
+    name: string;
+    email: string;
+    tenantId: number | null;
+    tenantName: string;
+    role: string;
+    status: string;
+    createdAt: string;
+    scope: "Platform" | "Buyer" | "Vendor" | string;
+};
+
+export type AdminVendor = {
+    id: number;
+    name: string;
+    category: string;
+    email: string;
+    riskClass: string;
+    accreditation: string;
+    tenantsServed: number;
+    status: string;
+    joinedAt: string;
+};
+
+export type AdminAuditEvent = {
+    id: string;
+    at: string;
+    actor: string;
+    action: string;
+    target: string;
+    tenantId: number | null;
+    tenantName: string | null;
+    ipAddress: string;
+    severity: "info" | "warn" | "critical";
+};
+
+export type AdminSystemSummary = {
+    metrics: Array<{ name: string; value: string; delta: string; ok: boolean }>;
+    services: Array<{ service: string; region: string; uptime: string; status: string }>;
+};
+
+export type AdminModule = {
+    key: string;
+    name: string;
+    description: string;
+    status: string;
+    records: number;
+};
+
+export type AdminSettingSection = {
+    title: string;
+    fields: Array<{ label: string; value: string }>;
+};
+
+export type AdminDashboard = {
+    activeTenants: number;
+    trialTenants: number;
+    platformUsers: number;
+    mrr: number;
+    recentTenants: AdminTenant[];
+    recentAudit: AdminAuditEvent[];
+    system: AdminSystemSummary;
+};
+
+export const adminApi = {
+    dashboard: () => req<AdminDashboard>("/admin/dashboard"),
+    tenants: (params?: { search?: string; status?: string }) => {
+        const qs = new URLSearchParams();
+        if (params?.search) qs.set("search", params.search);
+        if (params?.status && params.status !== "All") qs.set("status", params.status);
+        return req<AdminTenant[]>(`/admin/tenants${qs.toString() ? `?${qs.toString()}` : ""}`);
+    },
+    updateTenantStatus: (id: number, status: string) =>
+        req<{ message: string }>(`/admin/tenants/${id}/status`, { method: "PATCH", body: JSON.stringify({ status }) }),
+    users: (search?: string) => {
+        const qs = new URLSearchParams();
+        if (search) qs.set("search", search);
+        return req<AdminUser[]>(`/admin/users${qs.toString() ? `?${qs.toString()}` : ""}`);
+    },
+    updateUserStatus: (scope: string, userId: number, isActive: boolean) =>
+        req<{ message: string }>("/admin/users/status", { method: "PATCH", body: JSON.stringify({ scope, userId, isActive }) }),
+    vendors: (search?: string) => {
+        const qs = new URLSearchParams();
+        if (search) qs.set("search", search);
+        return req<AdminVendor[]>(`/admin/vendors${qs.toString() ? `?${qs.toString()}` : ""}`);
+    },
+    audit: (search?: string) => {
+        const qs = new URLSearchParams();
+        if (search) qs.set("search", search);
+        return req<AdminAuditEvent[]>(`/admin/audit${qs.toString() ? `?${qs.toString()}` : ""}`);
+    },
+    system: () => req<AdminSystemSummary>("/admin/system"),
+    modules: () => req<AdminModule[]>("/admin/modules"),
+    settings: () => req<AdminSettingSection[]>("/admin/settings"),
 };

@@ -2,7 +2,9 @@ import { createFileRoute } from "@tanstack/react-router";
 import { PageHeader } from "@/components/PageHeader";
 import { AutoStatus } from "@/components/StatusPill";
 import { PermissionGate } from "@/components/PermissionGate";
-import { BUYERS, formatCurrency } from "@/lib/mock-data";
+import * as React from "react";
+import { vendorBuyersApi, type VendorBuyerDto } from "@/lib/api";
+import { formatCurrency } from "@/lib/mock-data";
 
 export const Route = createFileRoute("/vendor/buyers")({
   component: () => (
@@ -13,8 +15,40 @@ export const Route = createFileRoute("/vendor/buyers")({
 });
 
 function BuyersPage() {
-  const pending = BUYERS.filter((b) => b.status === "Pending");
-  const approved = BUYERS.filter((b) => b.status === "Approved");
+  const [buyers, setBuyers] = React.useState<VendorBuyerDto[]>([]);
+  const [loading, setLoading] = React.useState(true);
+
+  const fetchBuyers = React.useCallback(() => {
+    vendorBuyersApi.getAll()
+      .then(setBuyers)
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, []);
+
+  React.useEffect(() => {
+    fetchBuyers();
+  }, [fetchBuyers]);
+
+  const handleAccept = async (id: string) => {
+    try {
+      await vendorBuyersApi.accept(id);
+      fetchBuyers();
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleReject = async (id: string) => {
+    try {
+      await vendorBuyersApi.reject(id);
+      fetchBuyers();
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const pending = buyers.filter((b) => b.status === "Pending");
+  const approved = buyers.filter((b) => b.status === "Approved");
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-8">
       <PageHeader eyebrow="Accreditation" title="Buyer connections" description="Buyers who have requested or been approved to procure from you." />
@@ -30,8 +64,8 @@ function BuyersPage() {
                   <div className="font-semibold">{b.companyName}</div>
                   <div className="text-xs text-muted-foreground">{b.industry} · applied {b.appliedAt}</div>
                   <div className="mt-3 flex gap-2">
-                    <button className="h-8 rounded-sm bg-foreground px-3 text-xs font-medium text-background hover:opacity-85">Approve</button>
-                    <button className="h-8 rounded-sm border border-border bg-card px-3 text-xs hover:border-foreground">Reject</button>
+                    <button onClick={() => handleAccept(b.id)} className="h-8 rounded-sm bg-foreground px-3 text-xs font-medium text-background hover:opacity-85">Approve</button>
+                    <button onClick={() => handleReject(b.id)} className="h-8 rounded-sm border border-border bg-card px-3 text-xs hover:border-foreground">Reject</button>
                   </div>
                 </div>
               </div>

@@ -39,6 +39,11 @@ namespace ProqrLi.Controllers.Procure
         public decimal? Rating    { get; set; }
     }
 
+    public class InviteVendorDto
+    {
+        public string VendorId { get; set; } = "";
+    }
+
     [ApiController]
     [Route("api/[controller]")]
     public class VendorsController : ControllerBase
@@ -214,6 +219,36 @@ namespace ProqrLi.Controllers.Procure
 
             return NoContent();
         }
+
+        // POST /api/vendors/invite
+        [HttpPost("invite")]
+        public async Task<IActionResult> Invite([FromBody] InviteVendorDto dto)
+        {
+            var tenantIdStr = User.FindFirstValue("tenant_id");
+            if (!int.TryParse(tenantIdStr, out var buyerTenantId)) return Unauthorized();
+
+            if (!int.TryParse(dto.VendorId, out var vendorId)) return BadRequest(new { error = "Invalid vendor ID" });
+
+            var existing = await _db.AccreditationLinks.FirstOrDefaultAsync(a => a.BuyerTenantID == buyerTenantId && a.VendorTenantID == vendorId);
+            if (existing != null) return BadRequest(new { error = "Vendor already invited or linked" });
+
+            var vendorTenant = await _db.Tenants.FindAsync(vendorId);
+            if (vendorTenant == null) return NotFound(new { error = "Vendor not found" });
+
+            var link = new AccreditationLink
+            {
+                BuyerTenantID = buyerTenantId,
+                VendorTenantID = vendorId,
+                Status = "Pending",
+                AppliedAt = DateTime.UtcNow
+            };
+            
+            _db.AccreditationLinks.Add(link);
+            await _db.SaveChangesAsync();
+
+            return Ok(new { success = true, id = link.LinkID });
+        }
+
         // GET /api/vendors/marketplace (discoverable vendors)
         [HttpGet("marketplace")]
         public async Task<IActionResult> GetMarketplaceVendors([FromQuery] int page = 1, [FromQuery] int pageSize = 10, [FromQuery] string search = "", [FromQuery] string category = "")
@@ -248,22 +283,26 @@ namespace ProqrLi.Controllers.Procure
 
             var colors = new[] { "bg-sky-700", "bg-teal-700", "bg-violet-700", "bg-amber-700", "bg-rose-700", "bg-emerald-700", "bg-zinc-700", "bg-indigo-700" };
 
-            var dtos = unlinkedVendors.Select((t, i) => new 
-            {
-                Id = t.TenantID.ToString(),
-                CompanyName = t.CompanyName,
-                Initials = GetInitials(t.CompanyName),
-                AvatarColor = colors[i % colors.Length],
-                Category = string.IsNullOrWhiteSpace(t.Industry) ? "Uncategorized" : t.Industry,
-                Location = "Philippines",
-                Description = "Platform registered vendor ready for connection.",
-                Tags = new[] { "General" },
-                Rating = 0.0m,
-                ReviewCount = 0,
-                OnTimeRate = 0,
-                Verified = t.Status == "Active",
-                YearsActive = 1,
-                MinOrderValue = 0
+            var dtos = unlinkedVendors.Select((t, i) => {
+                var isInvited = _db.AccreditationLinks.Any(a => a.BuyerTenantID == buyerTenantId && a.VendorTenantID == t.TenantID);
+                return new 
+                {
+                    Id = t.TenantID.ToString(),
+                    CompanyName = t.CompanyName,
+                    Initials = GetInitials(t.CompanyName),
+                    AvatarColor = colors[i % colors.Length],
+                    Category = string.IsNullOrWhiteSpace(t.Industry) ? "Uncategorized" : t.Industry,
+                    Location = "Philippines",
+                    Description = "Platform registered vendor ready for connection.",
+                    Tags = new[] { "General" },
+                    Rating = 0.0m,
+                    ReviewCount = 0,
+                    OnTimeRate = 0,
+                    Verified = t.Status == "Active",
+                    YearsActive = 1,
+                    MinOrderValue = 0,
+                    InviteStatus = isInvited ? "pending" : "none" // We don't return accredited since they are excluded
+                };
             }).ToList();
 
             return Ok(new { data = dtos, total = totalCount, page, pageSize });

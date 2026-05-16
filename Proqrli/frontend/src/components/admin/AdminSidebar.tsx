@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-type NavItem = { to: string; label: string; icon: LucideIcon; badge?: string | number };
+type NavItem = { to: string; label: string; icon: LucideIcon };
 type NavSection = { title: string; items: NavItem[] };
 
 const SECTIONS: NavSection[] = [
@@ -27,7 +27,7 @@ const SECTIONS: NavSection[] = [
     {
         title: "Tenants",
         items: [
-            { to: "/admin/tenants", label: "Organizations", icon: Building2, badge: 142 },
+            { to: "/admin/tenants", label: "Organizations", icon: Building2 },
             { to: "/admin/users", label: "Users & roles", icon: UsersRound },
             { to: "/admin/vendors", label: "Vendor registry", icon: Store },
         ],
@@ -35,8 +35,8 @@ const SECTIONS: NavSection[] = [
     {
         title: "Platform",
         items: [
-            { to: "/admin/modules", label: "Modules & flags", icon: Boxes },
-            { to: "/admin/system", label: "System health", icon: ServerCog, badge: "1" },
+            { to: "/admin/modules", label: "Modules", icon: Boxes },
+            { to: "/admin/system", label: "System health", icon: ServerCog },
             { to: "/admin/audit", label: "Audit log", icon: ScrollText },
         ],
     },
@@ -99,16 +99,6 @@ export function AdminSidebar({ onNavigate }: { onNavigate?: () => void }) {
                                         >
                                             <item.icon className="h-4 w-4" />
                                             <span className="flex-1 truncate">{item.label}</span>
-                                            {item.badge != null && (
-                                                <span
-                                                    className={cn(
-                                                        "flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 font-mono text-[10px] font-bold",
-                                                        isActive ? "bg-foreground text-paper" : "bg-paper/15 text-paper",
-                                                    )}
-                                                >
-                                                    {item.badge}
-                                                </span>
-                                            )}
                                         </Link>
                                     </li>
                                 );
@@ -124,7 +114,7 @@ export function AdminSidebar({ onNavigate }: { onNavigate?: () => void }) {
                     Build
                 </div>
                 <div className="mt-1 flex items-baseline justify-between">
-                    <span className="font-display text-base font-extrabold text-paper">v4.1.2</span>
+                    <span className="font-display text-base font-extrabold text-paper">v1.0.0</span>
                     <span className="font-mono text-[10px] text-paper/40">edge · prod</span>
                 </div>
                 <div className="mt-3 inline-flex items-center gap-1.5 text-[11px] text-paper/55">

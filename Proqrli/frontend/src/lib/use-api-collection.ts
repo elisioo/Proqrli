@@ -25,16 +25,24 @@ export type ApiCollectionState = "idle" | "loading" | "error";
 
 export type ApiCollectionApi<T, CreatePayload, UpdatePayload> = {
     items:   T[];
+    archived: T[];
+    all:     T[];
     state:   ApiCollectionState;
     error:   string | null;
     reload:  () => void;
+    get:     (id: string) => T | undefined;
     create:  (body: CreatePayload)             => Promise<T>;
     update:  (id: string, body: UpdatePayload) => Promise<T>;
     archive: (id: string)                      => Promise<void>;
+    restore: (id: string)                      => Promise<T>;
 };
 
+function isArchivedRecord(item: { archived?: boolean; isArchived?: boolean }) {
+    return item.archived === true || item.isArchived === true;
+}
+
 export function useApiCollection<
-    T extends { id: string; archived?: boolean },
+    T extends { id: string; archived?: boolean; isArchived?: boolean },
     CreatePayload,
     UpdatePayload,
 >(
@@ -68,7 +76,7 @@ export function useApiCollection<
 
     const update = React.useCallback(async (id: string, body: UpdatePayload) => {
         const updated = await endpoints.update(id, body);
-        setItems(prev => prev.map(i => i.id === id ? updated : i));
+        setItems(prev => prev.map(i => i.id === id ? { ...i, ...updated } : i));
         return updated;
     }, [endpoints]);
 
@@ -78,5 +86,14 @@ export function useApiCollection<
         await load();
     }, [endpoints, load]);
 
-    return { items, state, error, reload: load, create, update, archive };
+    const restore = React.useCallback(async (id: string) => {
+        const updated = await endpoints.update(id, { archived: false, isArchived: false } as UpdatePayload);
+        setItems(prev => prev.map(i => i.id === id ? updated : i));
+        return updated;
+    }, [endpoints]);
+
+    const archived = React.useMemo(() => items.filter(isArchivedRecord), [items]);
+    const get = React.useCallback((id: string) => items.find((i) => i.id === id), [items]);
+
+    return { items, archived, all: items, state, error, reload: load, get, create, update, archive, restore };
 }

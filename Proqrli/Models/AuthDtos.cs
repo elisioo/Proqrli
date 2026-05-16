@@ -43,6 +43,67 @@ namespace ProqrLi.Models
         int?    PlanId           = null
     );
 
+    public record PayMongoOnboardingCheckoutRequest(
+        OnboardingRequest Onboarding,
+        string PaymentMethod = "card"
+    );
+
+    public record PayMongoOnboardingCheckoutResponse(
+        string CheckoutSessionId,
+        string CheckoutUrl
+    );
+
+    public record PayMongoOnboardingConfirmRequest(
+        string CheckoutSessionId,
+        OnboardingRequest Onboarding
+    );
+
+    public record PayMongoCheckoutLineItem(
+        string Name,
+        string Description,
+        int AmountInCentavos,
+        int Quantity
+    );
+
+    public record PayMongoCheckoutRequest(
+        string CustomerName,
+        string CustomerEmail,
+        string CustomerPhone,
+        string Description,
+        string SuccessUrl,
+        string CancelUrl,
+        string[] PaymentMethodTypes,
+        IReadOnlyList<PayMongoCheckoutLineItem> LineItems,
+        Dictionary<string, string> Metadata
+    );
+
+    public record PayMongoCheckoutSession(
+        string Id,
+        string CheckoutUrl,
+        string Status
+    );
+
+    public record PayMongoPaymentSummary(
+        string Id,
+        string Status,
+        int Amount,
+        string SourceType
+    );
+
+    public record PayMongoCheckoutVerification(
+        string Id,
+        string Status,
+        Dictionary<string, string> Metadata,
+        IReadOnlyList<PayMongoPaymentSummary> Payments
+    )
+    {
+        public bool IsPaid => Status.Equals("paid", StringComparison.OrdinalIgnoreCase)
+            || Status.Equals("completed", StringComparison.OrdinalIgnoreCase)
+            || Payments.Any(p => p.Status.Equals("paid", StringComparison.OrdinalIgnoreCase));
+
+        public string PaymentMethod => Payments.FirstOrDefault(p => p.Status.Equals("paid", StringComparison.OrdinalIgnoreCase))?.SourceType ?? "PayMongo";
+    }
+
     /// <summary>Payload for POST /api/auth/login</summary>
     public record LoginRequest(
         string Email,

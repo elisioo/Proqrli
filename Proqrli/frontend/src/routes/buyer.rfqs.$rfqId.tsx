@@ -59,7 +59,11 @@ function BuyerRFQDetail() {
     const [msgError, setMsgError] = React.useState<string | null>(null);
     const [sending, setSending] = React.useState(false);
     const scrollRef = React.useRef<HTMLDivElement>(null);
-    const isPolling = React.useRef(false);   // prevents overlapping poll requests
+    const appendMessage = React.useCallback((message: RfqMessageDto) => {
+        setMessages((current) =>
+            current.some((m) => m.messageId === message.messageId) ? current : [...current, message],
+        );
+    }, []);
 
     // Load thread whenever the active vendor changes
     const loadMessages = React.useCallback(async (silent = false) => {
@@ -87,14 +91,10 @@ function BuyerRFQDetail() {
     // Poll every 6 s for new messages — silent so the UI doesn't flicker
     React.useEffect(() => {
         if (!activeVendorId) return;
-        const id = setInterval(async () => {
-            if (isPolling.current) return;
-            isPolling.current = true;
-            await loadMessages(true);
-            isPolling.current = false;
-        }, 6000);
-        return () => clearInterval(id);
-    }, [activeVendorId, loadMessages]);
+        const vendorTenantId = Number(activeVendorId);
+        if (!vendorTenantId) return;
+        return rfqsApi.streamMessages(rfq.id, vendorTenantId, appendMessage);
+    }, [activeVendorId, appendMessage, rfq.id]);
 
     // Auto-scroll to bottom
     React.useEffect(() => {
@@ -143,8 +143,13 @@ function BuyerRFQDetail() {
         setMessages((m) => [...m, optimistic]);
         setDraft("");
         try {
-            await rfqsApi.sendMessage(rfq.id, { vendorTenantId, body: optimistic.body });
-            await loadMessages();
+            const saved = await rfqsApi.sendMessage(rfq.id, { vendorTenantId, body: optimistic.body });
+            setMessages((current) => {
+                const withoutOptimistic = current.filter((msg) => msg.messageId !== optimistic.messageId);
+                return withoutOptimistic.some((msg) => msg.messageId === saved.messageId)
+                    ? withoutOptimistic
+                    : [...withoutOptimistic, saved];
+            });
         } catch (err) {
             console.error("Failed to send message:", err);
             setMessages((m) => m.filter((msg) => msg.messageId !== optimistic.messageId));

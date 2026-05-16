@@ -1,56 +1,34 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
+import { adminApi, type AdminSettingSection } from "@/lib/api";
 
 export const Route = createFileRoute("/admin/settings")({
   component: PlatformSettings,
 });
 
-const SECTIONS = [
-  {
-    title: "Branding",
-    fields: [
-      { label: "Platform name", value: "ProcurLi" },
-      { label: "Support email", value: "support@procurli.io" },
-      { label: "Default locale", value: "en-US" },
-    ],
-  },
-  {
-    title: "Security",
-    fields: [
-      { label: "MFA enforcement", value: "Required for all admins" },
-      { label: "Session lifetime", value: "8 hours" },
-      { label: "IP allowlist", value: "Disabled" },
-    ],
-  },
-  {
-    title: "Billing",
-    fields: [
-      { label: "Stripe account", value: "acct_1Pxx…live" },
-      { label: "Default currency", value: "USD" },
-      { label: "Invoice cadence", value: "Monthly · 1st" },
-    ],
-  },
-  {
-    title: "Data residency",
-    fields: [
-      { label: "Primary region", value: "us-east-1" },
-      { label: "EU mirror", value: "eu-west-1" },
-      { label: "Backups", value: "Daily · 35-day retention" },
-    ],
-  },
-];
-
 function PlatformSettings() {
+  const [sections, setSections] = useState<AdminSettingSection[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    adminApi.settings()
+      .then(setSections)
+      .catch((err) => setError(err instanceof Error ? err.message : "Unable to load platform settings."))
+      .finally(() => setLoading(false));
+  }, []);
+
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-8">
       <PageHeader
         eyebrow="Configuration"
         title="Platform settings"
-        description="Global defaults for every tenant — branding, security posture, billing, and data residency."
+        description="Global platform posture and database-backed configuration counts."
       />
 
       <div className="grid gap-6 md:grid-cols-2">
-        {SECTIONS.map((s) => (
+        {sections.map((s) => (
           <section key={s.title} className="rounded-md border border-border bg-card p-6">
             <h2 className="mb-4 font-display text-lg font-bold">{s.title}</h2>
             <dl className="divide-y divide-border">
@@ -61,11 +39,13 @@ function PlatformSettings() {
                 </div>
               ))}
             </dl>
-            <button className="mt-4 rounded-sm border border-border px-3 py-1.5 text-[12px] hover:bg-muted">
-              Edit
-            </button>
           </section>
         ))}
+        {(loading || error || sections.length === 0) && (
+          <section className="rounded-md border border-border bg-card p-6 text-sm text-ink-muted">
+            {loading ? "Loading platform settings..." : error ?? "No settings available."}
+          </section>
+        )}
       </div>
     </div>
   );

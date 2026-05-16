@@ -92,7 +92,16 @@ function VendorsPage() {
     // We no longer filter locally, the backend handles it.
     const filteredMarket = marketplaceVendors;
 
-    const sendInvite = (id: string) => setInvitations((prev) => ({ ...prev, [id]: "pending" }));
+    const sendInvite = async (id: string) => {
+        setInvitations((prev) => ({ ...prev, [id]: "pending" }));
+        try {
+            await vendorsApi.invite(id);
+        } catch (e) {
+            console.error(e);
+            setInvitations((prev) => ({ ...prev, [id]: "none" }));
+        }
+    };
+    // Keep simulateAccept and cancelInvite for visual state for now unless we add endpoints for those on the buyer side
     const simulateAccept = (id: string) => setInvitations((prev) => ({ ...prev, [id]: "accepted" }));
     const cancelInvite = (id: string) => setInvitations((prev) => ({ ...prev, [id]: "none" }));
 

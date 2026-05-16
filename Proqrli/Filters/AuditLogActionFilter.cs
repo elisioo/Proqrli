@@ -34,6 +34,9 @@ namespace ProqrLi.Filters
             if (user?.Identity?.IsAuthenticated != true)
                 return;
 
+            if (user.FindFirstValue("account_type") == "platform")
+                return;
+
             var tenantIdStr = user.FindFirstValue("tenant_id");
             if (!int.TryParse(tenantIdStr, out var tenantId))
                 return;

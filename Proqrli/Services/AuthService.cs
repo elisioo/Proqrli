@@ -9,11 +9,16 @@ namespace ProqrLi.Services
     {
         private readonly ApplicationDbContext         _db;
         private readonly IPasswordHasher<TenantUser> _hasher;
+        private readonly IPasswordHasher<PlatformUser> _platformHasher;
 
-        public AuthService(ApplicationDbContext db, IPasswordHasher<TenantUser> hasher)
+        public AuthService(
+            ApplicationDbContext db,
+            IPasswordHasher<TenantUser> hasher,
+            IPasswordHasher<PlatformUser> platformHasher)
         {
             _db     = db;
             _hasher = hasher;
+            _platformHasher = platformHasher;
         }
 
         // ── Helpers ────────────────────────────────────────────────────────────
@@ -77,7 +82,11 @@ namespace ProqrLi.Services
 
         // ── Step 4: Save onboarding profile ──────────────────────────────────
 
-        public async Task<AuthResponse> SaveOnboardingAsync(int userId, OnboardingRequest req)
+        public async Task<AuthResponse> SaveOnboardingAsync(
+            int userId,
+            OnboardingRequest req,
+            string? paidReference = null,
+            string? paymentMethod = null)
         {
             var user = await _db.TenantUsers
                 .Include(u => u.Tenant)
@@ -106,6 +115,9 @@ namespace ProqrLi.Services
                 var plan = await _db.SubscriptionPlans.FindAsync(req.PlanId.Value);
                 if (plan != null)
                 {
+                    if (plan.Price > 0 && string.IsNullOrWhiteSpace(paidReference))
+                        throw new InvalidOperationException("Paid plans must be completed through PayMongo checkout.");
+
                     var subscription = new TenantSubscription
                     {
                         TenantID = tenant.TenantID,
@@ -117,7 +129,6 @@ namespace ProqrLi.Services
                     };
                     _db.TenantSubscriptions.Add(subscription);
 
-                    // Create a billing record if it's not free
                     if (plan.Price > 0)
                     {
                         var billing = new Billing
@@ -125,9 +136,18 @@ namespace ProqrLi.Services
                             TenantID = tenant.TenantID,
                             Amount = plan.Price,
                             BillingDate = DateTime.UtcNow,
-                            Status = "Pending" // Simulated payment state
+                            Status = "Paid"
                         };
                         _db.Billings.Add(billing);
+                        await _db.SaveChangesAsync();
+
+                        _db.SubscriptionPayments.Add(new SubscriptionPayment
+                        {
+                            BillingID = billing.BillingID,
+                            PaymentMethod = string.IsNullOrWhiteSpace(paymentMethod) ? "PayMongo" : paymentMethod,
+                            Reference = paidReference,
+                            PaidAt = DateTime.UtcNow
+                        });
                     }
                 }
             }
@@ -143,6 +163,22 @@ namespace ProqrLi.Services
             return BuildResponse(user, tenant, roleName);
         }
 
+        public async Task<SubscriptionPlan> GetSubscriptionPlanAsync(int planId)
+        {
+            var plan = await _db.SubscriptionPlans.FirstOrDefaultAsync(p => p.PlanID == planId && p.IsActive);
+            return plan ?? throw new InvalidOperationException("Selected plan is no longer available.");
+        }
+
+        public async Task<(TenantUser user, Tenant tenant)> GetTenantUserWithTenantAsync(int userId)
+        {
+            var user = await _db.TenantUsers
+                .Include(u => u.Tenant)
+                .FirstOrDefaultAsync(u => u.UserID == userId)
+                ?? throw new InvalidOperationException("User not found.");
+
+            return (user, user.Tenant ?? throw new InvalidOperationException("Tenant not found."));
+        }
+
         // ── Login ─────────────────────────────────────────────────────────────
 
         /// <summary>
@@ -152,6 +188,28 @@ namespace ProqrLi.Services
         public async Task<(AuthResponse response, bool mustChangePassword)> LoginAsync(LoginRequest req)
         {
             var email = req.Email.Trim().ToLowerInvariant();
+
+            var platformUser = await _db.PlatformUsers
+                .FirstOrDefaultAsync(u => u.Email == email && u.IsActive);
+
+            if (platformUser != null)
+            {
+                var platformVerifyResult = _platformHasher.VerifyHashedPassword(
+                    platformUser,
+                    platformUser.PasswordHash,
+                    req.Password);
+
+                if (platformVerifyResult == PasswordVerificationResult.Failed)
+                    throw new UnauthorizedAccessException("Invalid email or password.");
+
+                if (platformVerifyResult == PasswordVerificationResult.SuccessRehashNeeded)
+                {
+                    platformUser.PasswordHash = _platformHasher.HashPassword(platformUser, req.Password);
+                    await _db.SaveChangesAsync();
+                }
+
+                return (BuildPlatformResponse(platformUser), false);
+            }
 
             var user = await _db.TenantUsers
                 .Include(u => u.Tenant)
@@ -196,6 +254,14 @@ namespace ProqrLi.Services
             var roleName = userRole?.Role?.RoleName ?? "buyer_owner";
 
             return BuildResponse(user, user.Tenant!, roleName);
+        }
+
+        public async Task<AuthResponse?> GetPlatformByIdAsync(int platformUserId)
+        {
+            var user = await _db.PlatformUsers
+                .FirstOrDefaultAsync(u => u.PlatformUserID == platformUserId && u.IsActive);
+
+            return user is null ? null : BuildPlatformResponse(user);
         }
 
         // ── Team Management ─────────────────────────────────────────────────────
@@ -458,6 +524,20 @@ namespace ProqrLi.Services
                 TenantType:         tenant.TenantType,
                 Role:               role,
                 OnboardingComplete: user.OnboardingComplete
+            );
+
+        private static AuthResponse BuildPlatformResponse(PlatformUser user) =>
+            new(
+                UserId:             user.PlatformUserID,
+                Email:              user.Email,
+                FullName:           "Super Admin",
+                Position:           "Platform",
+                ContactNumber:      "",
+                TenantId:           0,
+                CompanyName:        "ProcurLi",
+                TenantType:         "Platform",
+                Role:               user.Role,
+                OnboardingComplete: true
             );
     }
 }

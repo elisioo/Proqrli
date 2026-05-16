@@ -171,7 +171,7 @@ namespace ProqrLi.Controllers
                 .Include(p => p.VendorTenant)
                 .Include(p => p.PurchaseRequisition)
                 .Include(p => p.CreatedByUser)
-                .FirstOrDefaultAsync(p => p.POID == id && p.TenantID == tenantId);
+                .FirstOrDefaultAsync(p => p.POID == id && (p.TenantID == tenantId || p.VendorTenantID == tenantId));
 
             if (po == null) return NotFound();
 
@@ -208,7 +208,7 @@ namespace ProqrLi.Controllers
             var tenantIdStr = User.FindFirstValue("tenant_id") ?? User.FindFirstValue(System.Security.Claims.ClaimTypes.NameIdentifier);
             if (!int.TryParse(tenantIdStr, out var tenantId)) return Unauthorized();
 
-            var po = await _db.PurchaseOrders.FirstOrDefaultAsync(p => p.POID == id && p.TenantID == tenantId);
+            var po = await _db.PurchaseOrders.FirstOrDefaultAsync(p => p.POID == id && (p.TenantID == tenantId || p.VendorTenantID == tenantId));
             if (po == null) return NotFound();
 
             po.Status = "Archived";

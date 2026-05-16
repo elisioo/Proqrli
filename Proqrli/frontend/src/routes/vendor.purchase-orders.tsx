@@ -6,9 +6,10 @@ import { PageHeader } from "@/components/PageHeader";
 import { AutoStatus } from "@/components/StatusPill";
 import { PermissionGate } from "@/components/PermissionGate";
 import { CrudDrawer, Field, inputCls, selectCls, textareaCls, NumberInput } from "@/components/CrudDrawer";
-import { useCollection } from "@/lib/use-collection";
+import { purchaseOrdersApi, type PurchaseOrder } from "@/lib/api";
+import { formatCurrency } from "@/lib/mock-data";
+import { useApiCollection } from "@/lib/use-api-collection";
 import { useVendor } from "@/lib/vendor-context";
-import { PURCHASE_ORDERS, formatCurrency, type PurchaseOrder } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/vendor/purchase-orders")({
@@ -32,18 +33,26 @@ const EMPTY: Omit<PORow, "id"> = {
     itemCount: 1,
 };
 
+function generateVendorCode(prefix: string) {
+    const datePart = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+    const randomPart = Math.random().toString(36).slice(2, 6).toUpperCase();
+    return `${prefix}-${datePart}-${randomPart}`;
+}
+
 function POPage() {
     const { hasPermission } = useVendor();
     const canAck = hasPermission("po:acknowledge");
-    const store = useCollection<PORow>(PURCHASE_ORDERS as PORow[], "po");
+    const store = useApiCollection<PORow>(purchaseOrdersApi);
 
     const [view, setView] = React.useState<"active" | "archived">("active");
     const [drawer, setDrawer] = React.useState<{ mode: "create" | "edit"; id?: string } | null>(null);
     const [draft, setDraft] = React.useState<Omit<PORow, "id">>(EMPTY);
 
-    const list = view === "active" ? store.items : store.archived;
+    const activeOrders = store.items.filter((p) => !p.archived);
+    const archivedOrders = store.archived;
+    const list = view === "active" ? activeOrders : archivedOrders;
 
-    const openCreate = () => { setDraft({ ...EMPTY }); setDrawer({ mode: "create" }); };
+    const openCreate = () => { setDraft({ ...EMPTY, poNumber: generateVendorCode("PO") }); setDrawer({ mode: "create" }); };
     const openEdit = (p: PORow) => {
         const { id, ...rest } = p; void id;
         setDraft(rest);
@@ -89,7 +98,7 @@ function POPage() {
                             view === v ? "border-foreground text-foreground" : "border-transparent text-muted-foreground hover:text-foreground",
                         )}
                     >
-                        {v} ({v === "active" ? store.items.length : store.archived.length})
+                        {v} ({v === "active" ? activeOrders.length : archivedOrders.length})
                     </button>
                 ))}
             </div>
@@ -184,8 +193,13 @@ function POPage() {
             >
                 <div className="grid grid-cols-2 gap-3">
                     <Field label="PO number">
-                        <input className={inputCls} value={draft.poNumber}
-                            onChange={(e) => setDraft({ ...draft, poNumber: e.target.value })} />
+                        <input
+                            className={cn(inputCls, "cursor-not-allowed bg-muted opacity-70")}
+                            value={draft.poNumber}
+                            disabled
+                            readOnly
+                            placeholder="Auto-generated"
+                        />
                     </Field>
                     <Field label="Buyer">
                         <input className={inputCls} value={draft.buyerName}

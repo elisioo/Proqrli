@@ -71,7 +71,12 @@ function RFQDetail() {
     const [draft, setDraft]         = React.useState("");
     const [sending, setSending]     = React.useState(false);
     const scrollRef = React.useRef<HTMLDivElement>(null);
-    const isPolling = React.useRef(false);
+
+    const appendMessage = React.useCallback((message: RfqMessageDto) => {
+        setThread((current) =>
+            current.some((m) => m.messageId === message.messageId) ? current : [...current, message],
+        );
+    }, []);
 
     const loadMessages = React.useCallback(async (silent = false) => {
         try {
@@ -89,16 +94,9 @@ function RFQDetail() {
 
     React.useEffect(() => { loadMessages(); }, [loadMessages]);
 
-    // Poll every 6 s for new messages from the buyer
     React.useEffect(() => {
-        const id = setInterval(async () => {
-            if (isPolling.current) return;
-            isPolling.current = true;
-            await loadMessages(true);
-            isPolling.current = false;
-        }, 6000);
-        return () => clearInterval(id);
-    }, [loadMessages]);
+        return rfqsApi.streamMessages(rfq.id, undefined, appendMessage);
+    }, [appendMessage, rfq.id]);
 
     // Auto-scroll to bottom when new messages arrive
     React.useEffect(() => {
@@ -119,9 +117,13 @@ function RFQDetail() {
         setThread((t) => [...t, optimistic]);
         setDraft("");
         try {
-            await rfqsApi.sendMessage(rfq.id, { vendorTenantId: 0, body: optimistic.body });
-            // Reload to get the server-assigned ID and timestamp
-            await loadMessages();
+            const saved = await rfqsApi.sendMessage(rfq.id, { vendorTenantId: 0, body: optimistic.body });
+            setThread((current) => {
+                const withoutOptimistic = current.filter((m) => m.messageId !== optimistic.messageId);
+                return withoutOptimistic.some((m) => m.messageId === saved.messageId)
+                    ? withoutOptimistic
+                    : [...withoutOptimistic, saved];
+            });
         } catch (err) {
             console.error("Failed to send message:", err);
             // Roll back optimistic message

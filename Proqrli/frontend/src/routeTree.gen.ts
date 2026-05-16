@@ -47,6 +47,7 @@ import { Route as BuyerMessagesRouteImport } from './routes/buyer.messages'
 import { Route as BuyerMarketplaceRouteImport } from './routes/buyer.marketplace'
 import { Route as BuyerInventoryRouteImport } from './routes/buyer.inventory'
 import { Route as BuyerBillsRouteImport } from './routes/buyer.bills'
+import { Route as BuyerAnalyticsRouteImport } from './routes/buyer.analytics'
 import { Route as AdminLoginRouteImport } from './routes/admin_.login'
 import { Route as AdminVendorsRouteImport } from './routes/admin.vendors'
 import { Route as AdminUsersRouteImport } from './routes/admin.users'
@@ -249,6 +250,11 @@ const BuyerBillsRoute = BuyerBillsRouteImport.update({
   path: '/bills',
   getParentRoute: () => BuyerRoute,
 } as any)
+const BuyerAnalyticsRoute = BuyerAnalyticsRouteImport.update({
+  id: '/analytics',
+  path: '/analytics',
+  getParentRoute: () => BuyerRoute,
+} as any)
 const AdminLoginRoute = AdminLoginRouteImport.update({
   id: '/admin_/login',
   path: '/admin/login',
@@ -321,6 +327,7 @@ export interface FileRoutesByFullPath {
   '/admin/users': typeof AdminUsersRoute
   '/admin/vendors': typeof AdminVendorsRoute
   '/admin/login': typeof AdminLoginRoute
+  '/buyer/analytics': typeof BuyerAnalyticsRoute
   '/buyer/bills': typeof BuyerBillsRoute
   '/buyer/inventory': typeof BuyerInventoryRoute
   '/buyer/marketplace': typeof BuyerMarketplaceRoute
@@ -369,6 +376,7 @@ export interface FileRoutesByTo {
   '/admin/users': typeof AdminUsersRoute
   '/admin/vendors': typeof AdminVendorsRoute
   '/admin/login': typeof AdminLoginRoute
+  '/buyer/analytics': typeof BuyerAnalyticsRoute
   '/buyer/bills': typeof BuyerBillsRoute
   '/buyer/inventory': typeof BuyerInventoryRoute
   '/buyer/marketplace': typeof BuyerMarketplaceRoute
@@ -420,6 +428,7 @@ export interface FileRoutesById {
   '/admin/users': typeof AdminUsersRoute
   '/admin/vendors': typeof AdminVendorsRoute
   '/admin_/login': typeof AdminLoginRoute
+  '/buyer/analytics': typeof BuyerAnalyticsRoute
   '/buyer/bills': typeof BuyerBillsRoute
   '/buyer/inventory': typeof BuyerInventoryRoute
   '/buyer/marketplace': typeof BuyerMarketplaceRoute
@@ -473,6 +482,7 @@ export interface FileRouteTypes {
     | '/admin/users'
     | '/admin/vendors'
     | '/admin/login'
+    | '/buyer/analytics'
     | '/buyer/bills'
     | '/buyer/inventory'
     | '/buyer/marketplace'
@@ -521,6 +531,7 @@ export interface FileRouteTypes {
     | '/admin/users'
     | '/admin/vendors'
     | '/admin/login'
+    | '/buyer/analytics'
     | '/buyer/bills'
     | '/buyer/inventory'
     | '/buyer/marketplace'
@@ -571,6 +582,7 @@ export interface FileRouteTypes {
     | '/admin/users'
     | '/admin/vendors'
     | '/admin_/login'
+    | '/buyer/analytics'
     | '/buyer/bills'
     | '/buyer/inventory'
     | '/buyer/marketplace'
@@ -886,6 +898,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BuyerBillsRouteImport
       parentRoute: typeof BuyerRoute
     }
+    '/buyer/analytics': {
+      id: '/buyer/analytics'
+      path: '/analytics'
+      fullPath: '/buyer/analytics'
+      preLoaderRoute: typeof BuyerAnalyticsRouteImport
+      parentRoute: typeof BuyerRoute
+    }
     '/admin_/login': {
       id: '/admin_/login'
       path: '/admin/login'
@@ -1005,6 +1024,7 @@ const BuyerRfqsRouteWithChildren = BuyerRfqsRoute._addFileChildren(
 )
 
 interface BuyerRouteChildren {
+  BuyerAnalyticsRoute: typeof BuyerAnalyticsRoute
   BuyerBillsRoute: typeof BuyerBillsRoute
   BuyerInventoryRoute: typeof BuyerInventoryRoute
   BuyerMarketplaceRoute: typeof BuyerMarketplaceRoute
@@ -1024,6 +1044,7 @@ interface BuyerRouteChildren {
 }
 
 const BuyerRouteChildren: BuyerRouteChildren = {
+  BuyerAnalyticsRoute: BuyerAnalyticsRoute,
   BuyerBillsRoute: BuyerBillsRoute,
   BuyerInventoryRoute: BuyerInventoryRoute,
   BuyerMarketplaceRoute: BuyerMarketplaceRoute,
