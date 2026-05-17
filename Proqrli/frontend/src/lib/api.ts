@@ -76,6 +76,11 @@ export type PayMongoCheckoutResponse = {
     checkoutUrl: string;
 };
 
+export type StripeCheckoutResponse = {
+    checkoutSessionId: string;
+    checkoutUrl: string;
+};
+
 export type PayMongoPaymentMethodDto = {
     id: "card" | "gcash" | "maya" | "qrph" | string;
     payMongoType: string;
@@ -125,6 +130,13 @@ export const payMongoApi = {
         req<PayMongoCheckoutResponse>("/paymongo/onboarding-checkout", { method: "POST", body: JSON.stringify(body) }),
     confirmOnboardingCheckout: (body: { checkoutSessionId: string; onboarding: OnboardingPayload }) =>
         req<AuthUser>("/paymongo/onboarding-confirm", { method: "POST", body: JSON.stringify(body) }),
+};
+
+export const stripeApi = {
+    createOnboardingCheckout: (body: { onboarding: OnboardingPayload }) =>
+        req<StripeCheckoutResponse>("/stripe/onboarding-checkout", { method: "POST", body: JSON.stringify(body) }),
+    confirmOnboardingCheckout: (body: { checkoutSessionId: string; onboarding: OnboardingPayload }) =>
+        req<AuthUser>("/stripe/onboarding-confirm", { method: "POST", body: JSON.stringify(body) }),
 };
 
 export type UpdateProfilePayload = {

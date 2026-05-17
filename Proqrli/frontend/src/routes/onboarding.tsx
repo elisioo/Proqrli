@@ -3,18 +3,25 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import * as React from "react";
 import {
   ArrowLeft, ArrowRight, Check, Building2, Users, User, Phone,
-  Briefcase, UserPlus, ChevronDown, CreditCard, ShieldCheck, Sprout, Flame, Factory, QrCode, Wallet,
+  Briefcase, UserPlus, ChevronDown, CreditCard, ShieldCheck, Sprout, Flame, Factory,
   type LucideIcon
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { authApi, payMongoApi, type OnboardingPayload, type PayMongoPaymentMethodDto, type SubscriptionPlanDto } from "@/lib/api";
+import { authApi, payMongoApi, stripeApi, type OnboardingPayload, type SubscriptionPlanDto } from "@/lib/api";
 
-type PortalSearch = { portal?: "vendor" | "buyer"; payment?: "success" | "cancelled" };
+type PortalSearch = {
+  portal?: "vendor" | "buyer";
+  payment?: "success" | "cancelled";
+  stripe?: "success" | "cancelled";
+  session_id?: string;
+};
 
 export const Route = createFileRoute("/onboarding")({
   validateSearch: (search: Record<string, unknown>): PortalSearch => ({
     portal: (search.portal as "vendor" | "buyer") ?? "buyer",
     payment: search.payment as "success" | "cancelled" | undefined,
+    stripe: search.stripe as "success" | "cancelled" | undefined,
+    session_id: typeof search.session_id === "string" ? search.session_id : undefined,
   }),
   component: OnboardingPage,
 });
@@ -64,7 +71,7 @@ function toUiPlan(plan: SubscriptionPlanDto): UiPlan {
     name: plan.name,
     price: plan.price,
     displayPrice: plan.price <= 0 ? "Free" : new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP", maximumFractionDigits: 0 }).format(plan.price),
-    note: plan.price <= 0 ? (plan.name === "Enterprise" ? "Contact sales" : "No checkout required") : "Paid through PayMongo",
+    note: plan.price <= 0 ? (plan.name === "Enterprise" ? "Contact sales" : "No checkout required") : "Paid through Stripe",
     features: parsePlanFeatures(plan.features),
     featured: plan.featured,
   };
@@ -86,33 +93,11 @@ function getUiPlanIcon(plan: Pick<UiPlan, "name" | "featured">): LucideIcon {
   return Sprout;
 }
 
-type PaymentMethod = "card" | "gcash" | "maya" | "qrph";
-
-const PAYMENT_METHODS: Array<{
-  id: PaymentMethod;
-  payMongoType: string;
-  label: string;
-  icon: LucideIcon;
-  activeClass: string;
-}> = [
-  { id: "card", payMongoType: "card", label: "Credit / Debit Card", icon: CreditCard, activeClass: "border-foreground bg-foreground text-background" },
-  { id: "gcash", payMongoType: "gcash", label: "GCash", icon: Phone, activeClass: "border-blue-600 bg-blue-600 text-white" },
-  { id: "maya", payMongoType: "paymaya", label: "Maya", icon: Wallet, activeClass: "border-emerald-600 bg-emerald-600 text-white" },
-  { id: "qrph", payMongoType: "qrph", label: "QR Ph", icon: QrCode, activeClass: "border-sky-600 bg-sky-600 text-white" },
-];
-
-function toPaymentMethodId(method: string): PaymentMethod | null {
-  const normalized = method.trim().toLowerCase();
-  if (normalized === "card" || normalized === "gcash" || normalized === "qrph") return normalized;
-  if (normalized === "maya" || normalized === "paymaya") return "maya";
-  return null;
-}
-
 type StepId = "company" | "profile" | "buyer-profile" | "plan" | "done";
 
 function OnboardingPage() {
   const navigate               = useNavigate();
-  const { portal = "buyer", payment } = Route.useSearch();
+  const { portal = "buyer", payment, stripe, session_id } = Route.useSearch();
   const isVendor               = portal === "vendor";
 
   const industries = isVendor ? VENDOR_INDUSTRIES : BUYER_INDUSTRIES;
@@ -139,18 +124,7 @@ function OnboardingPage() {
   const [plans, setPlans] = React.useState<UiPlan[]>([]);
   const [plansLoading, setPlansLoading] = React.useState(true);
   const [selectedPlan, setSelectedPlan] = React.useState<number | null>(null);
-  const [paymentMethod, setPaymentMethod] = React.useState<PaymentMethod>("card");
-  const [paymentMethods, setPaymentMethods] = React.useState<PayMongoPaymentMethodDto[]>([]);
-  const [paymentMethodsLoading, setPaymentMethodsLoading] = React.useState(true);
   const selectedPlanDetails = plans.find((p) => p.id === selectedPlan);
-  const availablePaymentMethods = React.useMemo(() => {
-    const enabled = new Set<PaymentMethod>();
-    paymentMethods.forEach((method) => {
-      const id = toPaymentMethodId(method.id || method.payMongoType);
-      if (id) enabled.add(id);
-    });
-    return PAYMENT_METHODS.filter((method) => enabled.has(method.id));
-  }, [paymentMethods]);
 
   // ── Navigation ────────────────────────────────────────────────────────────
   const steps: StepId[] = ["company", "profile", "buyer-profile", "plan", "done"];
@@ -159,7 +133,7 @@ function OnboardingPage() {
 
   const [loading, setLoading] = React.useState(false);
   const [error,   setError]   = React.useState<string | null>(null);
-  const pendingCheckoutKey = `procurli:onboarding:${portal}:pendingCheckout`;
+  const pendingStripeCheckoutKey = `procurli:onboarding:${portal}:pendingStripeCheckout`;
 
   React.useEffect(() => {
     let active = true;
@@ -177,52 +151,35 @@ function OnboardingPage() {
   }, [portal]);
 
   React.useEffect(() => {
-    let active = true;
-    setPaymentMethodsLoading(true);
-    payMongoApi.getPaymentMethods()
-      .then(({ paymentMethods: methods }) => {
-        if (!active) return;
-        setPaymentMethods(methods);
-
-        const enabled = new Set<PaymentMethod>();
-        methods.forEach((method) => {
-          const id = toPaymentMethodId(method.id || method.payMongoType);
-          if (id) enabled.add(id);
-        });
-        const firstEnabled = PAYMENT_METHODS.find((method) => enabled.has(method.id));
-        if (firstEnabled) {
-          setPaymentMethod((current) => enabled.has(current) ? current : firstEnabled.id);
-        }
-      })
-      .catch((err) => setError(err instanceof Error ? err.message : "Failed to load PayMongo payment methods."))
-      .finally(() => { if (active) setPaymentMethodsLoading(false); });
-    return () => { active = false; };
-  }, []);
-
-  React.useEffect(() => {
     if (payment === "cancelled") {
-      const pendingRaw = window.localStorage.getItem(pendingCheckoutKey);
-      if (!pendingRaw) {
-        setStepId("plan");
-        setError("PayMongo checkout was cancelled. Choose a plan and try again when you're ready.");
-        return;
-      }
-
-      const pending = JSON.parse(pendingRaw) as { checkoutSessionId: string; onboarding: OnboardingPayload };
       setStepId("plan");
-      setLoading(true);
-      setError(null);
-      completeWithoutPayMongo(pending.onboarding)
-        .catch((err) => setError(err instanceof Error ? err.message : "PayMongo failed and account setup could not be completed."))
-        .finally(() => setLoading(false));
+      setError("PayMongo checkout was cancelled. Stripe checkout is now available. Choose a plan and try again.");
       return;
     }
     if (payment !== "success") return;
 
-    const pendingRaw = window.localStorage.getItem(pendingCheckoutKey);
+    setStepId("plan");
+    setError("PayMongo checkout returned, but Stripe checkout is now the active payment provider. Choose a plan and try again.");
+  }, [payment]);
+
+  React.useEffect(() => {
+    if (stripe === "cancelled") {
+      setStepId("plan");
+      setError("Stripe checkout was cancelled. Choose a plan and try again when you're ready.");
+      return;
+    }
+    if (stripe !== "success") return;
+
+    const pendingRaw = window.localStorage.getItem(pendingStripeCheckoutKey);
     if (!pendingRaw) {
       setStepId("plan");
-      setError("Payment returned from PayMongo, but the pending onboarding session was not found in this browser.");
+      setError("Payment returned from Stripe, but the pending onboarding session was not found in this browser.");
+      return;
+    }
+
+    if (!session_id) {
+      setStepId("plan");
+      setError("Payment returned from Stripe, but the Checkout Session ID is missing.");
       return;
     }
 
@@ -230,16 +187,15 @@ function OnboardingPage() {
     setStepId("plan");
     setLoading(true);
     setError(null);
-    payMongoApi.confirmOnboardingCheckout(pending)
+    stripeApi.confirmOnboardingCheckout({ checkoutSessionId: session_id, onboarding: pending.onboarding })
       .then((user) => {
-        window.localStorage.removeItem(pendingCheckoutKey);
+        window.localStorage.removeItem(pendingStripeCheckoutKey);
         finishLocalSession(user);
         navigate({ to: isVendor ? "/vendor" : "/buyer" });
       })
-      .catch(() => completeWithoutPayMongo(pending.onboarding)
-        .catch((err) => setError(err instanceof Error ? err.message : "PayMongo payment could not be verified, and account setup could not be completed.")))
+      .catch((err) => setError(err instanceof Error ? err.message : "Stripe payment could not be verified."))
       .finally(() => setLoading(false));
-  }, [payment, pendingCheckoutKey, navigate, isVendor]);
+  }, [stripe, session_id, pendingStripeCheckoutKey, navigate, isVendor]);
 
   const next = () => setStepId(steps[stepIdx + 1]);
   const back = () => setStepId(steps[stepIdx - 1]);
@@ -279,13 +235,6 @@ function OnboardingPage() {
     }
   };
 
-  const completeWithoutPayMongo = async (payload: OnboardingPayload) => {
-    const user = await authApi.onboarding({ ...payload, planId: undefined });
-    window.localStorage.removeItem(pendingCheckoutKey);
-    finishLocalSession(user);
-    navigate({ to: isVendor ? "/vendor" : "/buyer" });
-  };
-
   // ── Submit final onboarding ───────────────────────────────────────────────
   const handleFinish = async () => {
     setError(null);
@@ -293,30 +242,17 @@ function OnboardingPage() {
       setError("Please select a subscription plan.");
       return;
     }
-    if (selectedPlanDetails.price > 0 && paymentMethodsLoading) {
-      setError("PayMongo payment methods are still loading. Please try again in a moment.");
-      return;
-    }
-    if (selectedPlanDetails.price > 0 && availablePaymentMethods.length === 0) {
-      setError("No PayMongo payment methods are enabled for this account yet.");
-      return;
-    }
-
     setLoading(true);
     try {
       const payload = buildPayload();
 
       if (selectedPlanDetails.price > 0) {
-        try {
-          const checkout = await payMongoApi.createOnboardingCheckout({ onboarding: payload, paymentMethod });
-          window.localStorage.setItem(pendingCheckoutKey, JSON.stringify({
-            checkoutSessionId: checkout.checkoutSessionId,
-            onboarding: payload,
-          }));
-          window.location.href = checkout.checkoutUrl;
-        } catch {
-          await completeWithoutPayMongo(payload);
-        }
+        const checkout = await stripeApi.createOnboardingCheckout({ onboarding: payload });
+        window.localStorage.setItem(pendingStripeCheckoutKey, JSON.stringify({
+          checkoutSessionId: checkout.checkoutSessionId,
+          onboarding: payload,
+        }));
+        window.location.href = checkout.checkoutUrl;
         return;
       }
 
@@ -614,51 +550,18 @@ function OnboardingPage() {
               {selectedPlanDetails && selectedPlanDetails.price > 0 && (
                 <div className="mt-10 rounded-md border border-border bg-paper p-6">
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-display text-lg font-bold">PayMongo checkout</h3>
+                    <h3 className="font-display text-lg font-bold">Stripe checkout</h3>
                     <div className="flex items-center gap-1.5 rounded-sm bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-700">
-                      <ShieldCheck className="h-4 w-4" /> Secured by PayMongo
+                      <ShieldCheck className="h-4 w-4" /> Secured by Stripe
                     </div>
-                  </div>
-                  
-                  <div className="mb-6 border-b border-border pb-4">
-                    {paymentMethodsLoading ? (
-                      <div className="rounded-md border border-border bg-card px-4 py-3 text-sm font-semibold text-muted-foreground">
-                        Checking PayMongo methods...
-                      </div>
-                    ) : availablePaymentMethods.length > 0 ? (
-                      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-                        {availablePaymentMethods.map((method) => {
-                          const MethodIcon = method.icon;
-                          const isSelected = paymentMethod === method.id;
-                          return (
-                            <button
-                              key={method.id}
-                              type="button"
-                              onClick={() => setPaymentMethod(method.id)}
-                              className={cn(
-                                "inline-flex h-11 items-center justify-center gap-2 rounded-md border px-3 text-sm font-semibold transition-colors",
-                                isSelected ? method.activeClass : "border-border bg-card text-muted-foreground hover:bg-muted"
-                              )}
-                            >
-                              <MethodIcon className="h-4 w-4" />
-                              <span>{method.label}</span>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    ) : (
-                      <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">
-                        No enabled PayMongo payment methods found.
-                      </div>
-                    )}
                   </div>
 
                   <div className="rounded-md border border-dashed border-border bg-muted/50 p-6 text-center">
                     <p className="text-sm font-semibold text-foreground">
-                      You will be redirected to PayMongo to pay {selectedPlanDetails.displayPrice} for {selectedPlanDetails.name}.
+                      You will be redirected to Stripe to pay {selectedPlanDetails.displayPrice} for {selectedPlanDetails.name}.
                     </p>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      ProqrLi completes your workspace only after the backend verifies the paid Checkout Session with PayMongo.
+                      ProqrLi completes your workspace only after the backend verifies the paid Checkout Session with Stripe.
                     </p>
                   </div>
                 </div>
@@ -698,10 +601,10 @@ function OnboardingPage() {
           ) : stepId === "plan" ? (
             <button
               onClick={handleFinish}
-              disabled={loading || plansLoading || !selectedPlanDetails || (selectedPlanDetails.price > 0 && (paymentMethodsLoading || availablePaymentMethods.length === 0))}
+              disabled={loading || plansLoading || !selectedPlanDetails}
               className="inline-flex h-11 items-center gap-2 rounded-sm bg-foreground px-6 text-sm font-semibold text-background hover:opacity-85 disabled:opacity-60"
             >
-              {loading ? "Processing..." : selectedPlanDetails?.price ? <>Continue to PayMongo <ArrowRight className="h-4 w-4" /></> : <>Complete setup <Check className="h-4 w-4" /></>}
+              {loading ? "Processing..." : selectedPlanDetails?.price ? <>Continue to Stripe <ArrowRight className="h-4 w-4" /></> : <>Complete setup <Check className="h-4 w-4" /></>}
             </button>
           ) : (
             <button

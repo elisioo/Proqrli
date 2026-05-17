@@ -58,6 +58,43 @@ namespace ProqrLi.Models
         OnboardingRequest Onboarding
     );
 
+    public record StripeOnboardingCheckoutRequest(
+        OnboardingRequest Onboarding
+    );
+
+    public record StripeOnboardingCheckoutResponse(
+        string CheckoutSessionId,
+        string CheckoutUrl
+    );
+
+    public record StripeOnboardingConfirmRequest(
+        string CheckoutSessionId,
+        OnboardingRequest Onboarding
+    );
+
+    public record StripeCheckoutRequest(
+        string CustomerEmail,
+        string Description,
+        string SuccessUrl,
+        string CancelUrl,
+        string Currency,
+        string ProductName,
+        long UnitAmount,
+        Dictionary<string, string> Metadata
+    );
+
+    public record StripeCheckoutSession(
+        string Id,
+        string CheckoutUrl,
+        string Status,
+        string PaymentStatus,
+        Dictionary<string, string> Metadata
+    )
+    {
+        public bool IsPaid => PaymentStatus.Equals("paid", StringComparison.OrdinalIgnoreCase)
+            || Status.Equals("complete", StringComparison.OrdinalIgnoreCase);
+    }
+
     public record PayMongoCheckoutLineItem(
         string Name,
         string Description,

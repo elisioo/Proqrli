@@ -48,6 +48,7 @@ builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<OtpService>();
 builder.Services.AddScoped<CloudinaryService>();
 builder.Services.AddHttpClient<PayMongoService>();
+builder.Services.AddHttpClient<StripeCheckoutService>();
 builder.Services.AddSingleton<RfqMessageBroadcaster>();
 
 
