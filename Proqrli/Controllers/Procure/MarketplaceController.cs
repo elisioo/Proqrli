@@ -23,6 +23,127 @@ namespace ProqrLi.Controllers.Procure
             _context = context;
         }
 
+        private int GetCurrentTenantId()
+        {
+            var tenantIdStr = User.FindFirst("tenant_id")?.Value ?? User.FindFirstValue(ClaimTypes.NameIdentifier);
+            return int.TryParse(tenantIdStr, out var tenantId) ? tenantId : 0;
+        }
+
+        private async Task<IActionResult> BuildStorefrontResponse(int vendorTenantId)
+        {
+            var tenant = await _context.Tenants
+                .FirstOrDefaultAsync(t => t.TenantID == vendorTenantId && t.TenantType == "Vendor");
+
+            if (tenant == null) return NotFound(new { error = "Vendor storefront not found" });
+
+            var profile = await _context.VendorStoreProfiles
+                .FirstOrDefaultAsync(p => p.VendorTenantID == vendorTenantId);
+
+            if (profile != null && !profile.IsActive)
+            {
+                return NotFound(new { error = "Vendor storefront is not active" });
+            }
+
+            var listings = await _context.ProductListings
+                .Include(p => p.ProductCategory)
+                .Where(p => p.VendorTenantID == vendorTenantId && p.Status == "Active")
+                .OrderByDescending(p => p.TotalSold)
+                .ThenBy(p => p.ProductName)
+                .ToListAsync();
+
+            var productIds = listings.Select(p => p.ProductID).ToList();
+            var imageDict = await _context.ProductImages
+                .Where(img => img.IsPrimary && productIds.Contains(img.ProductID))
+                .GroupBy(img => img.ProductID)
+                .ToDictionaryAsync(g => g.Key, g => g.First().ImagePath);
+
+            var reviewCount = await _context.ProductReviews
+                .Where(r => productIds.Contains(r.ProductID))
+                .CountAsync();
+
+            var productRating = await _context.ProductReviews
+                .Where(r => productIds.Contains(r.ProductID))
+                .Select(r => (decimal?)r.Rating)
+                .AverageAsync() ?? 0m;
+
+            var rating = profile?.OverallRating > 0 ? profile.OverallRating : productRating;
+
+            var categories = listings
+                .Select(p => p.ProductCategory?.CategoryName)
+                .Where(c => !string.IsNullOrWhiteSpace(c))
+                .Distinct()
+                .Take(8)
+                .ToList();
+
+            var products = listings.Select(p => new
+            {
+                id = p.ProductID.ToString(),
+                vendorId = p.VendorTenantID.ToString(),
+                vendorName = profile?.StoreName ?? tenant.CompanyName,
+                sku = p.SKU ?? "",
+                name = p.ProductName,
+                category = p.ProductCategory?.CategoryName ?? "Uncategorized",
+                price = p.BasePrice,
+                uom = p.UnitOfMeasure ?? "Unit",
+                inStock = p.StockQuantity > 0,
+                stock = p.StockQuantity,
+                reorderPoint = 5,
+                rating = p.AverageRating,
+                image = imageDict.ContainsKey(p.ProductID) ? imageDict[p.ProductID] : null,
+                leadTimeDays = 3,
+                vendorAccredited = profile?.IsVerified ?? false,
+                minOrder = p.MinOrderQty,
+                description = p.Description
+            }).ToList();
+
+            return Ok(new
+            {
+                vendorId = tenant.TenantID.ToString(),
+                companyName = tenant.CompanyName,
+                industry = tenant.Industry ?? "General supplier",
+                contactEmail = tenant.ContactEmail,
+                contactPhone = tenant.ContactPhone,
+                storeName = profile?.StoreName ?? tenant.CompanyName,
+                storeSlug = profile?.StoreSlug,
+                storeDescription = profile?.StoreDescription,
+                logoPath = profile?.LogoPath,
+                bannerPath = profile?.BannerPath,
+                businessAddress = profile?.BusinessAddress,
+                overallRating = rating,
+                reviewCount,
+                isVerified = profile?.IsVerified ?? false,
+                isActive = profile?.IsActive ?? true,
+                categories,
+                products
+            });
+        }
+
+        [HttpGet("storefront/current")]
+        public async Task<IActionResult> GetCurrentStorefront()
+        {
+            var vendorId = GetCurrentTenantId();
+            if (vendorId == 0) return Unauthorized();
+
+            return await BuildStorefrontResponse(vendorId);
+        }
+
+        [AllowAnonymous]
+        [HttpGet("storefront/{vendorKey}")]
+        public async Task<IActionResult> GetStorefront(string vendorKey)
+        {
+            if (int.TryParse(vendorKey, out var vendorTenantId))
+            {
+                return await BuildStorefrontResponse(vendorTenantId);
+            }
+
+            var profile = await _context.VendorStoreProfiles
+                .FirstOrDefaultAsync(p => p.StoreSlug == vendorKey);
+
+            if (profile == null) return NotFound(new { error = "Vendor storefront not found" });
+
+            return await BuildStorefrontResponse(profile.VendorTenantID);
+        }
+
         [HttpGet("products")]
         public async Task<IActionResult> GetProducts(
             [FromQuery] int page = 1,

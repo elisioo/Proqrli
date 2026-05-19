@@ -121,6 +121,7 @@
     <Content Include="frontend\src\routes\vendor.rfqs.tsx" />
     <Content Include="frontend\src\routes\vendor.settings.tsx" />
     <Content Include="frontend\src\routes\vendor.storefront.tsx" />
+    <Content Include="frontend\src\routes\vendor.team.tsx" />
     <Content Include="frontend\src\routes\vendor.tsx" />
     <Content Include="frontend\src\routes\__root.tsx" />
     <Content Include="frontend\src\routeTree.gen.ts" />

@@ -28,6 +28,7 @@ import {
   MessageSquare,
   Star,
   Settings,
+  UserPlus,
   type LucideIcon,
 } from "lucide-react";
 import { useVendor } from "@/lib/vendor-context";
@@ -75,6 +76,7 @@ const SECTIONS: NavSection[] = [
     title: "Manage",
     items: [
       { to: "/vendor/settings", label: "Settings", icon: Settings, permission: "settings:view" },
+      { to: "/vendor/team", label: "Team", icon: UserPlus, permission: "team:view" },
     ],
   },
 ];

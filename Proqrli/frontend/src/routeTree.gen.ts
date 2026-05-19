@@ -19,6 +19,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as VendorIndexRouteImport } from './routes/vendor.index'
 import { Route as BuyerIndexRouteImport } from './routes/buyer.index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
+import { Route as VendorTeamRouteImport } from './routes/vendor.team'
 import { Route as VendorStorefrontRouteImport } from './routes/vendor.storefront'
 import { Route as VendorSettingsRouteImport } from './routes/vendor.settings'
 import { Route as VendorRfqsRouteImport } from './routes/vendor.rfqs'
@@ -32,6 +33,7 @@ import { Route as VendorInvoicesRouteImport } from './routes/vendor.invoices'
 import { Route as VendorDeliveriesRouteImport } from './routes/vendor.deliveries'
 import { Route as VendorComplianceRouteImport } from './routes/vendor.compliance'
 import { Route as VendorBuyersRouteImport } from './routes/vendor.buyers'
+import { Route as StorefrontVendorIdRouteImport } from './routes/storefront.$vendorId'
 import { Route as BuyerVendorsRouteImport } from './routes/buyer.vendors'
 import { Route as BuyerTeamRouteImport } from './routes/buyer.team'
 import { Route as BuyerSettingsRouteImport } from './routes/buyer.settings'
@@ -58,6 +60,7 @@ import { Route as AdminModulesRouteImport } from './routes/admin.modules'
 import { Route as AdminAuditRouteImport } from './routes/admin.audit'
 import { Route as BuyerRfqsIndexRouteImport } from './routes/buyer.rfqs.index'
 import { Route as VendorRfqsRfqIdRouteImport } from './routes/vendor.rfqs.$rfqId'
+import { Route as BuyerVendorsVendorIdRouteImport } from './routes/buyer.vendors.$vendorId'
 import { Route as BuyerRfqsRfqIdRouteImport } from './routes/buyer.rfqs.$rfqId'
 
 const VendorRoute = VendorRouteImport.update({
@@ -109,6 +112,11 @@ const AdminIndexRoute = AdminIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AdminRoute,
+} as any)
+const VendorTeamRoute = VendorTeamRouteImport.update({
+  id: '/team',
+  path: '/team',
+  getParentRoute: () => VendorRoute,
 } as any)
 const VendorStorefrontRoute = VendorStorefrontRouteImport.update({
   id: '/storefront',
@@ -174,6 +182,11 @@ const VendorBuyersRoute = VendorBuyersRouteImport.update({
   id: '/buyers',
   path: '/buyers',
   getParentRoute: () => VendorRoute,
+} as any)
+const StorefrontVendorIdRoute = StorefrontVendorIdRouteImport.update({
+  id: '/storefront/$vendorId',
+  path: '/storefront/$vendorId',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const BuyerVendorsRoute = BuyerVendorsRouteImport.update({
   id: '/vendors',
@@ -305,6 +318,11 @@ const VendorRfqsRfqIdRoute = VendorRfqsRfqIdRouteImport.update({
   path: '/$rfqId',
   getParentRoute: () => VendorRfqsRoute,
 } as any)
+const BuyerVendorsVendorIdRoute = BuyerVendorsVendorIdRouteImport.update({
+  id: '/$vendorId',
+  path: '/$vendorId',
+  getParentRoute: () => BuyerVendorsRoute,
+} as any)
 const BuyerRfqsRfqIdRoute = BuyerRfqsRfqIdRouteImport.update({
   id: '/$rfqId',
   path: '/$rfqId',
@@ -342,7 +360,8 @@ export interface FileRoutesByFullPath {
   '/buyer/risk': typeof BuyerRiskRoute
   '/buyer/settings': typeof BuyerSettingsRoute
   '/buyer/team': typeof BuyerTeamRoute
-  '/buyer/vendors': typeof BuyerVendorsRoute
+  '/buyer/vendors': typeof BuyerVendorsRouteWithChildren
+  '/storefront/$vendorId': typeof StorefrontVendorIdRoute
   '/vendor/buyers': typeof VendorBuyersRoute
   '/vendor/compliance': typeof VendorComplianceRoute
   '/vendor/deliveries': typeof VendorDeliveriesRoute
@@ -356,10 +375,12 @@ export interface FileRoutesByFullPath {
   '/vendor/rfqs': typeof VendorRfqsRouteWithChildren
   '/vendor/settings': typeof VendorSettingsRoute
   '/vendor/storefront': typeof VendorStorefrontRoute
+  '/vendor/team': typeof VendorTeamRoute
   '/admin/': typeof AdminIndexRoute
   '/buyer/': typeof BuyerIndexRoute
   '/vendor/': typeof VendorIndexRoute
   '/buyer/rfqs/$rfqId': typeof BuyerRfqsRfqIdRoute
+  '/buyer/vendors/$vendorId': typeof BuyerVendorsVendorIdRoute
   '/vendor/rfqs/$rfqId': typeof VendorRfqsRfqIdRoute
   '/buyer/rfqs/': typeof BuyerRfqsIndexRoute
 }
@@ -390,7 +411,8 @@ export interface FileRoutesByTo {
   '/buyer/risk': typeof BuyerRiskRoute
   '/buyer/settings': typeof BuyerSettingsRoute
   '/buyer/team': typeof BuyerTeamRoute
-  '/buyer/vendors': typeof BuyerVendorsRoute
+  '/buyer/vendors': typeof BuyerVendorsRouteWithChildren
+  '/storefront/$vendorId': typeof StorefrontVendorIdRoute
   '/vendor/buyers': typeof VendorBuyersRoute
   '/vendor/compliance': typeof VendorComplianceRoute
   '/vendor/deliveries': typeof VendorDeliveriesRoute
@@ -404,10 +426,12 @@ export interface FileRoutesByTo {
   '/vendor/rfqs': typeof VendorRfqsRouteWithChildren
   '/vendor/settings': typeof VendorSettingsRoute
   '/vendor/storefront': typeof VendorStorefrontRoute
+  '/vendor/team': typeof VendorTeamRoute
   '/admin': typeof AdminIndexRoute
   '/buyer': typeof BuyerIndexRoute
   '/vendor': typeof VendorIndexRoute
   '/buyer/rfqs/$rfqId': typeof BuyerRfqsRfqIdRoute
+  '/buyer/vendors/$vendorId': typeof BuyerVendorsVendorIdRoute
   '/vendor/rfqs/$rfqId': typeof VendorRfqsRfqIdRoute
   '/buyer/rfqs': typeof BuyerRfqsIndexRoute
 }
@@ -443,7 +467,8 @@ export interface FileRoutesById {
   '/buyer/risk': typeof BuyerRiskRoute
   '/buyer/settings': typeof BuyerSettingsRoute
   '/buyer/team': typeof BuyerTeamRoute
-  '/buyer/vendors': typeof BuyerVendorsRoute
+  '/buyer/vendors': typeof BuyerVendorsRouteWithChildren
+  '/storefront/$vendorId': typeof StorefrontVendorIdRoute
   '/vendor/buyers': typeof VendorBuyersRoute
   '/vendor/compliance': typeof VendorComplianceRoute
   '/vendor/deliveries': typeof VendorDeliveriesRoute
@@ -457,10 +482,12 @@ export interface FileRoutesById {
   '/vendor/rfqs': typeof VendorRfqsRouteWithChildren
   '/vendor/settings': typeof VendorSettingsRoute
   '/vendor/storefront': typeof VendorStorefrontRoute
+  '/vendor/team': typeof VendorTeamRoute
   '/admin/': typeof AdminIndexRoute
   '/buyer/': typeof BuyerIndexRoute
   '/vendor/': typeof VendorIndexRoute
   '/buyer/rfqs/$rfqId': typeof BuyerRfqsRfqIdRoute
+  '/buyer/vendors/$vendorId': typeof BuyerVendorsVendorIdRoute
   '/vendor/rfqs/$rfqId': typeof VendorRfqsRfqIdRoute
   '/buyer/rfqs/': typeof BuyerRfqsIndexRoute
 }
@@ -498,6 +525,7 @@ export interface FileRouteTypes {
     | '/buyer/settings'
     | '/buyer/team'
     | '/buyer/vendors'
+    | '/storefront/$vendorId'
     | '/vendor/buyers'
     | '/vendor/compliance'
     | '/vendor/deliveries'
@@ -511,10 +539,12 @@ export interface FileRouteTypes {
     | '/vendor/rfqs'
     | '/vendor/settings'
     | '/vendor/storefront'
+    | '/vendor/team'
     | '/admin/'
     | '/buyer/'
     | '/vendor/'
     | '/buyer/rfqs/$rfqId'
+    | '/buyer/vendors/$vendorId'
     | '/vendor/rfqs/$rfqId'
     | '/buyer/rfqs/'
   fileRoutesByTo: FileRoutesByTo
@@ -546,6 +576,7 @@ export interface FileRouteTypes {
     | '/buyer/settings'
     | '/buyer/team'
     | '/buyer/vendors'
+    | '/storefront/$vendorId'
     | '/vendor/buyers'
     | '/vendor/compliance'
     | '/vendor/deliveries'
@@ -559,10 +590,12 @@ export interface FileRouteTypes {
     | '/vendor/rfqs'
     | '/vendor/settings'
     | '/vendor/storefront'
+    | '/vendor/team'
     | '/admin'
     | '/buyer'
     | '/vendor'
     | '/buyer/rfqs/$rfqId'
+    | '/buyer/vendors/$vendorId'
     | '/vendor/rfqs/$rfqId'
     | '/buyer/rfqs'
   id:
@@ -598,6 +631,7 @@ export interface FileRouteTypes {
     | '/buyer/settings'
     | '/buyer/team'
     | '/buyer/vendors'
+    | '/storefront/$vendorId'
     | '/vendor/buyers'
     | '/vendor/compliance'
     | '/vendor/deliveries'
@@ -611,10 +645,12 @@ export interface FileRouteTypes {
     | '/vendor/rfqs'
     | '/vendor/settings'
     | '/vendor/storefront'
+    | '/vendor/team'
     | '/admin/'
     | '/buyer/'
     | '/vendor/'
     | '/buyer/rfqs/$rfqId'
+    | '/buyer/vendors/$vendorId'
     | '/vendor/rfqs/$rfqId'
     | '/buyer/rfqs/'
   fileRoutesById: FileRoutesById
@@ -628,6 +664,7 @@ export interface RootRouteChildren {
   RegisterRoute: typeof RegisterRoute
   VendorRoute: typeof VendorRouteWithChildren
   AdminLoginRoute: typeof AdminLoginRoute
+  StorefrontVendorIdRoute: typeof StorefrontVendorIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -701,6 +738,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/'
       preLoaderRoute: typeof AdminIndexRouteImport
       parentRoute: typeof AdminRoute
+    }
+    '/vendor/team': {
+      id: '/vendor/team'
+      path: '/team'
+      fullPath: '/vendor/team'
+      preLoaderRoute: typeof VendorTeamRouteImport
+      parentRoute: typeof VendorRoute
     }
     '/vendor/storefront': {
       id: '/vendor/storefront'
@@ -792,6 +836,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/vendor/buyers'
       preLoaderRoute: typeof VendorBuyersRouteImport
       parentRoute: typeof VendorRoute
+    }
+    '/storefront/$vendorId': {
+      id: '/storefront/$vendorId'
+      path: '/storefront/$vendorId'
+      fullPath: '/storefront/$vendorId'
+      preLoaderRoute: typeof StorefrontVendorIdRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/buyer/vendors': {
       id: '/buyer/vendors'
@@ -975,6 +1026,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof VendorRfqsRfqIdRouteImport
       parentRoute: typeof VendorRfqsRoute
     }
+    '/buyer/vendors/$vendorId': {
+      id: '/buyer/vendors/$vendorId'
+      path: '/$vendorId'
+      fullPath: '/buyer/vendors/$vendorId'
+      preLoaderRoute: typeof BuyerVendorsVendorIdRouteImport
+      parentRoute: typeof BuyerVendorsRoute
+    }
     '/buyer/rfqs/$rfqId': {
       id: '/buyer/rfqs/$rfqId'
       path: '/$rfqId'
@@ -1023,6 +1081,18 @@ const BuyerRfqsRouteWithChildren = BuyerRfqsRoute._addFileChildren(
   BuyerRfqsRouteChildren,
 )
 
+interface BuyerVendorsRouteChildren {
+  BuyerVendorsVendorIdRoute: typeof BuyerVendorsVendorIdRoute
+}
+
+const BuyerVendorsRouteChildren: BuyerVendorsRouteChildren = {
+  BuyerVendorsVendorIdRoute: BuyerVendorsVendorIdRoute,
+}
+
+const BuyerVendorsRouteWithChildren = BuyerVendorsRoute._addFileChildren(
+  BuyerVendorsRouteChildren,
+)
+
 interface BuyerRouteChildren {
   BuyerAnalyticsRoute: typeof BuyerAnalyticsRoute
   BuyerBillsRoute: typeof BuyerBillsRoute
@@ -1039,7 +1109,7 @@ interface BuyerRouteChildren {
   BuyerRiskRoute: typeof BuyerRiskRoute
   BuyerSettingsRoute: typeof BuyerSettingsRoute
   BuyerTeamRoute: typeof BuyerTeamRoute
-  BuyerVendorsRoute: typeof BuyerVendorsRoute
+  BuyerVendorsRoute: typeof BuyerVendorsRouteWithChildren
   BuyerIndexRoute: typeof BuyerIndexRoute
 }
 
@@ -1059,7 +1129,7 @@ const BuyerRouteChildren: BuyerRouteChildren = {
   BuyerRiskRoute: BuyerRiskRoute,
   BuyerSettingsRoute: BuyerSettingsRoute,
   BuyerTeamRoute: BuyerTeamRoute,
-  BuyerVendorsRoute: BuyerVendorsRoute,
+  BuyerVendorsRoute: BuyerVendorsRouteWithChildren,
   BuyerIndexRoute: BuyerIndexRoute,
 }
 
@@ -1091,6 +1161,7 @@ interface VendorRouteChildren {
   VendorRfqsRoute: typeof VendorRfqsRouteWithChildren
   VendorSettingsRoute: typeof VendorSettingsRoute
   VendorStorefrontRoute: typeof VendorStorefrontRoute
+  VendorTeamRoute: typeof VendorTeamRoute
   VendorIndexRoute: typeof VendorIndexRoute
 }
 
@@ -1108,6 +1179,7 @@ const VendorRouteChildren: VendorRouteChildren = {
   VendorRfqsRoute: VendorRfqsRouteWithChildren,
   VendorSettingsRoute: VendorSettingsRoute,
   VendorStorefrontRoute: VendorStorefrontRoute,
+  VendorTeamRoute: VendorTeamRoute,
   VendorIndexRoute: VendorIndexRoute,
 }
 
@@ -1123,6 +1195,7 @@ const rootRouteChildren: RootRouteChildren = {
   RegisterRoute: RegisterRoute,
   VendorRoute: VendorRouteWithChildren,
   AdminLoginRoute: AdminLoginRoute,
+  StorefrontVendorIdRoute: StorefrontVendorIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

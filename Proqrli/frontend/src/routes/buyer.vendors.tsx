@@ -220,7 +220,7 @@ function VendorsPage() {
                                     onInvite={() => sendInvite(v.id)}
                                     onCancelInvite={() => cancelInvite(v.id)}
                                     onAccept={() => simulateAccept(v.id)}
-                                    onViewProfile={() => setProfileVendor(v)}
+                                    onViewProfile={() => { window.location.href = `/buyer/vendors/${v.id}`; }}
                                 />
                             );
                         })}

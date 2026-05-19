@@ -43,18 +43,18 @@ namespace ProqrLi.Controllers
             return tenantId;
         }
 
-        private bool IsOwner()
+        private bool CanManageTeam()
         {
             var role = User.FindFirstValue("role_name") ?? "";
-            return role.EndsWith("_owner");
+            return role.EndsWith("_owner") || role == "vendor_admin";
         }
 
 
         [HttpGet]
         public async Task<IActionResult> GetTeam()
         {
-            if (!IsOwner())
-                return StatusCode(403, new { error = "Only workspace owners can manage the team." });
+            if (!CanManageTeam())
+                return StatusCode(403, new { error = "Only workspace owners and vendor admins can manage the team." });
 
             try
             {
@@ -76,8 +76,8 @@ namespace ProqrLi.Controllers
         [HttpPost("invite")]
         public async Task<IActionResult> Invite([FromBody] InviteRequest req)
         {
-            if (!IsOwner())
-                return StatusCode(403, new { error = "Only workspace owners can invite team members." });
+            if (!CanManageTeam())
+                return StatusCode(403, new { error = "Only workspace owners and vendor admins can invite team members." });
 
             if (string.IsNullOrWhiteSpace(req.Email) || !req.Email.Contains('@'))
                 return BadRequest(new { error = "A valid email is required." });
@@ -121,8 +121,8 @@ namespace ProqrLi.Controllers
         [HttpPut("{id}/role")]
         public async Task<IActionResult> UpdateRole(int id, [FromBody] UpdateRoleRequest req)
         {
-            if (!IsOwner())
-                return StatusCode(403, new { error = "Only workspace owners can change roles." });
+            if (!CanManageTeam())
+                return StatusCode(403, new { error = "Only workspace owners and vendor admins can change roles." });
 
             if (id == GetCurrentUserId())
                 return BadRequest(new { error = "You cannot change your own role." });
@@ -145,8 +145,8 @@ namespace ProqrLi.Controllers
         [HttpPatch("{id}")]
         public async Task<IActionResult> UpdateMember(int id, [FromBody] UpdateMemberRequest req)
         {
-            if (!IsOwner())
-                return StatusCode(403, new { error = "Only workspace owners can edit team members' profiles." });
+            if (!CanManageTeam())
+                return StatusCode(403, new { error = "Only workspace owners and vendor admins can edit team members' profiles." });
 
             try
             {
@@ -173,8 +173,8 @@ namespace ProqrLi.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> Deactivate(int id)
         {
-            if (!IsOwner())
-                return StatusCode(403, new { error = "Only workspace owners can remove team members." });
+            if (!CanManageTeam())
+                return StatusCode(403, new { error = "Only workspace owners and vendor admins can remove team members." });
 
             if (id == GetCurrentUserId())
                 return BadRequest(new { error = "You cannot deactivate yourself." });

@@ -409,15 +409,18 @@ function MarketplacePage() {
                                 {/* Vendor info */}
                                 <div>
                                     <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-2">Vendor</p>
-                                    <div className="flex items-center gap-3">
+                                    <a
+                                        href={`/buyer/vendors/${detail.vendorId}`}
+                                        className="flex items-center gap-3 rounded-sm border border-transparent p-1 -m-1 hover:border-border hover:bg-muted"
+                                    >
                                         <div className="flex h-9 w-9 items-center justify-center rounded-sm bg-foreground font-mono text-xs font-bold text-background">
                                             {detail.vendorName.split(" ").slice(0, 2).map((w: string) => w[0]).join("")}
                                         </div>
                                         <div>
                                             <p className="text-sm font-semibold">{detail.vendorName}</p>
-                                            <p className="text-xs text-muted-foreground">{detail.category}</p>
+                                            <p className="text-xs text-muted-foreground">View storefront</p>
                                         </div>
-                                    </div>
+                                    </a>
                                 </div>
 
                                 {/* Specs / details table */}

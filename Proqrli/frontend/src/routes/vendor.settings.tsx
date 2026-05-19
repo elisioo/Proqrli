@@ -1,10 +1,10 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { Link, createFileRoute } from "@tanstack/react-router";
 import * as React from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { PermissionGate } from "@/components/PermissionGate";
 import { useVendor } from "@/lib/vendor-context";
 import { CloudinaryUploadWidget } from "@/components/CloudinaryUploadWidget";
-import { TEAM_MEMBERS, ROLE_LABELS, ROLE_DESCRIPTIONS, type VendorRole } from "@/lib/mock-data";
+import { ROLE_LABELS, ROLE_DESCRIPTIONS, type VendorRole } from "@/lib/mock-data";
 import { THEME_PRESETS } from "@/lib/themes";
 import { cn } from "@/lib/utils";
 import { vendorStoreApi } from "@/lib/api";
@@ -137,56 +137,21 @@ function BankTab() {
 }
 
 function TeamTab() {
-  const { user, hasPermission } = useVendor();
+  const { hasPermission } = useVendor();
   return (
     <div className="space-y-4">
-      {hasPermission("team:manage") && (
-        <div className="flex justify-end">
-          <button className="inline-flex h-10 items-center rounded-sm bg-foreground px-4 text-sm font-medium text-background hover:opacity-85">Invite teammate</button>
-        </div>
-      )}
-      <div className="overflow-hidden rounded-md border border-border bg-card">
-        <table className="w-full text-sm">
-          <thead className="bg-muted text-left font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-            <tr>
-              <th className="px-4 py-3">Member</th>
-              <th className="px-4 py-3">Role</th>
-              <th className="px-4 py-3">Department</th>
-              <th className="px-4 py-3">Joined</th>
-              <th className="px-4 py-3">Status</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {TEAM_MEMBERS.map((m) => (
-              <tr key={m.id} className={cn("hover:bg-muted/40", !m.active && "opacity-50")}>
-                <td className="px-4 py-3">
-                  <div className="flex items-center gap-2">
-                    <span className="flex h-7 w-7 items-center justify-center rounded-full bg-foreground font-mono text-[10px] font-bold text-background">{m.initials}</span>
-                    <div>
-                      <div className="font-medium">{m.name}{m.id === user.id && <span className="ml-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">(you)</span>}</div>
-                      <div className="text-[11px] text-muted-foreground">{m.email}</div>
-                    </div>
-                  </div>
-                </td>
-                <td className="px-4 py-3"><RoleBadge role={m.role} /></td>
-                <td className="px-4 py-3 text-muted-foreground">{m.department}</td>
-                <td className="px-4 py-3 text-muted-foreground">{m.joinedAt}</td>
-                <td className="px-4 py-3">
-                  <span className={cn("rounded-sm px-2 py-[2px] font-mono text-[10px] uppercase tracking-widest", m.active ? "bg-emerald-50 text-emerald-800" : "bg-muted text-muted-foreground")}>
-                    {m.active ? "Active" : "Suspended"}
-                  </span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div className="flex justify-end">
+        <Link
+          to="/vendor/team"
+          className="inline-flex h-10 items-center rounded-sm bg-foreground px-4 text-sm font-medium text-background hover:opacity-85"
+        >
+          {hasPermission("team:manage") ? "Manage team" : "View team"}
+        </Link>
       </div>
-
-      {/* Role matrix */}
       <div className="rounded-md border border-border bg-card p-6">
         <h3 className="font-display text-lg font-extrabold mb-3">Roles</h3>
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-          {(["vendor_admin", "vendor_staff"] as VendorRole[]).map((r) => (
+          {(["vendor_owner", "vendor_admin", "vendor_staff", "vendor_finance"] as VendorRole[]).map((r) => (
             <div key={r} className="rounded-sm border border-border bg-paper-mid p-4">
               <RoleBadge role={r} />
               <div className="mt-2 font-display text-base font-extrabold">{ROLE_LABELS[r]}</div>

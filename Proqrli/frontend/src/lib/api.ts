@@ -747,6 +747,26 @@ export type PaginatedProducts = {
     pageSize: number;
 };
 
+export type VendorStorefrontDto = {
+    vendorId: string;
+    companyName: string;
+    industry: string;
+    contactEmail: string | null;
+    contactPhone: string | null;
+    storeName: string;
+    storeSlug: string | null;
+    storeDescription: string | null;
+    logoPath: string | null;
+    bannerPath: string | null;
+    businessAddress: string | null;
+    overallRating: number;
+    reviewCount: number;
+    isVerified: boolean;
+    isActive: boolean;
+    categories: string[];
+    products: MarketplaceProduct[];
+};
+
 export type VendorProductListing = {
     id: string;
     sku: string;
@@ -781,6 +801,8 @@ export const marketplaceApi = {
         return req<PaginatedProducts>(`/marketplace/products${query ? `?${query}` : ""}`);
     },
     getCategories: () => req<string[]>("/marketplace/categories"),
+    getCurrentStorefront: () => req<VendorStorefrontDto>("/marketplace/storefront/current"),
+    getStorefront: (vendorKey: string) => req<VendorStorefrontDto>(`/marketplace/storefront/${encodeURIComponent(vendorKey)}`),
 };
 
 export type TeamMember = {
