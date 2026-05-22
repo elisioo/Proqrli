@@ -1,0 +1,616 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ProqrLi</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="procurli-design-system.css" />
+  </head>
+  <body>
+    <!-- NAV -->
+    <nav id="navbar">
+      <a class="nav-logo" href="#">
+        <img
+          src="../logo/logo.png"
+          alt="ProcurLi Logo"
+          style="width: 100px; height: auto"
+        />
+      </a>
+      <ul class="nav-links">
+        <li><a href="#features">Features</a></li>
+        <li><a href="#modules">Modules</a></li>
+        <li><a href="#how">How it works</a></li>
+        <li><a href="#roles">Roles</a></li>
+        <li style="width:1px;height:16px;background:var(--paper-dark);margin:0 4px;list-style:none"></li>
+        <li>
+          <a href="./vendor-register.html" style="position:relative">
+            For Vendors
+          </a>
+        </li>
+      </ul>
+      <div class="nav-cta">
+        <a href="./login.html"><button class="btn-ghost">Sign in</button></a>
+        <a href="./vendor-register.html"><button class="btn-ghost" style="border-color:var(--ink);font-size:13px">Sell on ProcurLi</button></a>
+        <a href="./register.html"><button class="btn-primary">Get started</button></a>
+      </div>
+    </nav>
+
+    <!-- HERO -->
+    <section class="hero">
+      <div class="hero-grid-bg"></div>
+
+      <h1 class="hero-headline">
+        Procure smarter.<br />
+        <span class="outline-text">Risk less.</span>
+      </h1>
+
+      <p class="hero-sub">
+        ProcurLi is a cloud-based procurement and vendor management system built
+        for industrial enterprises —> from requisition to contract, powered by ML
+        risk intelligence.
+      </p>
+
+      <div class="hero-actions">
+        <button class="btn-large">
+          Start free trial
+          <svg
+            width="16"
+            height="16"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+          >
+            <path d="M5 12h14M12 5l7 7-7 7" />
+          </svg>
+        </button>
+        <button class="btn-large-ghost">View demo</button>
+      </div>
+
+      <div class="hero-stats">
+        <div class="stat-item">
+          <div class="stat-num">10+</div>
+          <div class="stat-label">Procurement modules</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-num">~40%</div>
+          <div class="stat-label">Cycle time reduction</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-num">85%+</div>
+          <div class="stat-label">ML risk accuracy</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-num">8</div>
+          <div class="stat-label">User roles supported</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- MARQUEE -->
+    <div class="marquee-wrap">
+      <div class="marquee-track">
+        <span class="marquee-item">Vendor Accreditation</span>
+        <span class="marquee-item">Purchase Requisition</span>
+        <span class="marquee-item">Risk Detection AI</span>
+        <span class="marquee-item">Contract Management</span>
+        <span class="marquee-item">Invoice Processing</span>
+        <span class="marquee-item">Logistics Tracking</span>
+        <span class="marquee-item">Compliance Docs</span>
+        <span class="marquee-item">Procurement Analytics</span>
+        <span class="marquee-item">Multi-Tenant SaaS</span>
+        <span class="marquee-item">Vendor Accreditation</span>
+        <span class="marquee-item">Purchase Requisition</span>
+        <span class="marquee-item">Risk Detection AI</span>
+        <span class="marquee-item">Contract Management</span>
+        <span class="marquee-item">Invoice Processing</span>
+        <span class="marquee-item">Logistics Tracking</span>
+        <span class="marquee-item">Compliance Docs</span>
+        <span class="marquee-item">Procurement Analytics</span>
+        <span class="marquee-item">Multi-Tenant SaaS</span>
+      </div>
+    </div>
+
+    <!-- FEATURES -->
+    <section class="section" id="features">
+      <div class="section-label reveal">Core capabilities</div>
+      <h2 class="section-title reveal">
+        Built for industrial scale. Designed for clarity.
+      </h2>
+
+      <div class="features-grid reveal">
+        <div class="feature-card">
+          <div class="feature-num">01</div>
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24">
+              <path
+                d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"
+              />
+            </svg>
+          </div>
+          <div class="feature-title">Multi-Tenant Architecture</div>
+          <p class="feature-desc">
+            Each industrial organization operates in its own isolated
+            environment. One platform, infinite tenants — subscriptions managed
+            centrally by Super Admin.
+          </p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-num">02</div>
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24">
+              <path
+                d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18"
+              />
+            </svg>
+          </div>
+          <div class="feature-title">ML Vendor Risk Engine</div>
+          <p class="feature-desc">
+            Random Forest model classifies vendors as Low, Medium, or High risk
+            in real time — trained on delivery rates, defect rates, contract
+            compliance and pricing variance.
+          </p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-num">03</div>
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24">
+              <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <div class="feature-title">Approval Workflows</div>
+          <p class="feature-desc">
+            Multi-level purchase requisition approvals with configurable
+            thresholds per cost center. Full audit trail on every decision — who
+            approved, when, and why.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- MODULES -->
+    <section class="modules-section" id="modules">
+      <div class="section-label reveal">System modules</div>
+      <h2 class="section-title reveal">
+        Everything procurement needs, in one platform.
+      </h2>
+
+      <div class="modules-grid reveal">
+        <div class="module-row">
+          <span class="module-idx">01</span>
+          <div class="module-content">
+            <div class="module-name">Vendor Accreditation & Qualification</div>
+            <div class="module-desc">
+              Onboard and vet industrial suppliers with compliance
+              documentation, certifications, and capacity ratings.
+            </div>
+            <span class="module-tag">Core</span>
+          </div>
+        </div>
+        <div class="module-row">
+          <span class="module-idx">02</span>
+          <div class="module-content">
+            <div class="module-name">Purchase Requisition & Approval</div>
+            <div class="module-desc">
+              Digital requisitions with multi-level approval chains and
+              configurable spending authority limits.
+            </div>
+            <span class="module-tag">Core</span>
+          </div>
+        </div>
+        <div class="module-row">
+          <span class="module-idx">03</span>
+          <div class="module-content">
+            <div class="module-name">Vendor Risk Detection</div>
+            <div class="module-desc">
+              Random Forest ML model scores vendor risk with 85%+ accuracy —
+              integrated into the PO workflow.
+            </div>
+            <span class="module-tag">AI-Powered</span>
+          </div>
+        </div>
+        <div class="module-row">
+          <span class="module-idx">04</span>
+          <div class="module-content">
+            <div class="module-name">Contract & Pricing Management</div>
+            <div class="module-desc">
+              Manage blanket POs, fixed-price contracts, and price escalation
+              clauses for long-term supply agreements.
+            </div>
+            <span class="module-tag">Core</span>
+          </div>
+        </div>
+        <div class="module-row">
+          <span class="module-idx">05</span>
+          <div class="module-content">
+            <div class="module-name">Procurement Analytics Dashboard</div>
+            <div class="module-desc">
+              Real-time visual reports on spending trends, vendor concentration
+              risk, cost savings, and cycle times.
+            </div>
+            <span class="module-tag">Analytics</span>
+          </div>
+        </div>
+        <div class="module-row">
+          <span class="module-idx">06</span>
+          <div class="module-content">
+            <div class="module-name">Invoice & Payment Processing</div>
+            <div class="module-desc">
+              Three-way invoice matching against POs and receipts.
+              PayMongo-powered payment disbursements.
+            </div>
+            <span class="module-tag">Finance</span>
+          </div>
+        </div>
+        <div class="module-row">
+          <span class="module-idx">07</span>
+          <div class="module-content">
+            <div class="module-name">Delivery & Logistics Tracking</div>
+            <div class="module-desc">
+              Real-time PO status updates via SignalR. Track delivery
+              confirmations from vendor portal.
+            </div>
+            <span class="module-tag">Operations</span>
+          </div>
+        </div>
+        <div class="module-row">
+          <span class="module-idx">08</span>
+          <div class="module-content">
+            <div class="module-name">Inventory & Stock Monitoring</div>
+            <div class="module-desc">
+              Monitor stock levels per site and trigger reorder points
+              automatically based on procurement history.
+            </div>
+            <span class="module-tag">Operations</span>
+          </div>
+        </div>
+        <div class="module-row">
+          <span class="module-idx">09</span>
+          <div class="module-content">
+            <div class="module-name">Compliance & Document Management</div>
+            <div class="module-desc">
+              Store and manage permits, certifications, and policy documents
+              with expiry alerts and audit access.
+            </div>
+            <span class="module-tag">Compliance</span>
+          </div>
+        </div>
+        <div class="module-row">
+          <span class="module-idx">10</span>
+          <div class="module-content">
+            <div class="module-name">Subscription & Tenant Management</div>
+            <div class="module-desc">
+              Full SaaS billing — subscription tiers, tenant onboarding, revenue
+              reporting, and account lifecycle.
+            </div>
+            <span class="module-tag">SaaS</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- HOW IT WORKS -->
+    <section class="steps-section" id="how">
+      <div class="section-label reveal">How it works</div>
+      <h2 class="section-title reveal">
+        From requisition to payment — fully automated.
+      </h2>
+
+      <div class="steps-layout reveal">
+        <div class="step-list">
+          <div class="step-item active" onclick="setStep(this, 0)">
+            <div class="step-num-wrap">1</div>
+            <div class="step-body">
+              <div class="step-title">Subscribe & Onboard</div>
+              <p class="step-text">
+                Your organization subscribes to a plan. Super Admin activates
+                the tenant and your System Admin configures users, roles, and
+                approval thresholds.
+              </p>
+            </div>
+          </div>
+          <div class="step-item" onclick="setStep(this, 1)">
+            <div class="step-num-wrap">2</div>
+            <div class="step-body">
+              <div class="step-title">Accredit Vendors</div>
+              <p class="step-text">
+                Procurement Officers invite vendors through the external portal.
+                Vendors submit documents, certifications, and capacity ratings
+                for qualification.
+              </p>
+            </div>
+          </div>
+          <div class="step-item" onclick="setStep(this, 2)">
+            <div class="step-num-wrap">3</div>
+            <div class="step-body">
+              <div class="step-title">Create & Approve Requisitions</div>
+              <p class="step-text">
+                Officers raise purchase requisitions. The ML engine flags vendor
+                risk automatically. Managers approve through the multi-level
+                workflow.
+              </p>
+            </div>
+          </div>
+          <div class="step-item" onclick="setStep(this, 3)">
+            <div class="step-num-wrap">4</div>
+            <div class="step-body">
+              <div class="step-title">Track, Receive & Pay</div>
+              <p class="step-text">
+                POs are sent, deliveries tracked in real time, invoices matched,
+                and payments disbursed — with full audit trails at every step.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div class="step-visual" id="step-visual">
+          <div class="step-visual-icon" id="step-icon">
+            <svg viewBox="0 0 24 24">
+              <path
+                d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"
+              />
+            </svg>
+          </div>
+          <div class="step-visual-text" id="step-vtitle">
+            Subscribe & Onboard
+          </div>
+          <div class="step-visual-sub" id="step-vsub">
+            Multi-tenant SaaS activation
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ROLES -->
+    <section class="roles-section" id="roles">
+      <div class="roles-header">
+        <div>
+          <div class="section-label reveal">Role-based access</div>
+          <h2 class="section-title reveal">
+            The right access,<br />for the right person.
+          </h2>
+        </div>
+      </div>
+      <div class="roles-grid reveal">
+        <!-- <div class="role-card">
+          <div class="role-avatar filled">SA</div>
+          <div class="role-title">Super Admin</div>
+          <ul class="role-perms">
+            <li>Manage all tenants</li>
+            <li>Subscription billing</li>
+            <li>Platform analytics</li>
+            <li>Global configuration</li>
+          </ul>
+        </div> -->
+        <div class="role-card">
+          <div class="role-avatar">Ad</div>
+          <div class="role-title">System Admin</div>
+          <ul class="role-perms">
+            <li>Manage users & roles</li>
+            <li>Configure thresholds</li>
+            <li>Access all modules</li>
+            <li>Audit trails</li>
+          </ul>
+        </div>
+        <div class="role-card">
+          <div class="role-avatar">PO</div>
+          <div class="role-title">Procurement Officer</div>
+          <ul class="role-perms">
+            <li>Create requisitions</li>
+            <li>Vendor accreditation</li>
+            <li>Issue purchase orders</li>
+            <li>View risk scores</li>
+          </ul>
+        </div>
+        <div class="role-card">
+          <div class="role-avatar">Mg</div>
+          <div class="role-title">Manager</div>
+          <ul class="role-perms">
+            <li>Approve requisitions</li>
+            <li>Monitor deliveries</li>
+            <li>Cost center reports</li>
+            <li>Inventory oversight</li>
+          </ul>
+        </div>
+        <div class="role-card">
+          <div class="role-avatar">Fi</div>
+          <div class="role-title">Finance</div>
+          <ul class="role-perms">
+            <li>Invoice processing</li>
+            <li>Payment disbursement</li>
+            <li>Expenditure reports</li>
+            <li>Tax management</li>
+          </ul>
+        </div>
+        <!-- <div class="role-card">
+          <div class="role-avatar filled">Ac</div>
+          <div class="role-title">Accounting (Internal)</div>
+          <ul class="role-perms">
+            <li>Subscription payments</li>
+            <li>Billing statements</li>
+            <li>Revenue reports</li>
+            <li>Tenant balances</li>
+          </ul>
+        </div> -->
+        <div class="role-card">
+          <div class="role-avatar">Au</div>
+          <div class="role-title">Auditor</div>
+          <ul class="role-perms">
+            <li>Read-only access</li>
+            <li>Audit trail review</li>
+            <li>Compliance reports</li>
+            <li>Policy adherence</li>
+          </ul>
+        </div>
+        <div class="role-card">
+          <div class="role-avatar">Vs</div>
+          <div class="role-title">Vendor / Supplier</div>
+          <ul class="role-perms">
+            <li>Submit accreditation</li>
+            <li>Acknowledge POs</li>
+            <li>Delivery confirmations</li>
+            <li>View risk scores</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- VENDOR SECTION -->
+    <section class="section" id="vendors" style="background:var(--ink);padding:100px 48px">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:64px;flex-wrap:wrap">
+        <div style="flex:1;min-width:300px">
+          <div class="section-label reveal" style="color:rgba(246,244,239,0.35)">
+            <span style="background:rgba(246,244,239,0.12);padding:3px 10px;border-radius:2px;font-size:10px;letter-spacing:0.14em">VENDOR MARKETPLACE</span>
+          </div>
+          <h2 class="section-title reveal" style="color:var(--paper);max-width:480px;margin-top:16px">
+            Are you a supplier or manufacturer?
+          </h2>
+          <p class="reveal" style="font-size:16px;color:rgba(246,244,239,0.45);line-height:1.7;max-width:420px;margin-top:16px;font-weight:300">
+            Join the ProcurLi vendor marketplace. List your products, receive purchase orders from verified industrial buyers, and manage your entire supply-side business — all in one dashboard.
+          </p>
+          <div class="reveal" style="display:flex;gap:12px;margin-top:32px;flex-wrap:wrap">
+            <a href="./vendor-register.html">
+              <button style="font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;color:var(--ink);background:var(--paper);border:2px solid var(--paper);padding:13px 32px;border-radius:3px;cursor:pointer">Register as a vendor</button>
+            </a>
+            <button style="font-family:'DM Sans',sans-serif;font-size:14px;font-weight:400;color:rgba(246,244,239,0.7);background:transparent;border:1.5px solid rgba(246,244,239,0.2);padding:13px 32px;border-radius:3px;cursor:pointer">View vendor demo</button>
+          </div>
+        </div>
+        <div class="reveal" style="flex:1;min-width:280px;max-width:420px">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            <div style="background:rgba(246,244,239,0.05);border:1px solid rgba(246,244,239,0.1);border-radius:4px;padding:24px 20px">
+              <div style="font-size:22px;margin-bottom:8px">🏪</div>
+              <div style="font-family:'League Spartan',sans-serif;font-size:14px;font-weight:700;color:var(--paper);margin-bottom:4px">Your storefront</div>
+              <div style="font-size:12.5px;color:rgba(246,244,239,0.4);line-height:1.5">Showcase products, certs, and capacity to industrial buyers</div>
+            </div>
+            <div style="background:rgba(246,244,239,0.05);border:1px solid rgba(246,244,239,0.1);border-radius:4px;padding:24px 20px">
+              <div style="font-size:22px;margin-bottom:8px">📦</div>
+              <div style="font-family:'League Spartan',sans-serif;font-size:14px;font-weight:700;color:var(--paper);margin-bottom:4px">Order management</div>
+              <div style="font-size:12.5px;color:rgba(246,244,239,0.4);line-height:1.5">Receive, fulfill, and track purchase orders in real time</div>
+            </div>
+            <div style="background:rgba(246,244,239,0.05);border:1px solid rgba(246,244,239,0.1);border-radius:4px;padding:24px 20px">
+              <div style="font-size:22px;margin-bottom:8px">📊</div>
+              <div style="font-family:'League Spartan',sans-serif;font-size:14px;font-weight:700;color:var(--paper);margin-bottom:4px">Risk score visibility</div>
+              <div style="font-size:12.5px;color:rgba(246,244,239,0.4);line-height:1.5">Understand your ML score and improve your buyer ratings</div>
+            </div>
+            <div style="background:rgba(246,244,239,0.05);border:1px solid rgba(246,244,239,0.1);border-radius:4px;padding:24px 20px">
+              <div style="font-size:22px;margin-bottom:8px">💳</div>
+              <div style="font-family:'League Spartan',sans-serif;font-size:14px;font-weight:700;color:var(--paper);margin-bottom:4px">Fast payments</div>
+              <div style="font-size:12.5px;color:rgba(246,244,239,0.4);line-height:1.5">Invoices matched automatically with PayMongo disbursement</div>
+            </div>
+          </div>
+          <div style="margin-top:16px;display:flex;gap:24px;padding-top:16px;border-top:1px solid rgba(246,244,239,0.08)">
+            <div>
+              <div style="font-family:'League Spartan',sans-serif;font-size:24px;font-weight:800;color:var(--paper);letter-spacing:-0.04em">Free</div>
+              <div style="font-size:11px;color:rgba(246,244,239,0.35);font-family:monospace;letter-spacing:0.06em;margin-top:2px">TO GET STARTED</div>
+            </div>
+            <div>
+              <div style="font-family:'League Spartan',sans-serif;font-size:24px;font-weight:800;color:var(--paper);letter-spacing:-0.04em">$49/mo</div>
+              <div style="font-size:11px;color:rgba(246,244,239,0.35);font-family:monospace;letter-spacing:0.06em;margin-top:2px">SELLER PRO PLAN</div>
+            </div>
+            <div>
+              <div style="font-family:'League Spartan',sans-serif;font-size:24px;font-weight:800;color:var(--paper);letter-spacing:-0.04em">Custom</div>
+              <div style="font-size:11px;color:rgba(246,244,239,0.35);font-family:monospace;letter-spacing:0.06em;margin-top:2px">ENTERPRISE</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA BAND -->
+    <div class="cta-band reveal">
+      <div class="cta-text">
+        <div class="cta-eyebrow">Ready to modernize procurement?</div>
+        <h2 class="cta-title">Start your free<br />trial today.</h2>
+        <p class="cta-sub">
+          No credit card required. Full platform access for 14 days. Cancel
+          anytime.
+        </p>
+      </div>
+      <div class="cta-actions">
+        <button class="btn-paper">Get started free</button>
+        <button class="btn-outline-paper">Schedule a demo</button>
+      </div>
+    </div>
+
+    <!-- FOOTER -->
+    <footer>
+      <div class="footer-logo">
+        <img
+          src="../logo/logo.png"
+          alt="ProcurLi Logo"
+          style="height: auto; width: 100px"
+        />
+      </div>
+      <ul class="footer-links">
+        <li><a href="#">Features</a></li>
+        <li><a href="#">Pricing</a></li>
+        <li><a href="#">Docs</a></li>
+        <li><a href="#">Privacy</a></li>
+        <li><a href="#">Terms</a></li>
+      </ul>
+      <div class="footer-copy">© 2026 ProcurLi. All rights reserved.</div>
+    </footer>
+
+    <script>
+      const navbar = document.getElementById("navbar");
+      window.addEventListener("scroll", () => {
+        navbar.classList.toggle("scrolled", window.scrollY > 20);
+      });
+
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((e) => {
+            if (e.isIntersecting) e.target.classList.add("visible");
+          });
+        },
+        { threshold: 0.12 },
+      );
+      document
+        .querySelectorAll(".reveal")
+        .forEach((el) => observer.observe(el));
+
+      const steps = [
+        {
+          title: "Subscribe & Onboard",
+          sub: "Multi-tenant SaaS activation",
+          icon: `<svg viewBox="0 0 24 24" style="width:34px;height:34px;stroke:var(--paper);fill:none;stroke-width:1.5"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>`,
+        },
+        {
+          title: "Accredit Vendors",
+          sub: "Qualification & onboarding",
+          icon: `<svg viewBox="0 0 24 24" style="width:34px;height:34px;stroke:var(--paper);fill:none;stroke-width:1.5"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>`,
+        },
+        {
+          title: "Create & Approve",
+          sub: "ML risk-flagged requisitions",
+          icon: `<svg viewBox="0 0 24 24" style="width:34px;height:34px;stroke:var(--paper);fill:none;stroke-width:1.5"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`,
+        },
+        {
+          title: "Track & Pay",
+          sub: "End-to-end PO lifecycle",
+          icon: `<svg viewBox="0 0 24 24" style="width:34px;height:34px;stroke:var(--paper);fill:none;stroke-width:1.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>`,
+        },
+      ];
+
+      function setStep(el, idx) {
+        document
+          .querySelectorAll(".step-item")
+          .forEach((s) => s.classList.remove("active"));
+        el.classList.add("active");
+        document.getElementById("step-vtitle").textContent = steps[idx].title;
+        document.getElementById("step-vsub").textContent = steps[idx].sub;
+        document.getElementById("step-icon").innerHTML = steps[idx].icon;
+      }
+    </script>
+  </body>
+</html>

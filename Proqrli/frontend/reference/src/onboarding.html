@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ProqrLi — Onboarding</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css"
+    />
+    <link rel="stylesheet" href="onboarding.css" />
+    <link rel="stylesheet" href="procurli-design-system.css" />
+  </head>
+  <body>
+    <div class="onboarding-container">
+      <!-- Header -->
+      <div class="header">
+        <div class="logo">
+          <img src="../logo/logo.png" alt="ProqrLi" />
+        </div>
+
+        <div class="progress" id="progress-dots"></div>
+
+        <button class="back-btn" id="back-btn" onclick="goBack()">
+          <i class="bi bi-arrow-left"></i> Back
+        </button>
+      </div>
+
+      <!-- Step 1: Company Name -->
+      <div class="step active" id="step-1">
+        <div>
+          <h1 class="step-title">What is your company name?</h1>
+          <p class="step-subtitle">
+            We’ll use this to personalize your ProqrLi workspace.
+          </p>
+        </div>
+        <input
+          type="text"
+          id="company-name"
+          class="input-large"
+          placeholder="Acme Manufacturing Inc."
+          value="Acme Manufacturing Inc."
+        />
+      </div>
+
+      <!-- Step 2: Industry + Company Size -->
+      <div class="step" id="step-2">
+        <div style="width: 100%; max-width: 520px">
+          <h1 class="step-title">What industry are you in?</h1>
+          <p class="step-subtitle">
+            This helps us show the right procurement templates.
+          </p>
+          <div class="cards-grid" id="industry-cards"></div>
+
+          <div style="margin-top: 48px">
+            <h1 class="step-title" style="font-size: 26px">
+              How big is your company?
+            </h1>
+            <div class="cards-grid" id="size-cards"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 3: Team Size -->
+      <div class="step" id="step-3">
+        <div>
+          <h1 class="step-title">
+            How many people will work in this workspace?
+          </h1>
+          <p class="step-subtitle">You can invite more later.</p>
+        </div>
+        <div class="cards-grid" id="team-cards"></div>
+      </div>
+
+      <!-- Step 4: SUPER CLEAN Subscription (exactly like your screenshot style) -->
+      <div class="step" id="step-4">
+        <div style="width: 100%">
+          <h1 class="step-title">Choose your ProqrLi plan</h1>
+          <p class="step-subtitle">Start free for 14 days. Cancel anytime.</p>
+
+          <div class="pricing-grid">
+            <!-- Starter (Most Popular) -->
+            <div class="pricing-card popular">
+              <div class="pricing-icon">⚡</div>
+              <h3>Starter</h3>
+              <p class="pricing-subtitle">Best for small manufacturing teams</p>
+              <div class="price">$0 <span>/mo</span></div>
+              <p class="cancel-text">
+                14-day free trial • Then $29/mo billed yearly
+              </p>
+
+              <ul>
+                <li><i class="bi bi-check-circle-fill"></i> Up to 5 users</li>
+                <li>
+                  <i class="bi bi-check-circle-fill"></i> Vendor accreditation
+                  &amp; PO workflow
+                </li>
+                <li>
+                  <i class="bi bi-check-circle-fill"></i> Basic procurement
+                  analytics
+                </li>
+                <li><i class="bi bi-check-circle-fill"></i> Email support</li>
+                <li>
+                  <i class="bi bi-check-circle-fill"></i> Inventory &amp; stock
+                  monitoring
+                </li>
+              </ul>
+              <button class="btn-primary" onclick="finishOnboarding()">
+                Start 14-day free trial
+              </button>
+            </div>
+
+            <!-- Professional -->
+            <div class="pricing-card">
+              <div class="pricing-icon">🔥</div>
+              <h3>Professional</h3>
+              <p class="pricing-subtitle">Best for growing industrial teams</p>
+              <div class="price">$79 <span>/mo</span></div>
+              <p class="cancel-text">Billed yearly • Cancel anytime</p>
+
+              <ul>
+                <li><i class="bi bi-check-circle-fill"></i> Unlimited users</li>
+                <li>
+                  <i class="bi bi-check-circle-fill"></i> Random Forest ML
+                  vendor risk scoring
+                </li>
+                <li>
+                  <i class="bi bi-check-circle-fill"></i> Real-time dashboards
+                  &amp; SignalR
+                </li>
+                <li>
+                  <i class="bi bi-check-circle-fill"></i> PayMongo &amp; Stripe
+                  payments
+                </li>
+                <li>
+                  <i class="bi bi-check-circle-fill"></i> Priority support
+                </li>
+              </ul>
+              <button class="btn-primary" onclick="finishOnboarding()">
+                Choose Professional
+              </button>
+            </div>
+
+            <!-- Enterprise -->
+            <div class="pricing-card">
+              <div class="pricing-icon">🏭</div>
+              <h3>Enterprise</h3>
+              <p class="pricing-subtitle">For large-scale operations</p>
+              <div class="price">Custom</div>
+              <p class="cancel-text">Tailored for you</p>
+
+              <ul>
+                <li>
+                  <i class="bi bi-check-circle-fill"></i> Everything in
+                  Professional
+                </li>
+                <li>
+                  <i class="bi bi-check-circle-fill"></i> SAP Business One API
+                  integration
+                </li>
+                <li>
+                  <i class="bi bi-check-circle-fill"></i> Dedicated account
+                  manager
+                </li>
+                <li>
+                  <i class="bi bi-check-circle-fill"></i> Private cloud /
+                  on-premise option
+                </li>
+                <li>
+                  <i class="bi bi-check-circle-fill"></i> Compliance &amp; audit
+                  support
+                </li>
+              </ul>
+              <button class="btn-primary" onclick="finishOnboarding()">
+                Talk to sales
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer Navigation -->
+      <div class="footer-nav">
+        <div class="step-number" id="step-counter">
+          Step <span id="current-step">1</span>/4
+        </div>
+        <button class="btn-continue" id="continue-btn" onclick="nextStep()">
+          Continue →
+        </button>
+      </div>
+    </div>
+
+    <script>
+      let currentStep = 1;
+      let selections = {
+        companyName: "Acme Manufacturing Inc.",
+        industry: "Manufacturing",
+        companySize: "51-200",
+        teamSize: "4-6",
+      };
+
+      const industries = [
+        { label: "Manufacturing", value: "Manufacturing" },
+        { label: "Construction", value: "Construction" },
+        { label: "Heavy Equipment", value: "Heavy Equipment" },
+        { label: "Oil & Gas", value: "Oil & Gas" },
+        { label: "Logistics", value: "Logistics" },
+      ];
+
+      const sizes = [
+        { label: "1–10", value: "1-10" },
+        { label: "11–50", value: "11-50" },
+        { label: "51–200", value: "51-200" },
+        { label: "201–500", value: "201-500" },
+        { label: "501+", value: "501+" },
+      ];
+
+      const teamSizes = [
+        { label: "Just me", value: "1" },
+        { label: "2–3", value: "2-3" },
+        { label: "4–6", value: "4-6" },
+        { label: "7–10", value: "7-10" },
+        { label: "11–20", value: "11-20" },
+        { label: "21–50", value: "21-50" },
+        { label: "51+", value: "51+" },
+      ];
+
+      function renderCards(containerId, items, selectedValue, onSelect) {
+        const container = document.getElementById(containerId);
+        container.innerHTML = "";
+        items.forEach((item) => {
+          const div = document.createElement("div");
+          div.className = `card ${item.value === selectedValue ? "selected" : ""}`;
+          div.innerHTML = `<div class="card-label">${item.label}</div>`;
+          div.onclick = () => {
+            onSelect(item.value);
+            renderCards(containerId, items, item.value, onSelect);
+          };
+          container.appendChild(div);
+        });
+      }
+
+      function showStep(n) {
+        document
+          .querySelectorAll(".step")
+          .forEach((s) => s.classList.remove("active"));
+        document.getElementById(`step-${n}`).classList.add("active");
+        currentStep = n;
+        document.getElementById("current-step").textContent = n;
+
+        const dotsContainer = document.getElementById("progress-dots");
+        dotsContainer.innerHTML = "";
+        for (let i = 1; i <= 4; i++) {
+          const dot = document.createElement("div");
+          dot.className = `progress-dot ${i === n ? "active" : ""}`;
+          dotsContainer.appendChild(dot);
+        }
+
+        document.getElementById("back-btn").style.opacity =
+          n === 1 ? "0.3" : "1";
+        document.getElementById("back-btn").style.pointerEvents =
+          n === 1 ? "none" : "auto";
+      }
+
+      function nextStep() {
+        if (currentStep === 1) {
+          selections.companyName =
+            document.getElementById("company-name").value.trim() ||
+            "Acme Manufacturing Inc.";
+        }
+        if (currentStep < 4) showStep(currentStep + 1);
+      }
+
+      function goBack() {
+        if (currentStep > 1) showStep(currentStep - 1);
+      }
+
+      function finishOnboarding() {
+        alert(
+          "🎉 Welcome to ProqrLi!\n\nYour 14-day free trial has started.\nYour workspace is ready!",
+        );
+        window.location.href = "#";
+      }
+
+      window.onload = () => {
+        renderCards(
+          "industry-cards",
+          industries,
+          selections.industry,
+          (v) => (selections.industry = v),
+        );
+        renderCards(
+          "size-cards",
+          sizes,
+          selections.companySize,
+          (v) => (selections.companySize = v),
+        );
+        renderCards(
+          "team-cards",
+          teamSizes,
+          selections.teamSize,
+          (v) => (selections.teamSize = v),
+        );
+        showStep(1);
+      };
+    </script>
+  </body>
+</html>

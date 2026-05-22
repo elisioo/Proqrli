@@ -1,0 +1,563 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ProcurLi — Vendor Onboarding</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@400;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css" />
+    <link rel="stylesheet" href="procurli-design-system.css" />
+    <style>
+      body {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 40px 20px 80px;
+        min-height: 100vh;
+        background: var(--paper);
+      }
+
+      /* ── Container ── */
+      .onboard-wrap {
+        width: 100%;
+        max-width: 720px;
+        background: #fff;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+      }
+
+      /* ── Header ── */
+      .ob-header {
+        padding: 20px 40px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border-bottom: 1px solid var(--border);
+      }
+      .ob-progress { display: flex; gap: 8px; }
+
+      /* ── Steps ── */
+      .ob-step {
+        padding: 56px 40px;
+        min-height: 520px;
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        opacity: 0;
+        transition: opacity 0.35s ease;
+      }
+      .ob-step.active { display: flex; opacity: 1; }
+
+      .ob-step-title {
+        font-family: var(--font-display);
+        font-size: 30px;
+        font-weight: 800;
+        letter-spacing: -0.04em;
+        line-height: 1.15;
+        color: var(--ink);
+        margin-bottom: 10px;
+      }
+      .ob-step-sub {
+        font-size: 16px;
+        color: var(--ink-muted);
+        max-width: 420px;
+        margin-bottom: 40px;
+        line-height: 1.6;
+      }
+
+      /* ── Input (step 1) ── */
+      .input-large {
+        width: 100%;
+        max-width: 460px;
+        height: 62px;
+        font-size: 22px;
+        text-align: center;
+        border: 2px solid var(--border);
+        border-radius: var(--radius-md);
+        padding: 0 24px;
+        font-family: var(--font-body);
+        color: var(--ink);
+        transition: border-color 0.2s;
+        outline: none;
+      }
+      .input-large:focus { border-color: var(--ink); }
+
+      /* ── Choice cards ── */
+      .choice-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 12px;
+        width: 100%;
+        max-width: 520px;
+      }
+      .choice-card {
+        background: var(--paper);
+        border: 2px solid var(--border);
+        border-radius: var(--radius-md);
+        padding: 24px 16px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.25s ease;
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--ink-soft);
+      }
+      .choice-card:hover { transform: translateY(-3px); border-color: var(--ink-muted); }
+      .choice-card.selected { border-color: var(--ink); background: var(--ink); color: var(--paper); }
+      .choice-card .choice-emoji { font-size: 26px; margin-bottom: 8px; }
+
+      /* ── Upload zone (step 3) ── */
+      .upload-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        width: 100%;
+        max-width: 520px;
+      }
+      .upload-zone {
+        border: 2px dashed var(--border);
+        border-radius: var(--radius-md);
+        padding: 24px 16px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.25s ease;
+        background: var(--paper);
+      }
+      .upload-zone:hover { border-color: var(--ink); background: var(--paper-mid); }
+      .upload-zone.uploaded { border-color: var(--green); border-style: solid; background: #ecfdf5; }
+      .upload-zone i { font-size: 24px; color: var(--ink-muted); margin-bottom: 8px; display: block; }
+      .upload-zone.uploaded i { color: var(--green); }
+      .upload-zone .uz-title { font-size: 13px; font-weight: 600; color: var(--ink); margin-bottom: 3px; }
+      .upload-zone .uz-sub { font-size: 11px; color: var(--ink-muted); }
+      .upload-zone.uploaded .uz-sub { color: var(--green); }
+      .upload-note {
+        font-size: 12px;
+        color: var(--ink-muted);
+        margin-top: 14px;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+
+      /* ── Pricing grid (step 4) ── */
+      .vendor-pricing-grid {
+        display: flex;
+        gap: 20px;
+        width: 100%;
+        align-items: stretch;
+      }
+
+      .vp-card {
+        flex: 1;
+        background: var(--paper);
+        border: 1px solid var(--paper-dark);
+        border-radius: var(--radius-lg);
+        padding: 32px 24px;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+        transition: transform 0.25s, box-shadow 0.25s;
+      }
+      .vp-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); }
+
+      .vp-card.featured {
+        border-color: var(--ink);
+      }
+      .vp-badge {
+        position: absolute;
+        top: -12px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: var(--ink);
+        color: var(--paper);
+        font-family: var(--font-mono);
+        font-size: 9.5px;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        padding: 3px 16px;
+        border-radius: var(--radius-full);
+        white-space: nowrap;
+      }
+
+      .vp-icon {
+        font-size: 28px;
+        margin-bottom: 12px;
+      }
+      .vp-name {
+        font-family: var(--font-display);
+        font-size: 22px;
+        font-weight: 800;
+        letter-spacing: -0.03em;
+        color: var(--ink);
+        margin-bottom: 3px;
+      }
+      .vp-tagline {
+        font-size: 12.5px;
+        color: var(--ink-muted);
+        margin-bottom: 16px;
+        line-height: 1.5;
+      }
+      .vp-price {
+        font-family: var(--font-display);
+        font-size: 38px;
+        font-weight: 800;
+        letter-spacing: -0.04em;
+        color: var(--ink);
+        line-height: 1;
+        margin-bottom: 2px;
+      }
+      .vp-price sub { font-size: 15px; font-weight: 400; color: var(--ink-muted); letter-spacing: 0; }
+      .vp-note {
+        font-size: 11.5px;
+        color: var(--ink-muted);
+        margin-bottom: 20px;
+      }
+
+      .vp-features {
+        list-style: none;
+        flex: 1;
+        margin-bottom: 20px;
+      }
+      .vp-features li {
+        display: flex;
+        align-items: flex-start;
+        gap: 9px;
+        font-size: 13px;
+        padding: 9px 0;
+        border-bottom: 1px solid var(--paper-dark);
+        line-height: 1.45;
+        color: var(--ink-soft);
+      }
+      .vp-features li:last-child { border-bottom: none; }
+      .vp-features .ic-check { color: var(--green); flex-shrink: 0; }
+      .vp-features .ic-dash  { color: var(--paper-dark); flex-shrink: 0; }
+
+      .vp-btn {
+        width: 100%;
+        height: 44px;
+        border: 1.5px solid var(--ink);
+        border-radius: var(--radius-full);
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        font-family: var(--font-body);
+        transition: all 0.2s;
+        margin-top: auto;
+      }
+      .vp-btn-outline { background: transparent; color: var(--ink); }
+      .vp-btn-outline:hover { background: var(--ink); color: var(--paper); }
+      .vp-btn-filled { background: var(--ink); color: var(--paper); }
+      .vp-btn-filled:hover { opacity: 0.82; }
+
+      /* Compare toggle */
+      .compare-toggle {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+        color: var(--ink-muted);
+        margin-top: 16px;
+        cursor: pointer;
+      }
+      .compare-toggle a {
+        color: var(--ink);
+        text-decoration: underline;
+        text-underline-offset: 2px;
+      }
+
+      /* ── Footer nav ── */
+      .ob-footer {
+        padding: 20px 40px;
+        border-top: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .ob-step-counter { font-size: 14px; color: var(--ink-muted); font-weight: 500; }
+      .ob-continue-btn {
+        background: var(--ink);
+        color: var(--paper);
+        border: none;
+        padding: 14px 36px;
+        border-radius: var(--radius-full);
+        font-size: 15px;
+        font-weight: 600;
+        cursor: pointer;
+        font-family: var(--font-body);
+        transition: opacity 0.2s;
+      }
+      .ob-continue-btn:hover { opacity: 0.82; }
+      .ob-back-btn {
+        background: none;
+        border: none;
+        font-size: 14px;
+        color: var(--ink-muted);
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        cursor: pointer;
+        font-family: var(--font-body);
+      }
+      .ob-back-btn:hover { color: var(--ink); }
+    </style>
+  </head>
+  <body>
+    <div class="onboard-wrap">
+
+      <!-- Header -->
+      <div class="ob-header">
+        <div>
+          <img src="../logo/logo.png" alt="ProcurLi" style="width:90px;height:auto" />
+        </div>
+        <div class="ob-progress" id="ob-progress"></div>
+        <button class="ob-back-btn" id="back-btn" onclick="goBack()">
+          <i class="bi bi-arrow-left"></i> Back
+        </button>
+      </div>
+
+      <!-- ── STEP 1: Business Name ── -->
+      <div class="ob-step active" id="step-1">
+        <h1 class="ob-step-title">What's your business name?</h1>
+        <p class="ob-step-sub">This is the name buyers will see on your vendor storefront.</p>
+        <input type="text" class="input-large" id="business-name" placeholder="Acme Supply Co." value="Acme Supply Co." />
+      </div>
+
+      <!-- ── STEP 2: Product Category + Company Size ── -->
+      <div class="ob-step" id="step-2">
+        <div style="width:100%;max-width:520px">
+          <h1 class="ob-step-title">What do you primarily sell?</h1>
+          <p class="ob-step-sub">Pick your main product or service category.</p>
+
+          <div class="choice-grid" id="category-cards"></div>
+
+          <div style="margin-top:40px">
+            <h2 class="ob-step-title" style="font-size:22px;margin-bottom:8px">How many SKUs do you carry?</h2>
+            <p class="ob-step-sub" style="font-size:14px;margin-bottom:20px">Helps us set up the right catalogue limits.</p>
+            <div class="choice-grid" id="sku-cards"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── STEP 3: Certifications & Documents ── -->
+      <div class="ob-step" id="step-3">
+        <h1 class="ob-step-title">Upload your compliance documents</h1>
+        <p class="ob-step-sub">Verified vendors get a <strong>Certified Badge</strong> and higher visibility to buyers. You can skip and upload later.</p>
+
+        <div class="upload-grid" id="upload-grid">
+          <div class="upload-zone" onclick="simulateUpload(this, 'BIR Certificate')">
+            <i class="bi bi-file-earmark-text"></i>
+            <div class="uz-title">BIR Certificate</div>
+            <div class="uz-sub">PDF, JPG — max 5MB</div>
+          </div>
+          <div class="upload-zone" onclick="simulateUpload(this, 'Business Permit')">
+            <i class="bi bi-building-check"></i>
+            <div class="uz-title">Business Permit</div>
+            <div class="uz-sub">PDF, JPG — max 5MB</div>
+          </div>
+          <div class="upload-zone" onclick="simulateUpload(this, 'ISO / Quality Cert')">
+            <i class="bi bi-patch-check"></i>
+            <div class="uz-title">ISO / Quality Cert</div>
+            <div class="uz-sub">Optional but recommended</div>
+          </div>
+          <div class="upload-zone" onclick="simulateUpload(this, 'Product Catalogue')">
+            <i class="bi bi-grid-3x3-gap"></i>
+            <div class="uz-title">Product Catalogue</div>
+            <div class="uz-sub">PDF or Excel — max 10MB</div>
+          </div>
+        </div>
+        <p class="upload-note"><i class="bi bi-lock-fill" style="font-size:11px"></i> Documents are stored securely and only shared with verified buyers.</p>
+      </div>
+
+      <!-- ── STEP 4: Subscription Plans ── -->
+      <div class="ob-step" id="step-4">
+        <div style="width:100%">
+          <h1 class="ob-step-title">Choose your vendor plan</h1>
+          <p class="ob-step-sub">Start free. Upgrade anytime as you grow.</p>
+
+          <div class="vendor-pricing-grid">
+
+            <!-- Free -->
+            <div class="vp-card">
+              <div class="vp-icon">🌱</div>
+              <div class="vp-name">Free</div>
+              <div class="vp-tagline">For vendors just getting started</div>
+              <div class="vp-price">$0 <sub>/mo</sub></div>
+              <div class="vp-note">No credit card required</div>
+              <ul class="vp-features">
+                <li><i class="bi bi-check-circle-fill ic-check"></i> Vendor storefront page</li>
+                <li><i class="bi bi-check-circle-fill ic-check"></i> Up to 25 product listings</li>
+                <li><i class="bi bi-check-circle-fill ic-check"></i> Receive & acknowledge POs</li>
+                <li><i class="bi bi-check-circle-fill ic-check"></i> Basic performance metrics</li>
+                <li><i class="bi bi-dash ic-dash"></i> <span style="color:var(--ink-muted)">Analytics dashboard</span></li>
+                <li><i class="bi bi-dash ic-dash"></i> <span style="color:var(--ink-muted)">Featured listing placement</span></li>
+                <li><i class="bi bi-dash ic-dash"></i> <span style="color:var(--ink-muted)">Priority buyer matching</span></li>
+              </ul>
+              <button class="vp-btn vp-btn-outline" onclick="selectPlan('free')">Start for free</button>
+            </div>
+
+            <!-- Pro (featured) -->
+            <div class="vp-card featured">
+              <div class="vp-badge">Most popular</div>
+              <div class="vp-icon">🔥</div>
+              <div class="vp-name">Seller Pro</div>
+              <div class="vp-tagline">For growing vendors who want more reach</div>
+              <div class="vp-price">$49 <sub>/mo</sub></div>
+              <div class="vp-note">Billed yearly · 14-day free trial</div>
+              <ul class="vp-features">
+                <li><i class="bi bi-check-circle-fill ic-check"></i> Everything in Free</li>
+                <li><i class="bi bi-check-circle-fill ic-check"></i> Unlimited product listings</li>
+                <li><i class="bi bi-check-circle-fill ic-check"></i> Analytics & sales dashboard</li>
+                <li><i class="bi bi-check-circle-fill ic-check"></i> Featured storefront placement</li>
+                <li><i class="bi bi-check-circle-fill ic-check"></i> Priority buyer matching</li>
+                <li><i class="bi bi-check-circle-fill ic-check"></i> Risk score transparency</li>
+                <li><i class="bi bi-check-circle-fill ic-check"></i> Priority support</li>
+              </ul>
+              <button class="vp-btn vp-btn-filled" onclick="selectPlan('pro')">Start 14-day free trial</button>
+            </div>
+
+            <!-- Enterprise -->
+            <div class="vp-card">
+              <div class="vp-icon">🏭</div>
+              <div class="vp-name">Enterprise</div>
+              <div class="vp-tagline">For large-scale distributors & manufacturers</div>
+              <div class="vp-price">Custom</div>
+              <div class="vp-note">Tailored pricing for your volume</div>
+              <ul class="vp-features">
+                <li><i class="bi bi-check-circle-fill ic-check"></i> Everything in Pro</li>
+                <li><i class="bi bi-check-circle-fill ic-check"></i> Bulk product import (CSV/API)</li>
+                <li><i class="bi bi-check-circle-fill ic-check"></i> SAP / ERP integration</li>
+                <li><i class="bi bi-check-circle-fill ic-check"></i> Dedicated account manager</li>
+                <li><i class="bi bi-check-circle-fill ic-check"></i> Custom contract terms</li>
+                <li><i class="bi bi-check-circle-fill ic-check"></i> Multi-location support</li>
+                <li><i class="bi bi-check-circle-fill ic-check"></i> SLA & audit support</li>
+              </ul>
+              <button class="vp-btn vp-btn-outline" onclick="selectPlan('enterprise')">Talk to sales</button>
+            </div>
+
+          </div>
+
+          <p class="compare-toggle">
+            <i class="bi bi-info-circle"></i>
+            All plans include PayMongo-powered payments and PO lifecycle management.
+            <a href="#">Compare all features →</a>
+          </p>
+        </div>
+      </div>
+
+      <!-- Footer Nav -->
+      <div class="ob-footer">
+        <div class="ob-step-counter">
+          Step <span id="current-step">1</span> of 4
+        </div>
+        <button class="ob-continue-btn" id="continue-btn" onclick="nextStep()">
+          Continue →
+        </button>
+      </div>
+
+    </div>
+
+    <script>
+      let currentStep = 1;
+      let state = {
+        businessName: 'Acme Supply Co.',
+        category: 'Industrial Equipment',
+        skuRange: '26–100',
+        plan: null,
+      };
+
+      const categories = [
+        { label: '⚙️ Industrial Equipment', value: 'Industrial Equipment' },
+        { label: '🔩 Hardware & Fasteners', value: 'Hardware & Fasteners' },
+        { label: '⚡ Electrical Components', value: 'Electrical Components' },
+        { label: '🧴 Chemicals & Lubricants', value: 'Chemicals & Lubricants' },
+        { label: '🚚 Logistics & Freight', value: 'Logistics & Freight' },
+        { label: '🖥️ IT & Tech Equipment', value: 'IT & Tech Equipment' },
+        { label: '🏗️ Construction Materials', value: 'Construction Materials' },
+        { label: '🧪 Lab & Safety Equipment', value: 'Lab & Safety Equipment' },
+        { label: '🌾 Raw Materials', value: 'Raw Materials' },
+        { label: '🔧 MRO & Maintenance', value: 'MRO & Maintenance' },
+      ];
+
+      const skuRanges = [
+        { label: '1–10', value: '1–10' },
+        { label: '11–25', value: '11–25' },
+        { label: '26–100', value: '26–100' },
+        { label: '101–500', value: '101–500' },
+        { label: '500+', value: '500+' },
+      ];
+
+      function renderChoices(containerId, items, selectedValue, setter) {
+        const el = document.getElementById(containerId);
+        el.innerHTML = '';
+        items.forEach(item => {
+          const div = document.createElement('div');
+          div.className = 'choice-card' + (item.value === selectedValue ? ' selected' : '');
+          div.innerHTML = item.label;
+          div.onclick = () => { setter(item.value); renderChoices(containerId, items, item.value, setter); };
+          el.appendChild(div);
+        });
+      }
+
+      function showStep(n) {
+        document.querySelectorAll('.ob-step').forEach(s => s.classList.remove('active'));
+        document.getElementById(`step-${n}`).classList.add('active');
+        currentStep = n;
+
+        document.getElementById('current-step').textContent = n;
+
+        // Progress dots
+        const dotsEl = document.getElementById('ob-progress');
+        dotsEl.innerHTML = '';
+        for (let i = 1; i <= 4; i++) {
+          const d = document.createElement('div');
+          d.className = 'prog-dot' + (i === n ? ' active' : '');
+          dotsEl.appendChild(d);
+        }
+
+        const backBtn = document.getElementById('back-btn');
+        backBtn.style.opacity = n === 1 ? '0.3' : '1';
+        backBtn.style.pointerEvents = n === 1 ? 'none' : 'auto';
+
+        const continueBtn = document.getElementById('continue-btn');
+        continueBtn.style.display = n === 4 ? 'none' : 'block';
+      }
+
+      function nextStep() {
+        if (currentStep === 1) {
+          state.businessName = document.getElementById('business-name').value.trim() || 'Acme Supply Co.';
+        }
+        if (currentStep < 4) showStep(currentStep + 1);
+      }
+
+      function goBack() {
+        if (currentStep > 1) showStep(currentStep - 1);
+      }
+
+      function simulateUpload(el, name) {
+        el.classList.add('uploaded');
+        el.querySelector('i').className = 'bi bi-check-circle-fill';
+        el.querySelector('.uz-sub').textContent = '✓ Uploaded';
+      }
+
+      function selectPlan(plan) {
+        state.plan = plan;
+        if (plan === 'enterprise') {
+          alert('Our sales team will reach out within 24 hours.\n\nThanks for choosing ProcurLi Enterprise!');
+        } else {
+          alert(`🎉 Welcome to ProcurLi Vendor Portal!\n\nPlan: ${plan === 'free' ? 'Free' : 'Seller Pro (14-day trial)'}\nYour storefront is being set up...`);
+          window.location.href = '#'; // → redirect to vendor dashboard
+        }
+      }
+
+      window.onload = () => {
+        renderChoices('category-cards', categories, state.category, v => state.category = v);
+        renderChoices('sku-cards', skuRanges, state.skuRange, v => state.skuRange = v);
+        showStep(1);
+      };
+    </script>
+  </body>
+</html>

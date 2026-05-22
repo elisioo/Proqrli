@@ -1,0 +1,321 @@
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "League Spartan", sans-serif;
+  background: #f6f4ef;
+  color: #181714;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 40px 20px;
+}
+
+.onboarding-container {
+  width: 100%;
+  max-width: 680px;
+  background: #fff;
+  border: 1px solid #d9d6ce;
+  border-radius: 16px;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Header */
+.header {
+  padding: 24px 40px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #d9d6ce;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.logo img {
+  width: 110px;
+  height: auto;
+}
+
+.progress {
+  display: flex;
+  gap: 8px;
+}
+
+.progress-dot {
+  width: 10px;
+  height: 10px;
+  background: #d9d6ce;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+}
+
+.progress-dot.active {
+  background: #181714;
+  transform: scale(1.3);
+}
+
+.back-btn {
+  background: none;
+  border: none;
+  font-size: 16px;
+  color: #9a978e;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.back-btn:hover {
+  color: #181714;
+}
+
+/* Main Content */
+.step {
+  padding: 60px 40px;
+  min-height: 520px;
+  opacity: 0;
+  transition:
+    opacity 0.4s ease,
+    transform 0.4s ease;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.step.active {
+  opacity: 1;
+  transform: translateY(0);
+  display: flex;
+}
+
+.step-title {
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 1.2;
+  margin-bottom: 12px;
+}
+
+.step-subtitle {
+  font-size: 18px;
+  color: #9a978e;
+  max-width: 420px;
+  margin-bottom: 40px;
+}
+
+/* Step 1 - Company Name */
+.input-large {
+  width: 100%;
+  max-width: 460px;
+  height: 64px;
+  font-size: 24px;
+  text-align: center;
+  border: 2px solid #d9d6ce;
+  border-radius: 12px;
+  padding: 0 24px;
+  transition: all 0.3s ease;
+}
+
+.input-large:focus {
+  border-color: #181714;
+  outline: none;
+}
+
+/* Cards (Steps 2 & 3) */
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 16px;
+  width: 100%;
+  max-width: 520px;
+}
+
+.card {
+  background: #f6f4ef;
+  border: 2px solid #d9d6ce;
+  border-radius: 16px;
+  padding: 28px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card:hover {
+  transform: translateY(-4px);
+}
+
+.card.selected {
+  border-color: #181714;
+  background: #181714;
+  color: #f6f4ef;
+}
+
+.card-label {
+  font-size: 22px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+/* ── SUPER CLEAN SUBSCRIPTION STEP (matching your new screenshot style) ── */
+.pricing-grid {
+  display: flex;
+  gap: 24px;
+  width: 100%;
+  max-width: 920px;
+}
+
+.pricing-card {
+  flex: 1;
+  background: #fff;
+  border: 1px solid #d9d6ce;
+  border-radius: 20px;
+  padding: 36px 28px;
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+.pricing-card.popular {
+  border-color: #181714;
+  position: relative;
+}
+
+.pricing-card.popular::before {
+  content: "MOST POPULAR";
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #181714;
+  color: #f6f4ef;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  padding: 4px 20px;
+  border-radius: 9999px;
+}
+
+.pricing-icon {
+  width: 48px;
+  height: 48px;
+  background: #f6f4ef;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  margin-bottom: 16px;
+}
+
+.pricing-card h3 {
+  font-size: 28px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.pricing-subtitle {
+  font-size: 15px;
+  color: #9a978e;
+  margin-bottom: 16px;
+}
+
+.price {
+  font-size: 42px;
+  font-weight: 700;
+  letter-spacing: -2px;
+  margin-bottom: 4px;
+}
+
+.price span {
+  font-size: 18px;
+  font-weight: 400;
+  color: #9a978e;
+}
+
+.cancel-text {
+  font-size: 13px;
+  color: #9a978e;
+  margin-bottom: 28px;
+}
+
+/* Clean feature list - NO layered white box */
+.pricing-card ul {
+  list-style: none;
+  text-align: left;
+  margin-bottom: 32px;
+  flex: 1;
+}
+
+.pricing-card li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+  font-size: 15px;
+}
+
+.pricing-card li:last-child {
+  margin-bottom: 0;
+}
+
+.pricing-card .bi-check-circle-fill {
+  color: #10b981;
+  font-size: 18px;
+}
+
+.btn-primary {
+  margin-top: auto;
+  width: 100%;
+  height: 56px;
+  background: #181714;
+  color: #f6f4ef;
+  border: none;
+  border-radius: 9999px;
+  font-size: 18px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+  transform: scale(1.03);
+}
+
+/* Navigation */
+.footer-nav {
+  padding: 24px 40px;
+  border-top: 1px solid #d9d6ce;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.step-number {
+  font-size: 15px;
+  color: #9a978e;
+  font-weight: 500;
+}
+
+.btn-continue {
+  background: #181714;
+  color: #f6f4ef;
+  border: none;
+  padding: 16px 40px;
+  border-radius: 9999px;
+  font-size: 18px;
+  font-weight: 600;
+  cursor: pointer;
+}

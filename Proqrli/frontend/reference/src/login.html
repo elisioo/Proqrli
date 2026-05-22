@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ProcurLi - Login</title>
+    <link rel="stylesheet" href="login_style.css" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
+    <!-- <link rel="stylesheet" href="procurli-design-system.css" /> -->
+  </head>
+  <body>
+    <div class="wrap">
+      <!-- ── Left: Form ── -->
+      <div class="left">
+        <div class="logo">
+        
+          <a href="/src/procurli-landing.html">
+            <img
+              src="../logo/logo.png"
+              alt="ProcqrLi Logo"
+              style="width: 100px; height: auto"
+            />
+          </a>
+        </div>
+
+        <h1>Welcome back</h1>
+        <h5 class="sub">Sign in to your procurement workspace.</h5>
+
+        <div class="field">
+          <label class="field-label" for="email">Work email</label>
+          <input
+            type="email"
+            id="email"
+            placeholder="you@company.com"
+            autocomplete="email"
+          />
+        </div>
+
+        <div class="field">
+          <label class="field-label" for="password">Password</label>
+          <input
+            type="password"
+            id="password"
+            placeholder="••••••••••"
+            autocomplete="current-password"
+          />
+        </div>
+
+        <div class="options-row">
+          <label class="check-label">
+            <input type="checkbox" /> Remember me
+          </label>
+          <button class="forgot-btn">Forgot password?</button>
+        </div>
+
+        <button class="btn-primary">Sign in</button>
+
+        <div class="divider">
+          <div class="divider-line"></div>
+          <span class="divider-text">OR</span>
+          <div class="divider-line"></div>
+        </div>
+
+        <button class="btn-sso">
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 20 20"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <rect
+              x="2"
+              y="2"
+              width="7"
+              height="7"
+              rx="1"
+              fill="#9A978E"
+              opacity="0.65"
+            />
+            <rect
+              x="11"
+              y="2"
+              width="7"
+              height="7"
+              rx="1"
+              fill="#9A978E"
+              opacity="0.65"
+            />
+            <rect
+              x="2"
+              y="11"
+              width="7"
+              height="7"
+              rx="1"
+              fill="#9A978E"
+              opacity="0.65"
+            />
+            <rect
+              x="11"
+              y="11"
+              width="7"
+              height="7"
+              rx="1"
+              fill="#9A978E"
+              opacity="0.65"
+            />
+          </svg>
+          Login with SSO
+        </button>
+        <button class="btn-sso">
+         <i class="bi bi-google"></i>
+            <rect
+              x="2"
+              y="2"
+              width="7"
+              height="7"
+              rx="1"
+              fill="#9A978E"
+              opacity="0.65"
+            />
+            <rect
+              x="11"
+              y="2"
+              width="7"
+              height="7"
+              rx="1"
+              fill="#9A978E"
+              opacity="0.65"
+            />
+            <rect
+              x="2"
+              y="11"
+              width="7"
+              height="7"
+              rx="1"
+              fill="#9A978E"
+              opacity="0.65"
+            />
+            <rect
+              x="11"
+              y="11"
+              width="7"
+              height="7"
+              rx="1"
+              fill="#9A978E"
+              opacity="0.65"
+            />
+          </svg>
+          Continue with Google
+        </button>
+
+        <p class="signup">No account? <a href="/src/register.html">Create an account here →</a></p>
+      </div>
+
+      <!-- ── Right: Brand panel ── -->
+      <div class="right">
+        <!-- Subtle grid overlay -->
+        <svg
+          class="grid-bg"
+          viewBox="0 0 500 800"
+          preserveAspectRatio="xMidYMid slice"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <defs>
+            <pattern
+              id="grid"
+              width="30"
+              height="30"
+              patternUnits="userSpaceOnUse"
+            >
+              <path
+                d="M30 0 L0 0 0 30"
+                fill="none"
+                stroke="white"
+                stroke-width="0.6"
+              />
+            </pattern>
+          </defs>
+          <rect width="500" height="800" fill="url(#grid)" />
+        </svg>
+
+          <!-- Gradient smoke overlay -->
+          <div class="smoke-gradient"></div>
+
+        <div class="right-inner">
+          <div class="brand-top">
+            ProcqrLi &middot; Procurement, reimagined.
+          </div>
+
+          <div class="right-bottom">
+
+            <div class="right-heading">
+             Make <span class="outline-text">smarter</span> decisions <br/><span class="outline-text">Connect</span> with the right vendors
+            </div>
+
+            <p class="right-body">
+              Manage vendors, track RFQs, and assess supply-chain risk, all in
+              one data-dense workspace built for industrial teams.
+            </p>
+          
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
