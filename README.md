@@ -186,3 +186,6 @@ This project demonstrates:
 ## Deployment Notes
 
 Build the frontend before publishing the ASP.NET Core app so the latest static assets are included. Configure production connection strings and service keys through environment variables, user secrets, or your hosting provider's secret management system rather than committing real credentials to source control.
+
+You can access the website here:
+https://proqrli.runasp.net/
